@@ -25,14 +25,14 @@ BarWidget {
     setupReady: ready
   }, { maxTitle: Number(root.setting("maxTitleChars", 28)) || 28 })
 
-  // With nothing loaded, offer the last book instead of showing nothing.
-  readonly property string barText: {
-    if (root.label.text !== "") return root.label.text
+  // The bar text is only shown while a book is actually playing; paused or idle is icon-only.
+  readonly property string barText: (service && service.playing === true) ? root.label.text : ""
+
+  // Icon tooltip: the playback summary, or an offer to continue the last book when idle.
+  readonly property string iconTip: {
+    if (hasBook) return root.label.tooltip
     var b = service ? service.lastBook : null
-    if (!b || !b.title) return ""
-    var max = Number(root.setting("maxTitleChars", 28)) || 28
-    var t = String(b.title)
-    return "Continue \u00B7 " + (t.length > max ? t.slice(0, max - 1) + "\u2026" : t)
+    return b && b.title ? "Continue: " + b.title : root.label.tooltip
   }
 
   readonly property string bookGlyph: "\uDB80\uDCBA" // nerd-font book icon, U+F00BA
@@ -106,7 +106,7 @@ BarWidget {
     // Glyph turns urgent when setup is needed; dims while paused.
     active: !root.ready
     dimmed: root.hasBook && root.paused
-    tooltipText: root.label.tooltip
+    tooltipText: root.iconTip
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.RightButton) root.openLibrary()
       else if (buttonCode === Qt.MiddleButton) root.togglePause()
