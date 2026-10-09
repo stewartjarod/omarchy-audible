@@ -1,0 +1,9 @@
+Sign-in server listening on 127.0.0.1:39457.
+Open this URL in a browser on THIS machine:
+
+  http://127.0.0.1:39457/0123456789abcdef0123456789abcdef/
+
+On a headless box, forward the port first, then open the URL on your laptop:
+  ssh -L 39457:localhost:39457 <user>@<this-host>
+
+Waiting up to 900s for the sign-in to complete… (press Ctrl-C to abort)

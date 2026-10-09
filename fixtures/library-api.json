@@ -1,0 +1,2074 @@
+{
+ "error": null,
+ "result": {
+  "items": [
+   {
+    "asin": "B0DTRR458T",
+    "title": "Never Ask for the Sale",
+    "subtitle": "Supercharge Your Business with the Power of Passionate Ambivalence",
+    "authors": [
+     {
+      "asin": "B0DBZQSHBJ",
+      "name": "Sue Heilbronner"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Sue Heilbronner"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51ozMq2TXvL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 511,
+    "release_date": "2025-09-09",
+    "purchase_date": "2025-11-04T16:25:23.271Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 30660
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2025-11-04T16:25:23.271Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Balance",
+    "merchandising_summary": "A tech leader and executive coach's actionable guide for anyone looking to supercharge their selling prowess and close the deal with authenticity and integrity. Sue Heilbronner launched an executive coaching, facilitation, and speaking solo",
+    "short_description": null
+   },
+   {
+    "asin": "B0C7WJXBRL",
+    "title": "$100M Leads",
+    "subtitle": "How to Get Strangers to Want to Buy Your Stuff",
+    "authors": [
+     {
+      "asin": "B099H3YM3R",
+      "name": "Alex Hormozi"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Alex Hormozi"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41P0BdphG7L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 361,
+    "release_date": "2023-08-20",
+    "purchase_date": "2025-08-10T12:54:23.579Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 24.0,
+     "time_remaining_seconds": 16461
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2025-08-10T12:54:23.579Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Acquisition.com LLC",
+    "merchandising_summary": "<p>You can get 2x, 10x, or 100x more leads than you currently are without changing anything about what you sell\u2026This book contains the playbooks that took me from sleeping on my gym floor to owning a multimillion-dollar portfolio of compani",
+    "short_description": null
+   },
+   {
+    "asin": "B0CQQCYBQH",
+    "title": "Sales Pitch",
+    "subtitle": "How to Craft a Story to Stand Out and Win",
+    "authors": [
+     {
+      "asin": "B07QX25H61",
+      "name": "April Dunford"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "April Dunford"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41FqaqDIJSL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 177,
+    "release_date": "2023-12-20",
+    "purchase_date": "2025-02-14T21:38:55.366Z",
+    "listening_status": {
+     "finished_at_timestamp": "2026-03-31T19:43:59.308Z",
+     "is_finished": false,
+     "percent_complete": 99.0,
+     "time_remaining_seconds": 106
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2025-02-14T21:38:55.366Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Twin Flames Studios, Page Two",
+    "merchandising_summary": "<p>World-renowned product positioning and marketing expert April Dunford knows that standing out in a crowded market is the key to getting sales....</p>",
+    "short_description": null
+   },
+   {
+    "asin": "B06XRN58LM",
+    "title": "Simply Said",
+    "subtitle": "Communicating Better at Work and Beyond",
+    "authors": [
+     {
+      "asin": "B00CQQXBTS",
+      "name": "Jay Sullivan"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Jay Sullivan"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41-jTdCEWqL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 346,
+    "release_date": "2017-03-21",
+    "purchase_date": "2024-12-30T04:40:15.958Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 79.0,
+     "time_remaining_seconds": 4359
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-12-30T04:40:15.958Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Audible Studios",
+    "merchandising_summary": "Simply Said is the essential handbook for business communication....",
+    "short_description": null
+   },
+   {
+    "asin": "0063207680",
+    "title": "How to Do the Work",
+    "subtitle": "Recognize Your Patterns, Heal from Your Past, and Create Your Self",
+    "authors": [
+     {
+      "asin": "B08DY9ZLJ5",
+      "name": "Dr. Nicole LePera"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Courtney Patterson"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51n3W96TP7L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 582,
+    "release_date": "2021-05-04",
+    "purchase_date": "2024-12-30T04:40:15.958Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 34920
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-12-30T04:40:15.958Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Harper",
+    "merchandising_summary": "#1 NEW YORK TIMES BESTSELLER \u00b7 INSTANT INTERNATIONAL BESTSELLER From Dr. Nicole LePera, creator of \"\"the holistic psychologist\"\"\u2014the online phenomenon with more than two million Instagram followers\u2014comes a revolutionary approach to healing ",
+    "short_description": null
+   },
+   {
+    "asin": "B077BG38NM",
+    "title": "Skin in the Game",
+    "subtitle": "Hidden Asymmetries in Daily Life",
+    "authors": [
+     {
+      "asin": "B000APVZ7W",
+      "name": "Nassim Nicholas Taleb"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Joe Ochman"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41eC68wVhUL._SL500_.jpg"
+    },
+    "series": [
+     {
+      "asin": "B07F6YRP5L",
+      "sequence": "",
+      "title": "Incerto",
+      "url": "/pd/Incerto-Audiobook/B07F6YRP5L"
+     }
+    ],
+    "runtime_length_min": 500,
+    "release_date": "2018-02-27",
+    "purchase_date": "2024-12-30T04:30:32.377Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 30000
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-12-30T04:30:32.377Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Random House Audio",
+    "merchandising_summary": "#1 NEW YORK TIMES BESTSELLER A bold work from the author of The Black Swan that challenges many of our long-held beliefs about risk and reward, politics and religion, finance and personal responsibility In his most provocative and practical",
+    "short_description": null
+   },
+   {
+    "asin": "B0189PX1RQ",
+    "title": "Deep Work",
+    "subtitle": "Rules for Focused Success in a Distracted World",
+    "authors": [
+     {
+      "asin": "B001IGNR0U",
+      "name": "Cal Newport"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Jeff Bottoms"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51CTJKORW7L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 464,
+    "release_date": "2016-01-05",
+    "purchase_date": "2024-12-30T04:30:32.377Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 27840
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-12-30T04:30:32.377Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Grand Central Publishing",
+    "merchandising_summary": "Millions of copies sold! The bestselling modern classic that sparked a worldwide conversation about the value of concentration\u2014and the true costs of fractured attention. \u201cI\u2019m handing you the answer to the overwhelm you feel, and his name is",
+    "short_description": null
+   },
+   {
+    "asin": "B09X2JF99Q",
+    "title": "Deploy Empathy",
+    "subtitle": "A Practical Guide to Interviewing Customers",
+    "authors": [
+     {
+      "asin": "B09B656XLL",
+      "name": "Michele Hansen"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Michele Hansen"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41E-tHTzXnL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 429,
+    "release_date": "2022-04-01",
+    "purchase_date": "2024-12-04T14:52:24.745Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 25740
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-12-04T14:52:24.745Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Dotsquare LLC",
+    "merchandising_summary": "<p><i>Deploy Empathy</i> will help you learn the skill of interviewing your customers\u2014learning to truly <i>listen</i> to them\u2014so that you can pull out their hidden needs, desires, and processes....</p>",
+    "short_description": null
+   },
+   {
+    "asin": "B085L1MKYX",
+    "title": "Obviously Awesome",
+    "subtitle": "How to Nail Product Positioning so Customers Get It, Buy It, Love It",
+    "authors": [
+     {
+      "asin": "B07QX25H61",
+      "name": "April Dunford"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "April Dunford"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41Vckk81M9L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 169,
+    "release_date": "2020-03-10",
+    "purchase_date": "2024-12-04T14:52:24.745Z",
+    "listening_status": {
+     "finished_at_timestamp": "2025-02-14T21:26:31.096Z",
+     "is_finished": true,
+     "percent_complete": 100.0,
+     "time_remaining_seconds": 0
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-12-04T14:52:24.745Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Ambient Press",
+    "merchandising_summary": "<p>You know your product is awesome, but does anybody else? Forget everything you thought you knew about positioning. Successfully connecting your product with consumers isn\u2019t a matter of following trends, comparing yourself to a competitio",
+    "short_description": null
+   },
+   {
+    "asin": "B015ELUYL4",
+    "title": "Slaughterhouse-Five",
+    "subtitle": null,
+    "authors": [
+     {
+      "asin": "B000APYE16",
+      "name": "Kurt Vonnegut"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "James Franco"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51AyV7rsScL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 313,
+    "release_date": "2015-11-03",
+    "purchase_date": "2024-12-04T14:52:24.745Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 18780
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-12-04T14:52:24.745Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Audible Studios",
+    "merchandising_summary": "Traumatized by the bombing of Dresden at the time he had been imprisoned, Pilgrim drifts through all events and history, sometimes deeply implicated, sometimes a witness....",
+    "short_description": null
+   },
+   {
+    "asin": "B00YN9XROA",
+    "title": "Breakfast of Champions",
+    "subtitle": null,
+    "authors": [
+     {
+      "asin": "B000APYE16",
+      "name": "Kurt Vonnegut"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "John Malkovich"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51VTN3JIszL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 387,
+    "release_date": "2015-06-23",
+    "purchase_date": "2024-12-04T14:52:24.745Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 23220
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-12-04T14:52:24.745Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Audible Studios",
+    "merchandising_summary": "Breakfast of Champions (1973) provides frantic, scattershot satire and a collage of Vonnegut's obsessions....",
+    "short_description": null
+   },
+   {
+    "asin": "B07HJ9NHHM",
+    "title": "I Am a Strange Loop",
+    "subtitle": null,
+    "authors": [
+     {
+      "asin": "B000AP5GCM",
+      "name": "Douglas R Hofstadter"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Greg Baglia"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51dsdFd9eGL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 1007,
+    "release_date": "2018-09-24",
+    "purchase_date": "2024-11-20T20:40:47.638Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 17.0,
+     "time_remaining_seconds": 50148
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-11-20T20:40:47.638Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "MultiPartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Basic Books",
+    "merchandising_summary": "One of our greatest philosophers and scientists of the mind examines where the self comes from \u2013 and how our selves can exist in the minds of others. \u201cI Am a Strange Loop\u202fis a work of rigorous thinking, but it\u2019s also an extraordinary tribut",
+    "short_description": null
+   },
+   {
+    "asin": "197733394X",
+    "title": "Celiac Disease",
+    "subtitle": "A Hidden Epidemic",
+    "authors": [
+     {
+      "asin": null,
+      "name": "Peter H.R. Green MD"
+     },
+     {
+      "asin": "B000APP7X0",
+      "name": "Rory Jones MS"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Jonathan Todd Ross"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51niJmUwlmL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 617,
+    "release_date": "2018-12-04",
+    "purchase_date": "2024-10-30T15:04:34.116Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 54.0,
+     "time_remaining_seconds": 17029
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-10-30T15:04:34.116Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Tantor Audio",
+    "merchandising_summary": "From Dr. Peter H. R. Green, internationally renowned expert on celiac disease and director of the Celiac Disease Center at Columbia University, and medical writer Rory Jones, this is the definitive book on celiac disease, one of the most un",
+    "short_description": null
+   },
+   {
+    "asin": "B08JJNTGNS",
+    "title": "Celiac Straight Talk",
+    "subtitle": null,
+    "authors": [
+     {
+      "asin": null,
+      "name": "Beyond Celiac"
+     }
+    ],
+    "narrators": null,
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41E+TpLDTJL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": null,
+    "release_date": "2021-06-23",
+    "purchase_date": "2024-10-30T14:14:28.000Z",
+    "listening_status": null,
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": false,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-10-30T14:14:28.000Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "PodcastParent",
+    "content_type": "Podcast",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": null,
+    "merchandising_summary": "Let's get real about living with celiac disease. The ups, the downs and the temptations. Hear real stories from real people with the autoimmune ...",
+    "short_description": null
+   },
+   {
+    "asin": "B07HS14W46",
+    "title": "F--k Your Feelings: Master Your Mind, Accomplish Anything and Become a More Significant Human",
+    "subtitle": null,
+    "authors": [
+     {
+      "asin": "B07B2ML98N",
+      "name": "Ryan Munsey"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Ryan Munsey"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51LtsFmdPML._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 555,
+    "release_date": "2018-10-04",
+    "purchase_date": "2024-09-29T16:01:09.147Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 80.0,
+     "time_remaining_seconds": 6660
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-09-29T16:01:09.147Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Strong House Press",
+    "merchandising_summary": "<p>Anyone looking to get in shape, anyone with a goal that isn't terrified of tough love - you need to listen to <i>F--k Your Feelings</i> - as soon as possible! In this audiobook you'll learn how to use personal <i>mind control techniques<",
+    "short_description": null
+   },
+   {
+    "asin": "B0CW23CC7L",
+    "title": "Not Till We Are Lost",
+    "subtitle": "Bobiverse, Book 5",
+    "authors": [
+     {
+      "asin": "B010ETTBJC",
+      "name": "Dennis E. Taylor"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Ray Porter"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51Lrwt49zdL._SL500_.jpg"
+    },
+    "series": [
+     {
+      "asin": "B01M1RDL6W",
+      "sequence": "5",
+      "title": "Bobiverse",
+      "url": "/pd/Bobiverse-Audiobook/B01M1RDL6W"
+     }
+    ],
+    "runtime_length_min": 701,
+    "release_date": "2024-09-05",
+    "purchase_date": "2024-09-05T07:06:22.416Z",
+    "listening_status": {
+     "finished_at_timestamp": "2024-10-09T03:37:42.280Z",
+     "is_finished": true,
+     "percent_complete": 99.0,
+     "time_remaining_seconds": 420
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-09-05T07:06:22.416Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Audible Originals",
+    "merchandising_summary": "<p>The Bobiverse is a different place in the aftermath of the Starfleet War, and the days of the Bobs gathering in one big happy moot are far behind. There\u2019s anti-Bob sentiment on multiple planets, the Skippies playing with an AI time bomb,",
+    "short_description": null
+   },
+   {
+    "asin": "B0CTJ3LJ51",
+    "title": "The Ultimate Positive Thinking Master Course",
+    "subtitle": "You Become What You Think About",
+    "authors": [
+     {
+      "asin": null,
+      "name": "Jim Rohn"
+     },
+     {
+      "asin": null,
+      "name": "Zig Ziglar"
+     },
+     {
+      "asin": null,
+      "name": "Wayne Dyer"
+     },
+     {
+      "asin": "B001H6OMRI",
+      "name": "Brian Tracy"
+     },
+     {
+      "asin": "B000APAMYE",
+      "name": "Napoleon Hill"
+     },
+     {
+      "asin": null,
+      "name": "Earl Nightingale"
+     },
+     {
+      "asin": null,
+      "name": "Denis Waitley"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Jim Rohn"
+     },
+     {
+      "asin": null,
+      "name": "Brian Tracy"
+     },
+     {
+      "asin": null,
+      "name": "Wayne Dyer"
+     },
+     {
+      "asin": null,
+      "name": "Zig Ziglar"
+     },
+     {
+      "asin": null,
+      "name": "Denis Waitley"
+     },
+     {
+      "asin": null,
+      "name": "Earl Nightingale"
+     },
+     {
+      "asin": null,
+      "name": "Joe Nuckols"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/413ncyKV2hL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 718,
+    "release_date": "2024-01-30",
+    "purchase_date": "2024-07-24T14:55:55.907Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 16.0,
+     "time_remaining_seconds": 36187
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-07-24T14:55:55.907Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Nightingale-Conant",
+    "merchandising_summary": "<p>Discover the power of positive thinking and take control of your thoughts with The Ultimate Positive Thinking Master Course....</p>",
+    "short_description": null
+   },
+   {
+    "asin": "B07SXBB3FS",
+    "title": "Indistractable",
+    "subtitle": "How to Control Your Attention and Choose Your Life",
+    "authors": [
+     {
+      "asin": "B00HJ8021I",
+      "name": "Nir Eyal"
+     },
+     {
+      "asin": "B08FPBZN89",
+      "name": "Julie Li"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Nir Eyal"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41bg11XnxiL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 315,
+    "release_date": "2019-08-06",
+    "purchase_date": "2024-07-24T14:55:55.907Z",
+    "listening_status": {
+     "finished_at_timestamp": "2025-05-28T04:01:07.559Z",
+     "is_finished": true,
+     "percent_complete": 100.0,
+     "time_remaining_seconds": 0
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-07-24T14:55:55.907Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Audible Studios",
+    "merchandising_summary": "<p>In <i>Indistractable</i>, Eyal reveals the hidden psychology driving us to distraction. He describes why solving the problem is not as simple as swearing off our devices: Abstinence is impractical and often makes us want more....</p>",
+    "short_description": null
+   },
+   {
+    "asin": "B09WY6Z8KD",
+    "title": "The Mountain Is You",
+    "subtitle": "Transforming Self-Sabotage into Self-Mastery",
+    "authors": [
+     {
+      "asin": "B00G4EQEFQ",
+      "name": "Brianna Wiest"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": "B0C9MC53XZ",
+      "name": "Stacey Glemboski"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41jiySKmibL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 344,
+    "release_date": "2022-04-01",
+    "purchase_date": "2024-07-17T15:30:43.418Z",
+    "listening_status": {
+     "finished_at_timestamp": "2024-07-23T19:14:18.225Z",
+     "is_finished": false,
+     "percent_complete": 48.0,
+     "time_remaining_seconds": 10732
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-07-17T15:30:43.418Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Thought Catalog Books",
+    "merchandising_summary": "<p> </p> <p>Coexisting but conflicting needs create self-sabotaging behaviors. This is why we resist efforts to change, often until they feel completely futile. But by extracting crucial insight from our most damaging habits, building emoti",
+    "short_description": null
+   },
+   {
+    "asin": "B01ELP3JV6",
+    "title": "It Didn't Start with You",
+    "subtitle": "How Inherited Family Trauma Shapes Who We Are and How to End the Cycle",
+    "authors": [
+     {
+      "asin": "B018X0OBNU",
+      "name": "Mark Wolynn"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Mark Wolynn"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41rZ1rxei1L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 1059,
+    "release_date": "2016-04-26",
+    "purchase_date": "2024-07-17T15:30:29.234Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 63540
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-07-17T15:30:29.234Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Penguin Audio",
+    "merchandising_summary": "A groundbreaking approach to transforming traumatic legacies passed down in families over generations, by an acclaimed expert in the field Depression. Anxiety. Chronic Pain. Phobias. Obsessive thoughts. The evidence is compelling: the roots",
+    "short_description": null
+   },
+   {
+    "asin": "B0CDZTDK4B",
+    "title": "The SaaS Playbook",
+    "subtitle": "Build a Multimillion-Dollar Startup Without Venture Capital",
+    "authors": [
+     {
+      "asin": "B00IYDS8XQ",
+      "name": "Rob Walling"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Rob Walling"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/411rquA36eL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 254,
+    "release_date": "2023-08-09",
+    "purchase_date": "2024-06-18T21:00:42.449Z",
+    "listening_status": {
+     "finished_at_timestamp": "2024-07-10T20:05:36.000Z",
+     "is_finished": true,
+     "percent_complete": 100.0,
+     "time_remaining_seconds": 0
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-06-18T21:00:42.449Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Rob Walling",
+    "merchandising_summary": "<p>With nearly two decades of experience as a serial entrepreneur, author, and investor, Rob Walling is one of the world's leading experts in SaaS. In this audiobook, he shares little-known strategies that have been battle-tested by some of",
+    "short_description": null
+   },
+   {
+    "asin": "1774580705",
+    "title": "The Advice Trap",
+    "subtitle": "Be Humble, Stay Curious & Change the Way You Lead Forever",
+    "authors": [
+     {
+      "asin": "B002QK41GQ",
+      "name": "Michael Bungay Stanier"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Michael Bungay Stanier"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51idMUsMlsL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 285,
+    "release_date": "2021-03-02",
+    "purchase_date": "2024-06-11T22:31:17.490Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 17100
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-06-11T22:31:17.490Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Page Two Books",
+    "merchandising_summary": "<p>From the author of the phenomenal best seller <i>The Coaching Habit </i>comes a book of advice...on how to give less advice.....</p>",
+    "short_description": null
+   },
+   {
+    "asin": "B0C7SPB3VZ",
+    "title": "The Staff Engineer's Path",
+    "subtitle": "A Guide for Individual Contributors Navigating Growth and Change",
+    "authors": [
+     {
+      "asin": "B09XH2DBQW",
+      "name": "Tanya Reilly"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Wendy Tremont King"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51sF8bn392L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 832,
+    "release_date": "2023-08-08",
+    "purchase_date": "2024-06-11T22:30:02.534Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 49920
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-06-11T22:30:02.534Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "MultiPartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Ascent Audio",
+    "merchandising_summary": "For years, companies have rewarded their most effective engineers with management positions. But treating management as the default path for an engineer with leadership ability doesn't serve the industry well\u2014or the engineer. The staff engi",
+    "short_description": null
+   },
+   {
+    "asin": "B0CFVZSP8B",
+    "title": "Software Architecture: The Hard Parts",
+    "subtitle": "Modern Trade-Off Analyses for Distributed Architectures",
+    "authors": [
+     {
+      "asin": "B001K7PMYQ",
+      "name": "Neal Ford"
+     },
+     {
+      "asin": "B0039T7ODK",
+      "name": "Mark Richards"
+     },
+     {
+      "asin": null,
+      "name": "Pramod Sadalage"
+     },
+     {
+      "asin": "B0B5SJKNNM",
+      "name": "Zhamak Dehghani"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Dena Dahilig"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51AmQMMRHnL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 773,
+    "release_date": "2023-08-29",
+    "purchase_date": "2024-06-11T22:26:07.180Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 46380
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-06-11T22:26:07.180Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "MultiPartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Ascent Audio",
+    "merchandising_summary": "There are no easy decisions in software architecture. Instead, there are many hard parts\u2014difficult problems or issues with no best practices\u2014that force you to choose among various compromises. With this book, you'll learn how to think criti",
+    "short_description": null
+   },
+   {
+    "asin": "B008O8964Q",
+    "title": "The Righteous Mind",
+    "subtitle": "Why Good People Are Divided by Politics and Religion",
+    "authors": [
+     {
+      "asin": "B001H6GAXW",
+      "name": "Jonathan Haidt"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Jonathan Haidt"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41hH2tFiSvL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 661,
+    "release_date": "2012-07-23",
+    "purchase_date": "2024-05-20T01:41:41.000Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 98.0,
+     "time_remaining_seconds": 793
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-05-20T01:41:41.000Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "MultiPartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Gildan Media, LLC",
+    "merchandising_summary": "Why can\u2019t our political leaders work together as threats loom and problems mount? Why do people so readily assume the worst about the motives of their fellow citizens? In The Righteous Mind, social psychologist Jonathan Haidt explores the o",
+    "short_description": null
+   },
+   {
+    "asin": "B0C82P8W17",
+    "title": "Uptime",
+    "subtitle": "A Practical Guide to Personal Productivity and Wellbeing",
+    "authors": [
+     {
+      "asin": "B0CPJRV6TR",
+      "name": "Laura Mae Martin"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Eleanor Caudill"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41t4dgWFAAL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 342,
+    "release_date": "2024-04-02",
+    "purchase_date": "2024-05-17T16:46:32.797Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 1.0,
+     "time_remaining_seconds": 20314
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-05-17T16:46:32.797Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Harper Business",
+    "merchandising_summary": "Google\u2019s Executive Productivity Advisor offers insights on how to make the \u201cnew way of work\u201d work for you, providing actionable steps to optimize your productivity, accomplish more, prevent burnout, and cultivate a harmonious work-life bala",
+    "short_description": null
+   },
+   {
+    "asin": "B0C9N1WLYL",
+    "title": "The Anxious Generation",
+    "subtitle": "How the Great Rewiring of Childhood Is Causing an Epidemic of Mental Illness",
+    "authors": [
+     {
+      "asin": "B001H6GAXW",
+      "name": "Jonathan Haidt"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Sean Pratt"
+     },
+     {
+      "asin": null,
+      "name": "Jonathan Haidt"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51HZfJEmi0L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 632,
+    "release_date": "2024-03-26",
+    "purchase_date": "2024-04-06T16:31:40.158Z",
+    "listening_status": {
+     "finished_at_timestamp": "2024-05-11T15:15:50.000Z",
+     "is_finished": true,
+     "percent_complete": 100.0,
+     "time_remaining_seconds": 0
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-04-06T16:31:40.158Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Penguin Audio",
+    "merchandising_summary": "THE ACCLAIMED #1 NEW YORK TIMES BESTSELLER with over two million copies sold A must-read for all parents: the generation-defining investigation into the collapse of youth mental health in the era of smartphones, social media, and big tech\u2014a",
+    "short_description": null
+   },
+   {
+    "asin": "B0C6YK4917",
+    "title": "Million Dollar Weekend",
+    "subtitle": "The Surprisingly Simple Way to Launch a 7-Figure Business in 48 Hours",
+    "authors": [
+     {
+      "asin": "B0C449P2SH",
+      "name": "Noah Kagan"
+     },
+     {
+      "asin": "B001KDF9NY",
+      "name": "Tahl Raz"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Noah Kagan"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41SO9dIN3JL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 273,
+    "release_date": "2024-01-30",
+    "purchase_date": "2024-03-29T19:51:35.642Z",
+    "listening_status": {
+     "finished_at_timestamp": "2024-05-17T16:51:13.000Z",
+     "is_finished": true,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 16380
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-03-29T19:51:35.642Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Penguin Audio",
+    "merchandising_summary": "AN INSTANT NEW YORK TIMES BESTSELLER The founder and CEO of AppSumo.com, Noah Kagan, knows how to launch a seven-figure business in a single weekend\u2014and he\u2019s done it seven times. Million Dollar Weekend will show you how. Now is the best tim",
+    "short_description": null
+   },
+   {
+    "asin": "B015CYJGXA",
+    "title": "Debt - Updated and Expanded",
+    "subtitle": "The First 5,000 Years",
+    "authors": [
+     {
+      "asin": "B001IQXM5K",
+      "name": "David Graeber"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Grover Gardner"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51udTwX1UxL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 1068,
+    "release_date": "2015-09-15",
+    "purchase_date": "2024-03-29T01:59:22.000Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 64080
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-03-29T01:59:22.000Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "MultiPartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Gildan Media, LLC",
+    "merchandising_summary": "Now in audio, the updated and expanded edition: David Graeber's \"fresh...fascinating...thought-provoking...and exceedingly timely\" (Financial Times) history of debt. Here, anthropologist David Graeber presents a stunning reversal of convent",
+    "short_description": null
+   },
+   {
+    "asin": "146908001X",
+    "title": "The Four Steps to the Epiphany",
+    "subtitle": null,
+    "authors": [
+     {
+      "asin": "B002IBT21M",
+      "name": "Steve Blank"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Graham Rowat"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51H7V9hFOpL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 555,
+    "release_date": "2020-08-18",
+    "purchase_date": "2024-03-29T01:58:40.000Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 33300
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-03-29T01:58:40.000Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Gildan Media",
+    "merchandising_summary": "The Four Steps to the Epiphany launched the lean start-up approach to new ventures. It was the first book to offer that start-ups are not smaller versions of large companies and that new ventures are different than existing ones. Start-ups ",
+    "short_description": null
+   },
+   {
+    "asin": "1541433890",
+    "title": "Dumb Luck and the Kindness of Strangers",
+    "subtitle": null,
+    "authors": [
+     {
+      "asin": "B000APBVVM",
+      "name": "John Gierach"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "David Colacci"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51xWp3HH+eL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 449,
+    "release_date": "2020-06-02",
+    "purchase_date": "2024-03-29T01:57:49.000Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 26940
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-03-29T01:57:49.000Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Tantor Media",
+    "merchandising_summary": "In his latest fresh and original collection, Gierach shows us why fly-fishing is the perfect antidote to everything that is wrong with the world. In Dumb Luck and the Kindness of Strangers, Gierach looks back to the long-ago day when he bou",
+    "short_description": null
+   },
+   {
+    "asin": "B014T9JEKO",
+    "title": "The Brain Fog Fix",
+    "subtitle": "Reclaim Your Focus, Memory, and Joy in Just 3 Weeks",
+    "authors": [
+     {
+      "asin": null,
+      "name": "Dr. Mike Dow"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Dr. Mike Dow"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41sHSf0IuIL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 463,
+    "release_date": "2015-09-15",
+    "purchase_date": "2024-03-29T01:57:22.000Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 27780
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-03-29T01:57:22.000Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Blackstone Audio, Inc.",
+    "merchandising_summary": "A new epidemic is sweeping the country. Some people call it ADHD, scatter brain, or brain fog. Some simply say they just don't feel like themselves - and haven't for a long time. People are thinking and feeling worse than ever. Why? Because",
+    "short_description": null
+   },
+   {
+    "asin": "B08D9TXF3H",
+    "title": "The Psychology of Money",
+    "subtitle": "Timeless Lessons on Wealth, Greed, and Happiness",
+    "authors": [
+     {
+      "asin": "B084ZNV1LR",
+      "name": "Morgan Housel"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Chris Hill"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51JbmSSWlUL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 353,
+    "release_date": "2020-09-08",
+    "purchase_date": "2024-03-03T18:03:47.504Z",
+    "listening_status": {
+     "finished_at_timestamp": "2024-04-06T16:46:01.000Z",
+     "is_finished": true,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 21180
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-03-03T18:03:47.504Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Harriman House",
+    "merchandising_summary": "Morgan Housel uses 19 real-life examples to explore the myriad ways people think about money\u2014and explains how listeners can think more effectively.",
+    "short_description": null
+   },
+   {
+    "asin": "B0BZB9BZ5G",
+    "title": "The 16 Undeniable Laws of Communication",
+    "subtitle": "Apply Them and Make the Most of Your Message",
+    "authors": [
+     {
+      "asin": "B001H6NROC",
+      "name": "John Maxwell"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "John Maxwell"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41auROaRR9L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 537,
+    "release_date": "2023-03-28",
+    "purchase_date": "2024-02-21T03:19:53.555Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 52.0,
+     "time_remaining_seconds": 15465
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-02-21T03:19:53.555Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Maxwell Leadership",
+    "merchandising_summary": "Never Be Afraid to Speak to a Group Again It\u2019s been said that public speaking is the number one fear of most people, with death being second. \u201cThis means,\u201d said comedian Jerry Seinfeld, \u201cif you have to be at a funeral, you would rather be i",
+    "short_description": null
+   },
+   {
+    "asin": "B0BSMHXQNB",
+    "title": "AI and Machine Learning for Coders",
+    "subtitle": "A Programmer's Guide to Artificial Intelligence",
+    "authors": [
+     {
+      "asin": "B001ILFKMS",
+      "name": "Laurence Moroney"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Timothy Howard Jackson"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51-fn5YYb7L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 557,
+    "release_date": "2023-01-24",
+    "purchase_date": "2024-02-21T03:19:53.555Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 33420
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-02-21T03:19:53.555Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Ascent Audio",
+    "merchandising_summary": "If you're looking to make a career move from programmer to AI specialist, this is the ideal place to start. Based on Laurence Moroney's extremely successful AI courses, this introductory book provides a hands-on, code-first approach to help",
+    "short_description": null
+   },
+   {
+    "asin": "B0833FMYH9",
+    "title": "The Pragmatic Programmer: 20th Anniversary Edition, 2nd Edition",
+    "subtitle": "Your Journey to Mastery",
+    "authors": [
+     {
+      "asin": null,
+      "name": "David Thomas"
+     },
+     {
+      "asin": "B001HMRWA6",
+      "name": "Andrew Hunt"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Anna Katarina"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/51A8l+FxFNL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 595,
+    "release_date": "2019-12-26",
+    "purchase_date": "2024-02-21T03:19:53.555Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 35700
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-02-21T03:19:53.555Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "David Thomas",
+    "merchandising_summary": "<p>Dave Thomas and Andy Hunt wrote the first edition of this influential book in 1999 to help their clients create better software and rediscover the joy of coding. These lessons have helped a generation of programmers examine the very esse",
+    "short_description": null
+   },
+   {
+    "asin": "0062965778",
+    "title": "Leading with Gratitude",
+    "subtitle": "Eight Leadership Practices for Extraordinary Business Results",
+    "authors": [
+     {
+      "asin": "B00JLAX278",
+      "name": "Adrian Gostick"
+     },
+     {
+      "asin": "B001H6WCT8",
+      "name": "Chester Elton"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Adrian Gostick"
+     },
+     {
+      "asin": null,
+      "name": "Chester Elton"
+     },
+     {
+      "asin": null,
+      "name": "Marshall Goldsmith"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41IU9AMQ1UL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 350,
+    "release_date": "2020-03-10",
+    "purchase_date": "2024-02-21T03:19:53.555Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 21000
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2024-02-21T03:19:53.555Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Harper Business",
+    "merchandising_summary": "The influential New York Times bestselling authors\u2014the \u201capostles of appreciation\u201d Chester Elton and Adrian Gostick\u2014provide managers and executives with easy ways to add more gratitude to the everyday work environment to help bolster moral, ",
+    "short_description": null
+   },
+   {
+    "asin": "B07622TL7W",
+    "title": "Rise",
+    "subtitle": "3 Practical Steps for Advancing Your Career, Standing Out as a Leader, and Liking Your Life",
+    "authors": [
+     {
+      "asin": "B004EZM3B6",
+      "name": "Patty Azzarello"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Patty Azzarello"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41FcgJ5jQdL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 639,
+    "release_date": "2017-10-03",
+    "purchase_date": "2023-12-25T04:36:46.318Z",
+    "listening_status": {
+     "finished_at_timestamp": "2026-03-31T22:58:01.907Z",
+     "is_finished": false,
+     "percent_complete": 16.0,
+     "time_remaining_seconds": 32205
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2023-12-25T04:36:46.318Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Patty Azzarello",
+    "merchandising_summary": "A straight-shooting Silicon Valley executive reveals insider career strategies to becoming a great leader, developing your network, succeeding without wasting time, and managing trade-offs....",
+    "short_description": null
+   },
+   {
+    "asin": "B0CDMS8Q6M",
+    "title": "The Art of Alignment",
+    "subtitle": "A Practical Guide to Inclusive Leadership",
+    "authors": [
+     {
+      "asin": "B08P2R8LJ5",
+      "name": "Patty Beach"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Valerie Cline"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41kA5iTtXEL._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 250,
+    "release_date": "2023-08-03",
+    "purchase_date": "2023-11-30T01:35:01.161Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 15000
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2023-11-30T01:35:01.161Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "LeadershipSmarts",
+    "merchandising_summary": "<p>Pragmatic, thought-provoking, and thoroughly useful, <i>The Art of Alignment</i> offers real-life stories, proven principles, and actionable advice. This step-by-step guide explains how to introduce new ideas and get any group of any siz",
+    "short_description": null
+   },
+   {
+    "asin": "B09XZGNP41",
+    "title": "Continuous Discovery Habits",
+    "subtitle": "Discover Products That Create Customer Value and Business Value",
+    "authors": [
+     {
+      "asin": "B094Q5BF2W",
+      "name": "Teresa Torres"
+     }
+    ],
+    "narrators": [
+     {
+      "asin": null,
+      "name": "Teresa Torres"
+     }
+    ],
+    "product_images": {
+     "500": "https://m.media-amazon.com/images/I/41pTFNi3b5L._SL500_.jpg"
+    },
+    "series": null,
+    "runtime_length_min": 429,
+    "release_date": "2022-04-15",
+    "purchase_date": "2023-11-30T01:35:01.161Z",
+    "listening_status": {
+     "finished_at_timestamp": null,
+     "is_finished": false,
+     "percent_complete": 0.0,
+     "time_remaining_seconds": 25740
+    },
+    "percent_complete": null,
+    "is_finished": null,
+    "is_listenable": true,
+    "is_playable": null,
+    "status": "Active",
+    "library_status": {
+     "date_added": "2023-11-30T01:35:01.161Z",
+     "is_pending": null,
+     "is_preordered": null,
+     "is_removable": null,
+     "is_visible": null
+    },
+    "content_delivery_type": "SinglePartBook",
+    "content_type": "Product",
+    "is_archived": null,
+    "language": "english",
+    "publisher_name": "Product Talk LLC",
+    "merchandising_summary": "<p>In this audiobook, you'll learn a structured and sustainable approach to continuous discovery that will help you answer each of these questions, giving you the confidence to act while also preparing you to be wrong....</p>",
+    "short_description": null
+   }
+  ],
+  "response_groups": [
+   "product_desc",
+   "always-returned",
+   "product_extended_attrs",
+   "contributors",
+   "listening_status",
+   "series",
+   "media",
+   "product_attrs"
+  ]
+ },
+ "warnings": []
+}

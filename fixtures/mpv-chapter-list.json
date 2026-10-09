@@ -1,0 +1,54 @@
+{
+ "data": [
+  {
+   "title": "Chapter 1",
+   "time": 0.0
+  },
+  {
+   "title": "Chapter 2",
+   "time": 130.309977
+  },
+  {
+   "title": "Chapter 3",
+   "time": 532.014966
+  },
+  {
+   "title": "Chapter 4",
+   "time": 604.692971
+  },
+  {
+   "title": "Chapter 5",
+   "time": 782.000998
+  },
+  {
+   "title": "Chapter 6",
+   "time": 1105.315964
+  },
+  {
+   "title": "Chapter 7",
+   "time": 1502.562993
+  },
+  {
+   "title": "Chapter 8",
+   "time": 1617.222993
+  },
+  {
+   "title": "Chapter 9",
+   "time": 1824.762993
+  },
+  {
+   "title": "Chapter 10",
+   "time": 2196.792971
+  },
+  {
+   "title": "Chapter 11",
+   "time": 2606.160998
+  },
+  {
+   "title": "Chapter 12",
+   "time": 2672.755964
+  }
+ ],
+ "request_id": 0,
+ "error": "success"
+}

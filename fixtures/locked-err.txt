@@ -1,0 +1,1 @@
+Error: account "jarod" is locked (password_source = prompt) — unlock it with `audible account unlock -a jarod`

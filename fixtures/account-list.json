@@ -1,0 +1,14 @@
+{
+  "error": null,
+  "result": [
+    {
+      "auth_file": "encrypted",
+      "default": "*",
+      "default_mp": "us",
+      "marketplaces": "us",
+      "name": "jarod",
+      "password_source": "command"
+    }
+  ],
+  "warnings": []
+}
