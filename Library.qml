@@ -59,6 +59,7 @@ Item {
     root.statusText = root.groupSeries ? "Showing every book separately." : "Grouping books by series."
   }
 
+  readonly property real trackpadGain: (root.service && root.service.trackpadGain > 0) ? root.service.trackpadGain : 2.5
   readonly property real wheelRows: (root.service && root.service.scrollRows > 0) ? root.service.scrollRows : 0.5
   readonly property string statusFilter: (root.service && root.service.filterMode) ? root.service.filterMode : "all"
   onStatusFilterChanged: root.rebuild()
@@ -581,16 +582,25 @@ Item {
                 target: null
                 acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
                 onWheel: function(event) {
-                  var rowH = root.isGrid ? root.cellHeight : root.listRowHeight
-                  var step = event.pixelDelta.y !== 0 ? event.pixelDelta.y * 1.5
-                    : (event.angleDelta.y / 120) * rowH * (root.isGrid ? root.wheelRows : 3)
+                  var r = Lib.wheelStep({
+                    pixelY: event.pixelDelta.y, angleY: event.angleDelta.y,
+                    rowHeight: root.isGrid ? root.cellHeight : root.listRowHeight,
+                    rows: root.wheelRows, grid: root.isGrid, trackpadGain: root.trackpadGain
+                  })
                   var minY = resultView.originY
                   var maxY = resultView.originY + Math.max(0, resultView.contentHeight - resultView.height)
-                  var base = wheelAnim.running ? wheelAnim.to : resultView.contentY
                   resultView.cancelFlick()
-                  wheelAnim.stop()
-                  wheelAnim.to = Math.max(minY, Math.min(maxY, base - step))
-                  wheelAnim.restart()
+                  if (r.animate) {
+                    // mouse wheel: glide, and let quick notches queue up
+                    var base = wheelAnim.running ? wheelAnim.to : resultView.contentY
+                    wheelAnim.stop()
+                    wheelAnim.to = Math.max(minY, Math.min(maxY, base - r.dy))
+                    wheelAnim.restart()
+                  } else {
+                    // trackpad: move with the fingers, no animation to lag behind them
+                    wheelAnim.stop()
+                    resultView.contentY = Math.max(minY, Math.min(maxY, resultView.contentY - r.dy))
+                  }
                   event.accepted = true
                 }
               }

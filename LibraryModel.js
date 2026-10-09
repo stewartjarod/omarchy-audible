@@ -309,6 +309,26 @@ function recency(b) {
 }
 
 
+// ---- scrolling ---------------------------------------------------------------
+// Turn one wheel event into a scroll distance (px, positive = towards the top).
+//  - mouse wheel notch (|angleY| >= 120): rowHeight * rows (grid) or 3 rows (list) per notch, animated
+//  - precise / trackpad events (pixelY, or a fraction of a notch): follow the fingers directly (no
+//    animation, so there is no trailing lag), with a gain that grows with swipe speed so a quick
+//    flick covers real ground over 250 px rows.
+function wheelStep(o) {
+  var opt = isObj(o) ? o : {}
+  var px = num(opt.pixelY, 0)
+  var ang = num(opt.angleY, 0)
+  var rowH = Math.max(1, num(opt.rowHeight, 100))
+  var perNotch = rowH * (opt.grid ? num(opt.rows, 0.5) : 3)
+  if (px !== 0) {
+    var gain = num(opt.trackpadGain, 2.5)
+    return { dy: px * gain * (1 + Math.min(2.5, Math.abs(px) / 12)), animate: false }
+  }
+  if (ang === 0) return { dy: 0, animate: false }
+  return { dy: (ang / 120) * perNotch, animate: Math.abs(ang) >= 120 }
+}
+
 // ---- series ------------------------------------------------------------------
 // Books that share a series (two or more owned) can be collapsed into one tile that opens a view of
 // just that series. A "series tile" is a Book-shaped object with isSeries: true, so rows, cursor
@@ -638,7 +658,7 @@ function formatMeta(book) {
   return parts.join(" · ")
 }
 
-if (typeof module !== "undefined") module.exports = { seriesTitleOf, seriesKeyOf, seriesNumber, sortSeriesMembers, seriesIndex, nextUp, seriesTile, seriesSections, byStatus, recency,
+if (typeof module !== "undefined") module.exports = { wheelStep, seriesTitleOf, seriesKeyOf, seriesNumber, sortSeriesMembers, seriesIndex, nextUp, seriesTile, seriesSections, byStatus, recency,
   parseApiPage: parseApiPage,
   normalize: normalize,
   merge: merge,

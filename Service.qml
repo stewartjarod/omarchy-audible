@@ -24,6 +24,7 @@ Item {
   readonly property int skipSeconds: Math.round(num("skipSeconds", 30))
   // "normal" is roughly half the download size of "high" (about 64 vs 128 kbps): a faster first listen.
   readonly property string downloadQuality: (settings && settings.downloadQuality === "normal") ? "normal" : "high"
+  readonly property real trackpadGain: num("libraryTrackpadSpeed", 2.5)   // library grid: trackpad scroll multiplier
   readonly property real scrollRows: num("libraryScrollRows", 0.5)   // library grid: rows scrolled per wheel notch
   readonly property int volumeStep: Math.round(num("volumeStep", 5))
   readonly property int volumeMax: 130   // mpv's default ceiling (100 = unchanged)

@@ -1038,3 +1038,44 @@ test("cursorOf falls back to the first book when the selection is hidden by a co
   const rows = L.buildRows([{ id: "continue", title: "C", books: nBooks(10) }], 4, { limits: { continue: 4 } })
   assert.deepEqual(L.cursorOf(rows, "B9"), { row: 1, col: 0 })
 })
+
+// ---------------------------------------------------------------------- wheel / trackpad scrolling
+
+test("wheelStep: one mouse notch is half a grid row, animated; three rows in a list", () => {
+  assert.deepEqual(L.wheelStep({ angleY: 120, rowHeight: 260, rows: 0.5, grid: true }), { dy: 130, animate: true })
+  assert.deepEqual(L.wheelStep({ angleY: -120, rowHeight: 260, rows: 0.5, grid: true }), { dy: -130, animate: true })
+  assert.deepEqual(L.wheelStep({ angleY: 120, rowHeight: 50, grid: false }), { dy: 150, animate: true })
+})
+
+test("wheelStep: the rows-per-notch setting scales a notch", () => {
+  assert.equal(L.wheelStep({ angleY: 120, rowHeight: 200, rows: 1, grid: true }).dy, 200)
+  assert.equal(L.wheelStep({ angleY: 240, rowHeight: 200, rows: 0.25, grid: true }).dy, 100)
+})
+
+test("wheelStep: trackpad (pixel) events follow the fingers with a speed-dependent gain, never animated", () => {
+  const slow = L.wheelStep({ pixelY: 3, rowHeight: 260, grid: true })
+  const fast = L.wheelStep({ pixelY: 30, rowHeight: 260, grid: true })
+  assert.equal(slow.animate, false)
+  assert.equal(fast.animate, false)
+  assert.ok(slow.dy > 3 * 2.5 - 0.001)                 // at least the base gain
+  assert.ok(fast.dy / 30 > slow.dy / 3)                // a faster swipe is boosted more per pixel
+  assert.ok(fast.dy / 30 <= 2.5 * 3.5 + 0.001)         // and the boost is capped
+  assert.equal(L.wheelStep({ pixelY: -10, rowHeight: 260, grid: true }).dy, -L.wheelStep({ pixelY: 10, rowHeight: 260, grid: true }).dy)
+})
+
+test("wheelStep: the trackpad gain is adjustable", () => {
+  const a = L.wheelStep({ pixelY: 10, trackpadGain: 1 }).dy
+  const b = L.wheelStep({ pixelY: 10, trackpadGain: 4 }).dy
+  assert.ok(Math.abs(b / a - 4) < 1e-9)
+})
+
+test("wheelStep: fractional notches (smooth wheels) scroll proportionally without animation", () => {
+  const r = L.wheelStep({ angleY: 30, rowHeight: 240, rows: 0.5, grid: true })
+  assert.equal(r.dy, 30)                                // a quarter notch of 120
+  assert.equal(r.animate, false)
+})
+
+test("wheelStep: nothing in, nothing out", () => {
+  assert.deepEqual(L.wheelStep({}), { dy: 0, animate: false })
+  assert.deepEqual(L.wheelStep(null), { dy: 0, animate: false })
+})
