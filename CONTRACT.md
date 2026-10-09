@@ -242,3 +242,12 @@ output should react; keep it simple: react if `opened` is false).
 
 See `fixtures/README.md`. Nothing in `fixtures/` may be edited by agents. If a fixture seems wrong
 or missing, say so in your final report instead of inventing data.
+
+## Corrections (integrator, after agents were briefed)
+
+- `service.resume` is the resume-positions **object**. The command is `service.resumePlayback()`
+  (the contract text above said `resume()`; do not call that). `pause()` is as written.
+- The bar widget must push its `settings` into the Service: `service.applySettings(root.settings)`
+  (call it on `onSettingsChanged` and when the service becomes non-null).
+- The Service hosts `Library.qml` itself through a Loader (no overlay manifest kind), so the library's
+  window must open/close from `service.libraryOpen`.

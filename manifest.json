@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "jarod.audible",
+  "name": "Audible",
+  "version": "0.1.0",
+  "author": "jarod",
+  "license": "MIT",
+  "description": "Listen to your Audible books from the Omarchy bar: guided setup, a searchable library, chapters, progress, time left, and playback speed up to 3x and beyond.",
+  "kinds": [
+    "service",
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Audible",
+    "description": "Audiobook player: title, time left, speed. Click for chapters and progress.",
+    "category": "Media",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "speedStep": 0.1,
+      "speedMin": 0.5,
+      "speedMax": 3.5,
+      "skipSeconds": 30,
+      "maxTitleChars": 28
+    },
+    "schema": [
+      {
+        "key": "speedStep",
+        "type": "number",
+        "label": "Speed step",
+        "min": 0.05,
+        "max": 0.5,
+        "step": 0.05,
+        "defaultValue": 0.1,
+        "description": "How much one speed up/down press or scroll notch changes the playback speed."
+      },
+      {
+        "key": "speedMin",
+        "type": "number",
+        "label": "Slowest speed",
+        "min": 0.25,
+        "max": 1,
+        "step": 0.05,
+        "defaultValue": 0.5
+      },
+      {
+        "key": "speedMax",
+        "type": "number",
+        "label": "Fastest speed",
+        "min": 1,
+        "max": 5,
+        "step": 0.25,
+        "defaultValue": 3.5,
+        "description": "Upper limit for the speed control. Pitch is corrected, so voices stay natural."
+      },
+      {
+        "key": "skipSeconds",
+        "type": "integer",
+        "label": "Skip length (seconds)",
+        "min": 5,
+        "max": 300,
+        "step": 5,
+        "defaultValue": 30
+      },
+      {
+        "key": "maxTitleChars",
+        "type": "integer",
+        "label": "Longest title in the bar",
+        "min": 8,
+        "max": 80,
+        "step": 2,
+        "defaultValue": 28
+      }
+    ]
+  }
+}
