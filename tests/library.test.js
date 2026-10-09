@@ -106,6 +106,11 @@ test("normalize maps the first fixture item exactly", () => {
     remainingSec: 30660,
     finished: false,
     finishedAt: 0,
+    description: "A tech leader and executive coach's actionable guide for anyone looking to supercharge their selling prowess and close the deal with authenticity and integrity. Sue Heilbronner launched an executive coaching, facilitation, and speaking solo",
+    publisher: "Balance",
+    rating: 0,
+    ratingCount: 0,
+    format: "",
     listenable: true,
     releaseDate: "2025-09-09",
     purchaseDate: "2025-11-04T16:25:23.271Z",
@@ -1078,4 +1083,86 @@ test("wheelStep: fractional notches (smooth wheels) scroll proportionally withou
 test("wheelStep: nothing in, nothing out", () => {
   assert.deepEqual(L.wheelStep({}), { dy: 0, animate: false })
   assert.deepEqual(L.wheelStep(null), { dy: 0, animate: false })
+})
+
+// ------------------------------------------------------------------------ details page
+
+test("stripHtml: publisher HTML becomes plain paragraphs", () => {
+  assert.equal(L.stripHtml("<b>Bold start.</b><br /><br /> Next &amp; last &quot;quoted&quot; &#39;x&#39;"), "Bold start.\n\nNext & last \"quoted\" 'x'")
+  assert.equal(L.stripHtml("<p>One</p><p>Two</p>"), "One\n\nTwo")
+  assert.equal(L.stripHtml(null), "")
+})
+
+test("clipText: shortens on a word boundary with an ellipsis; short text is untouched", () => {
+  assert.equal(L.clipText("short text", 100), "short text")
+  const long = ("word ").repeat(50).trim()
+  const out = L.clipText(long, 60)
+  assert.ok(out.length <= 61 && out.endsWith("\u2026") && !out.includes("wor\u2026"))
+})
+
+test("normalize: description prefers the plain summary, falls back to stripped HTML; rating and publisher", () => {
+  const a = L.normalize({ asin: "A", title: "A", merchandising_summary: "Plain summary.", publisher_summary: "<b>HTML</b>" })
+  assert.equal(a.description, "Plain summary.")
+  const b = L.normalize({ asin: "B", title: "B", publisher_summary: "<b>HTML</b><br/>text" })
+  assert.equal(b.description, "HTML\ntext")
+  const r = L.normalize({ asin: "R", title: "R", publisher_name: "Pub", format_type: "unabridged",
+    rating: { overall_distribution: { average_rating: 4.833, num_ratings: 6 } } })
+  assert.deepEqual([r.publisher, r.rating, r.ratingCount, r.format], ["Pub", 4.833, 6, "Unabridged"])
+})
+
+test("detailFacts: ordered, skips empty values, handles series number and counts", () => {
+  const facts = L.detailFacts(book({
+    authors: ["A One", "B Two"], narrators: ["N One"], series: { title: "Cantos", sequence: "2" }, runtimeSec: 27000,
+    releaseDate: "2022-03-01", publisher: "Pub", rating: 4.5, ratingCount: 1, format: "Unabridged", playCount: 2
+  }))
+  assert.deepEqual(facts.map(f => f.label), ["Authors", "Narrator", "Series", "Length", "Released", "Publisher", "Rating", "Format", "Listened"])
+  assert.equal(facts.find(f => f.label === "Series").value, "Book 2 of Cantos")
+  assert.equal(facts.find(f => f.label === "Length").value, "7h 30m")
+  assert.equal(facts.find(f => f.label === "Rating").value, "4.5 \u2605  (1 rating)")
+  assert.equal(facts.find(f => f.label === "Listened").value, "2 times")
+  assert.deepEqual(L.detailFacts(book({})).map(f => f.label), ["Length"])
+})
+
+test("detailFacts: an unnumbered series just shows its name", () => {
+  const f = L.detailFacts(book({ series: { title: "Incerto", sequence: "" } }))
+  assert.equal(f.find(x => x.label === "Series").value, "Incerto")
+})
+
+test("detailActions: primary says Play / Continue / Listen again / Resume / Pause", () => {
+  assert.equal(L.detailActions(book({}), { local: true }).primary.label, "Play")
+  assert.equal(L.detailActions(book({ percentComplete: 46 }), { local: true }).primary.label, "Continue \u00B7 46%")
+  assert.equal(L.detailActions(book({ finished: true }), { local: true }).primary.label, "Listen again")
+  assert.equal(L.detailActions(book({}), { local: true, isCurrent: true, isPlaying: true }).primary.label, "Pause")
+  assert.equal(L.detailActions(book({}), { local: true, isCurrent: true, isPlaying: false }).primary.label, "Resume")
+  assert.equal(L.detailActions(book({}), { local: true, isCurrent: true }).primary.id, "toggle")
+})
+
+test("detailActions: a book that is not downloaded says it downloads first", () => {
+  const a = L.detailActions(book({ runtimeSec: 3600 }), { local: false, mb: 55 })
+  assert.equal(a.primary.id, "play")
+  assert.match(a.hint, /Downloads first \(about 55 MB\)/)
+  assert.equal(a.download.id, "download")
+  assert.equal(a.download.label, "Download \u00B7 55 MB")
+  assert.equal(L.detailActions(book({}), { local: true }).hint, "")
+})
+
+test("detailActions: download button reflects download state", () => {
+  const act = (dl, extra) => L.detailActions(book({}), Object.assign({ local: false, mb: 10, dl }, extra)).download
+  assert.deepEqual(act({ state: "downloading", fraction: 0.42 }), { id: "none", label: "Downloading 42%", enabled: false })
+  assert.deepEqual(act({ state: "queued" }), { id: "none", label: "Queued", enabled: false })
+  assert.deepEqual(act({ state: "failed" }), { id: "download", label: "Retry download", enabled: true })
+  assert.deepEqual(act(null, { local: true }), { id: "remove", label: "Delete download", enabled: true })
+  assert.equal(act(null, { local: true, isCurrent: true }).enabled, false)   // cannot delete what is loaded
+})
+
+test("detailActions: unavailable books cannot be played or downloaded", () => {
+  const a = L.detailActions(book({ listenable: false }), { local: false })
+  assert.equal(a.primary.enabled, false)
+  assert.equal(a.download.enabled, false)
+})
+
+test("detailActions: finish button toggles with finishedHere", () => {
+  assert.deepEqual(L.detailActions(book({}), {}).finish, { id: "finish", label: "Mark finished", enabled: true })
+  assert.equal(L.detailActions(book({ finished: true }), {}).finish.label, "Count another listen")
+  assert.deepEqual(L.detailActions(book({ finishedHere: true, finished: true }), {}).finish, { id: "unfinish", label: "Undo finished", enabled: true })
 })

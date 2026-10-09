@@ -535,7 +535,7 @@ Item {
     libraryError = ""
     run(["audible", "api", "GET", "/1.0/library",
          "--query", "num_results=1000",
-         "--query", "response_groups=contributors,product_desc,product_attrs,media,listening_status,series",
+         "--query", "response_groups=contributors,product_desc,product_attrs,media,listening_status,series,rating",
          "--query", "sort_by=-PurchaseDate", "-o", "json"],
       function(code, out, err) {
         libraryLoading = false
@@ -890,6 +890,7 @@ Item {
     function setVolume(v: real): void { root.setVolume(v) }
     function stepVolume(dir: int): void { root.stepVolume(dir) }
     function toggleMute(): void { root.toggleMute() }
+    function openDetail(asin: string): void { if (libraryLoader.item && libraryLoader.item.openDetail) libraryLoader.item.openDetail(root.bookFor(asin)) }
     function askRemove(asin: string): void { if (libraryLoader.item && libraryLoader.item.askRemove) libraryLoader.item.askRemove(root.bookFor(asin)) }
     function markFinished(asin: string): string { return root.markFinished(asin) }
     function unmarkFinished(asin: string): string { return root.unmarkFinished(asin) }

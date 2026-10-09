@@ -65,6 +65,11 @@ function namesOf(list) {
   return out
 }
 
+function ratingOf(raw) {
+  var d = isObj(raw) && isObj(raw.overall_distribution) ? raw.overall_distribution : {}
+  return { average: num(d.average_rating, 0), count: Math.max(0, Math.floor(num(d.num_ratings, 0))) }
+}
+
 function seriesOf(raw) {
   var list = Array.isArray(raw) ? raw : (isObj(raw) ? [raw] : [])
   for (var i = 0; i < list.length; i++) {
@@ -152,6 +157,11 @@ function normalize(item) {
     finished: !!finished,
     listenable: item.is_listenable !== false,
     releaseDate: str(item.release_date),
+    description: describe(item),
+    publisher: str(item.publisher_name),
+    rating: ratingOf(item.rating).average,
+    ratingCount: ratingOf(item.rating).count,
+    format: item.format_type ? str(item.format_type).charAt(0).toUpperCase() + str(item.format_type).slice(1) : "",
     purchaseDate: str(item.purchase_date) || str(lib && lib.date_added),
     // Local state, filled by merge().
     local: false,
@@ -308,6 +318,92 @@ function recency(b) {
   return Math.max(toMs(b.lastListenedAt), toMs(b.finishedAt))
 }
 
+
+
+// ---- book details --------------------------------------------------------------
+
+// Audible's publisher summary is HTML ("<b>..</b><br /><br />..."): turn it into plain paragraphs.
+function stripHtml(html) {
+  var s = str(html)
+  s = s.replace(/<\s*br\s*\/?\s*>/gi, "\n").replace(/<\/\s*(p|div|li|h[1-6])\s*>/gi, "\n\n")
+  s = s.replace(/<[^>]*>/g, "")
+  s = s.replace(/&nbsp;/gi, " ").replace(/&amp;/gi, "&").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, "\"").replace(/&#0*39;|&apos;/gi, "'").replace(/&rsquo;/gi, "\u2019").replace(/&ldquo;|&rdquo;/gi, "\"")
+  s = s.replace(/[ \t]+/g, " ").replace(/ *\n */g, "\n").replace(/\n{3,}/g, "\n\n")
+  return s.replace(/^\s+|\s+$/g, "")
+}
+
+// Cut to about `max` characters on a word boundary, adding an ellipsis.
+function clipText(text, max) {
+  var s = str(text)
+  var limit = Math.max(20, Math.floor(num(max, 1500)))
+  if (s.length <= limit) return s
+  var cut = s.slice(0, limit)
+  var sp = cut.lastIndexOf(" ")
+  return (sp > limit * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,.;:]+$/, "") + "\u2026"
+}
+
+function describe(item) {
+  var plain = str(item.merchandising_summary).trim()
+  return clipText(plain !== "" ? stripHtml(plain) : stripHtml(item.publisher_summary), 1500)
+}
+
+// Ordered label/value facts for the details page. Empty ones are left out.
+function detailFacts(book) {
+  var b = isObj(book) ? book : {}
+  var out = []
+  var add = function (label, value) { if (str(value) !== "") out.push({ label: label, value: str(value) }) }
+  var authors = Array.isArray(b.authors) ? b.authors : []
+  var narrators = Array.isArray(b.narrators) ? b.narrators : []
+  add(authors.length > 1 ? "Authors" : "Author", authors.join(", "))
+  add(narrators.length > 1 ? "Narrators" : "Narrator", narrators.join(", "))
+  if (isObj(b.series) && str(b.series.title) !== "") {
+    var n = parseFloat(str(b.series.sequence))
+    add("Series", (isFinite(n) ? "Book " + str(b.series.sequence).trim() + " of " : "") + b.series.title)
+  }
+  add("Length", formatRuntime(b.runtimeSec))
+  add("Released", b.releaseDate)
+  add("Publisher", b.publisher)
+  if (num(b.rating, 0) > 0) {
+    var c = Math.floor(num(b.ratingCount, 0))
+    add("Rating", num(b.rating, 0).toFixed(1) + " \u2605" + (c > 0 ? "  (" + c + (c === 1 ? " rating)" : " ratings)") : ""))
+  }
+  add("Format", b.format)
+  if (num(b.playCount, 0) > 0) add("Listened", b.playCount === 1 ? "once" : b.playCount + " times")
+  return out
+}
+
+// What the details page's buttons should say and do.
+//  ctx: { local, dl: {state, fraction}|null, isCurrent, isPlaying, resumeSec, mb }
+function detailActions(book, ctx) {
+  var b = isObj(book) ? book : {}
+  var c = isObj(ctx) ? ctx : {}
+  var listenable = b.listenable !== false
+  var dl = isObj(c.dl) ? c.dl : null
+  var busy = !!dl && (dl.state === "queued" || dl.state === "downloading")
+  var pct = Math.round(num(b.percentComplete, 0))
+  var started = !b.finished && (pct > 0 || num(c.resumeSec, 0) > 0)
+  var primary
+  if (!listenable) primary = { id: "none", label: "Not available on your plan", enabled: false }
+  else if (c.isCurrent) primary = { id: "toggle", label: c.isPlaying ? "Pause" : "Resume", enabled: true }
+  else if (b.finished) primary = { id: "play", label: "Listen again", enabled: true }
+  else if (started) primary = { id: "play", label: pct > 0 ? "Continue \u00B7 " + pct + "%" : "Continue", enabled: true }
+  else primary = { id: "play", label: "Play", enabled: true }
+  var hint = ""
+  if (primary.id === "play" && !c.local) hint = busy ? "Downloading first\u2026" : "Downloads first (about " + Math.max(1, Math.floor(num(c.mb, 0))) + " MB), then plays."
+
+  var download
+  if (!listenable) download = { id: "none", label: "Download", enabled: false }
+  else if (c.local) download = { id: "remove", label: "Delete download", enabled: !c.isCurrent }
+  else if (dl && dl.state === "downloading") download = { id: "none", label: "Downloading " + Math.round(num(dl.fraction, 0) * 100) + "%", enabled: false }
+  else if (dl && dl.state === "queued") download = { id: "none", label: "Queued", enabled: false }
+  else if (dl && dl.state === "failed") download = { id: "download", label: "Retry download", enabled: true }
+  else download = { id: "download", label: "Download \u00B7 " + Math.max(1, Math.floor(num(c.mb, 0))) + " MB", enabled: true }
+
+  var finish = b.finishedHere ? { id: "unfinish", label: "Undo finished", enabled: true }
+    : { id: "finish", label: b.finished ? "Count another listen" : "Mark finished", enabled: true }
+  return { primary: primary, download: download, finish: finish, hint: hint }
+}
 
 // ---- scrolling ---------------------------------------------------------------
 // Turn one wheel event into a scroll distance (px, positive = towards the top).
@@ -658,7 +754,7 @@ function formatMeta(book) {
   return parts.join(" · ")
 }
 
-if (typeof module !== "undefined") module.exports = { wheelStep, seriesTitleOf, seriesKeyOf, seriesNumber, sortSeriesMembers, seriesIndex, nextUp, seriesTile, seriesSections, byStatus, recency,
+if (typeof module !== "undefined") module.exports = { stripHtml, clipText, describe, detailFacts, detailActions, wheelStep, seriesTitleOf, seriesKeyOf, seriesNumber, sortSeriesMembers, seriesIndex, nextUp, seriesTile, seriesSections, byStatus, recency,
   parseApiPage: parseApiPage,
   normalize: normalize,
   merge: merge,

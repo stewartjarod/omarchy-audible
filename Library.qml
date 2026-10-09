@@ -22,6 +22,40 @@ Item {
   readonly property bool continueExpanded: root.service ? root.service.continueExpanded === true : false
   onContinueExpandedChanged: root.rebuild()
 
+  // The details page for one book (opened by a click or Enter; Play is on that page).
+  property string detailAsin: ""
+  readonly property var detailBook: root.detailAsin !== "" ? (root.bookByAsin[root.detailAsin] || null) : null
+
+  function openDetail(book) {
+    if (!book) return
+    if (book.isSeries) { root.openSeriesView(book); return }
+    root.statusText = ""
+    root.detailAsin = book.asin
+  }
+
+  function closeDetail() {
+    root.detailAsin = ""
+    root.statusText = ""
+    keyCatcher.forceActiveFocus()
+  }
+
+  function detailAction(id) {
+    var book = root.detailBook
+    if (!book) return
+    root.statusText = ""
+    if (id === "play") root.playBook(book)
+    else if (id === "toggle") { if (root.service) root.service.togglePause() }
+    else if (id === "download") root.downloadBook(book)
+    else if (id === "remove") root.askRemove(book)
+    else if (id === "finish") root.markFinishedBook(book, false)
+    else if (id === "unfinish") root.markFinishedBook(book, true)
+    else if (id === "series") {
+      var title = book.series ? book.series.title : ""
+      root.closeDetail()
+      if (title) root.openSeriesView({ asin: "series:" + Lib.seriesKeyOf(book), title: title })
+    }
+  }
+
   // A series view replaces the grid with just that series' books (Esc / Backspace goes back).
   property string openSeries: ""
   property string seriesReturnAsin: ""
@@ -167,6 +201,7 @@ Item {
   function open(payloadJson) {
     root.openSeries = ""
     root.seriesReturnAsin = ""
+    root.detailAsin = ""
     if (root.opened) return
     root.opened = true
     root.query = ""
@@ -362,6 +397,18 @@ Item {
       id: card
       anchors.fill: parent
 
+      BookDetail {
+        id: detailView
+        anchors.fill: parent
+        z: 50
+        visible: root.detailBook !== null
+        book: root.detailBook
+        service: root.service
+        note: root.statusText
+        onBackRequested: root.closeDetail()
+        onActivated: function(id) { root.detailAction(id) }
+      }
+
       ConfirmDialog {
         id: removeDialog
         anchors.fill: parent
@@ -395,6 +442,8 @@ Item {
         Keys.onPressed: function(event) {
           // The delete dialog is modal: it gets every key until it closes.
           if (removeDialog.opened) { removeDialog.handleKey(event); event.accepted = true; return }
+          // So is the details page.
+          if (root.detailBook !== null) { detailView.handleKey(event); event.accepted = true; return }
 
           // While setup is needed, Onboarding owns the keyboard.
           if (!root.ready) return
@@ -440,7 +489,9 @@ Item {
           } else if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
             root.toggleView(); event.accepted = true
           } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            root.playBook(root.selectedBook()); event.accepted = true
+            if (event.modifiers & Qt.ShiftModifier) root.playBook(root.selectedBook())
+            else root.openDetail(root.selectedBook())
+            event.accepted = true
           } else if (ctrl && event.key === Qt.Key_F) {
             root.cycleFilter(); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_G) {
@@ -969,7 +1020,7 @@ Item {
                         onContainsMouseChanged: if (containsMouse) root.selectAsin(tile.book.asin)
                         onClicked: {
                           root.selectAsin(tile.book.asin)
-                          root.playBook(tile.book)
+                          root.openDetail(tile.book)
                         }
                       }
                     }
@@ -1053,7 +1104,7 @@ Item {
             textFormat: Text.PlainText
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
-            text: "Enter play/open · Ctrl+D download · Ctrl+X delete · Ctrl+M finished · Ctrl+F filter · Ctrl+G series · Ctrl+E more · Ctrl+S sort: " + (root.sortMode === "recent" ? "last played" : "added") + " · Tab view · Esc"
+            text: "Enter details · Shift+Enter play · Ctrl+D download · Ctrl+X delete · Ctrl+M finished · Ctrl+F filter · Ctrl+G series · Ctrl+E more · Ctrl+S sort: " + (root.sortMode === "recent" ? "last played" : "added") + " · Tab view · Esc"
             color: root.muted
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
