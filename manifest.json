@@ -25,7 +25,8 @@
       "speedMin": 0.5,
       "speedMax": 3.5,
       "skipSeconds": 30,
-      "maxTitleChars": 28
+      "maxTitleChars": 28,
+      "volumeStep": 5
     },
     "schema": [
       {
@@ -65,6 +66,16 @@
         "max": 300,
         "step": 5,
         "defaultValue": 30
+      },
+      {
+        "key": "volumeStep",
+        "type": "integer",
+        "label": "Volume step",
+        "min": 1,
+        "max": 25,
+        "step": 1,
+        "defaultValue": 5,
+        "description": "How much one volume key press changes this app's volume. Only affects the audiobook player, not your system volume."
       },
       {
         "key": "maxTitleChars",

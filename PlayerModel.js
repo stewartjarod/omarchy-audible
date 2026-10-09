@@ -127,6 +127,30 @@ function chapterProgress(chapter, position) {
 }
 
 // Clamp a speed into [min, max]. Non-numbers become 1 before clamping.
+// ---- volume (mpv's own scale: 100 = unchanged, up to 130 by default) ----------
+
+function clampVolume(v, min, max) {
+  var lo = num(min, 0), hi = num(max, 130)
+  if (hi < lo) { var t = lo; lo = hi; hi = t }
+  return Math.min(hi, Math.max(lo, Math.round(num(v, 100))))
+}
+
+// Next volume on the step grid (default 5), dir > 0 up, dir < 0 down. Always whole numbers.
+function stepVolume(vol, dir, opts) {
+  var o = opts || {}
+  var step = num(o.step, 5)
+  if (!(step > 0)) step = 5
+  var min = num(o.min, 0), max = num(o.max, 130)
+  var cur = clampVolume(vol, min, max)
+  var k = cur / step
+  var next = dir > 0 ? (Math.floor(k + 1e-9) + 1) * step : dir < 0 ? (Math.ceil(k - 1e-9) - 1) * step : cur
+  return clampVolume(next, min, max)
+}
+
+function formatVolume(v, muted) {
+  return muted ? "muted" : clampVolume(v, 0, 1000) + "%"
+}
+
 function clampSpeed(x, min, max) {
   var lo = num(min, 0.5)
   var hi = num(max, 3)
@@ -244,6 +268,9 @@ if (typeof module !== "undefined") module.exports = {
   chapterProgress: chapterProgress,
   stepSpeed: stepSpeed,
   clampSpeed: clampSpeed,
+  clampVolume: clampVolume,
+  stepVolume: stepVolume,
+  formatVolume: formatVolume,
   formatSpeed: formatSpeed,
   chapterTicks: chapterTicks,
   seekTarget: seekTarget,

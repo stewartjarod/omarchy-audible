@@ -133,6 +133,13 @@ Panel {
   function nextChapter() { if (service && hasBook) service.nextChapter() }
   function prevChapter() { if (service && hasBook) service.prevChapter() }
   function stepSpeed(dir) { if (service) service.stepSpeed(dir) }
+  readonly property real volume: Number(svc("volume", 100))
+  readonly property bool muted: svc("muted", false) === true
+  readonly property int volumeStep: Math.max(1, Math.round(Number(svc("volumeStep", 5)) || 5))
+  readonly property int volumeMax: Math.max(100, Math.round(Number(svc("volumeMax", 130)) || 130))
+  function stepVolume(dir) { if (service) service.stepVolume(dir) }
+  function toggleMute() { if (service) service.toggleMute() }
+  function setVolumeFromSlider(v) { if (service) service.setVolume(v) }
 
   function seekAt(x) {
     if (!service || !hasBook || duration <= 0 || progressTrack.width <= 0) return
@@ -172,6 +179,9 @@ Panel {
     else if (t === "p") prevChapter()
     else if (t === "[" || t === "-" || t === "_") stepSpeed(-1)
     else if (t === "]" || t === "+" || t === "=") stepSpeed(1)
+    else if (t === "9") stepVolume(-1)
+    else if (t === "0") stepVolume(1)
+    else if (t === "m") toggleMute()
     else if (t === "o") openLibrary()
     else handled = false
 
@@ -511,6 +521,78 @@ Panel {
             onMoved: function(v) { root.setSpeedFromSlider(v) }
             onReleased: function(v) { root.setSpeedFromSlider(v) }
           }
+
+          // -- volume (this app only; the system volume is untouched) -------
+          Item {
+            width: parent.width
+            height: volumeValue.implicitHeight
+
+            Text {
+              anchors.left: parent.left
+              anchors.verticalCenter: parent.verticalCenter
+              text: "VOLUME"
+              textFormat: Text.PlainText
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+              font.letterSpacing: 1.2
+            }
+
+            Row {
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(8)
+
+              PanelActionButton {
+                iconText: "−"
+                tooltipText: "Quieter (9)"
+                fontFamily: root.fontFamily
+                foreground: root.foreground
+                fontSize: Style.font.body
+                onClicked: root.stepVolume(-1)
+              }
+              Text {
+                id: volumeValue
+                width: Style.space(56)
+                horizontalAlignment: Text.AlignHCenter
+                anchors.verticalCenter: parent.verticalCenter
+                text: Model.formatVolume(root.volume, root.muted)
+                textFormat: Text.PlainText
+                color: root.muted ? root.dim : root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.subtitle
+                font.bold: true
+              }
+              PanelActionButton {
+                iconText: "+"
+                tooltipText: "Louder (0)"
+                fontFamily: root.fontFamily
+                foreground: root.foreground
+                fontSize: Style.font.body
+                onClicked: root.stepVolume(1)
+              }
+              PanelActionButton {
+                iconText: root.muted ? "unmute" : "mute"
+                tooltipText: "Mute (m)"
+                fontFamily: root.fontFamily
+                foreground: root.foreground
+                fontSize: Style.font.caption
+                onClicked: root.toggleMute()
+              }
+            }
+          }
+
+          PanelSlider {
+            width: parent.width
+            bar: root.bar
+            value: root.muted ? 0 : root.volume
+            minimum: 0
+            maximum: root.volumeMax
+            step: root.volumeStep
+            onMoved: function(v) { root.setVolumeFromSlider(v) }
+            onReleased: function(v) { root.setVolumeFromSlider(v) }
+          }
         }
 
         // -- chapters -------------------------------------------------------
@@ -770,7 +852,7 @@ Panel {
         Text {
           width: parent.width
           text: root.hasBook
-            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · o library · esc"
+            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · o library · esc"
             : "o library · esc close"
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap

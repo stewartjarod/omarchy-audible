@@ -628,3 +628,41 @@ test("formatDuration and formatSpeed never return NaN text", () => {
     assert.doesNotMatch(P.formatSpeed(v), /NaN|undefined|Infinity/)
   }
 })
+
+// ---- volume -------------------------------------------------------------------
+
+test("stepVolume moves on a 5-point grid and snaps odd values", () => {
+  assert.equal(P.stepVolume(80, 1), 85)
+  assert.equal(P.stepVolume(80, -1), 75)
+  assert.equal(P.stepVolume(82, 1), 85)    // snaps up to the next notch
+  assert.equal(P.stepVolume(82, -1), 80)   // and down to the previous one
+  assert.equal(P.stepVolume(100, 0), 100)
+})
+
+test("stepVolume clamps to 0..130 by default and honours custom limits", () => {
+  assert.equal(P.stepVolume(0, -1), 0)
+  assert.equal(P.stepVolume(130, 1), 130)
+  assert.equal(P.stepVolume(128, 1), 130)
+  assert.equal(P.stepVolume(50, 1, { step: 10, max: 60 }), 60)
+  assert.equal(P.stepVolume(55, 1, { step: 10, max: 60 }), 60)
+  assert.equal(P.stepVolume(50, -1, { step: 10, min: 40 }), 40)
+})
+
+test("stepVolume survives junk input", () => {
+  assert.equal(P.stepVolume(undefined, 1), 105)
+  assert.equal(P.stepVolume("abc", -1), 95)
+  assert.equal(P.stepVolume(50, 1, { step: -3 }), 55)
+})
+
+test("clampVolume rounds to whole numbers and clamps", () => {
+  assert.equal(P.clampVolume(49.6), 50)
+  assert.equal(P.clampVolume(-5), 0)
+  assert.equal(P.clampVolume(999), 130)
+  assert.equal(P.clampVolume(null), 100)
+})
+
+test("formatVolume shows a percent, or muted", () => {
+  assert.equal(P.formatVolume(75, false), "75%")
+  assert.equal(P.formatVolume(75, true), "muted")
+  assert.equal(P.formatVolume(100.4, false), "100%")
+})

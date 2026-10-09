@@ -22,6 +22,8 @@ Item {
   readonly property real speedMin: num("speedMin", 0.5)
   readonly property real speedMax: Math.max(speedMin, num("speedMax", 3.5))
   readonly property int skipSeconds: Math.round(num("skipSeconds", 30))
+  readonly property int volumeStep: Math.round(num("volumeStep", 5))
+  readonly property int volumeMax: 130   // mpv's default ceiling (100 = unchanged)
 
   // ---- paths --------------------------------------------------------------
   readonly property string home: Quickshell.env("HOME")
@@ -52,6 +54,8 @@ Item {
   property real position: 0
   property real duration: 0
   property real speed: 1.0
+  property real volume: 100   // mpv's per-app volume (not the system volume)
+  property bool muted: false
   property var rawChapters: []
   property string asin: ""
 
@@ -152,6 +156,7 @@ Item {
       var s = JSON.parse(text)
       if (s.viewMode === "grid" || s.viewMode === "list") viewMode = s.viewMode
       if (s.sort === "recent" || s.sort === "added") sortMode = s.sort
+      if (Number(s.volume) >= 0) volume = Player.clampVolume(Number(s.volume), 0, volumeMax)
       if (Number(s.speed) > 0) speed = Player.clampSpeed(Number(s.speed), speedMin, speedMax)
       if (s.resume && typeof s.resume === "object") resume = s.resume
       if (s.last && typeof s.last === "string") lastAsin = s.last
@@ -170,7 +175,7 @@ Item {
     id: saveTimer
     interval: 1500
     onTriggered: {
-      var body = JSON.stringify({ version: 1, viewMode: root.viewMode, sort: root.sortMode, speed: root.speed, resume: root.resume, last: root.lastAsin })
+      var body = JSON.stringify({ version: 1, viewMode: root.viewMode, sort: root.sortMode, volume: root.volume, speed: root.speed, resume: root.resume, last: root.lastAsin })
       root.run(["mkdir", "-p", root.stateDir], function() { stateFile.setText(body) })
     }
   }
@@ -243,7 +248,7 @@ Item {
   }
 
   function onMpvConnected() {
-    var props = ["pause", "speed", "chapter-list", "duration", "path", "idle-active", "media-title"]
+    var props = ["pause", "speed", "chapter-list", "duration", "path", "idle-active", "media-title", "volume", "mute"]
     for (var i = 0; i < props.length; i++) mpvSend(["observe_property", i + 1, props[i]])
   }
 
@@ -273,6 +278,8 @@ Item {
       case "path": path = m.data ? String(m.data) : ""; asin = asinFromPath(path); break
       case "idle-active": idle = m.data === true; break
       case "media-title": mediaTitle = m.data ? String(m.data) : ""; break
+      case "volume": if (typeof m.data === "number") { volume = m.data; saveSoon() } break
+      case "mute": muted = m.data === true; break
       }
     } else if (m.event === "file-loaded") {
       loading = false
@@ -323,6 +330,18 @@ Item {
   function stepSpeed(dir) {
     setSpeed(Player.stepSpeed(speed, dir, { step: speedStep, min: speedMin, max: speedMax }))
   }
+  function setVolume(v) {
+    var x = Player.clampVolume(Number(v), 0, volumeMax)
+    volume = x
+    mpvSend(["set_property", "volume", x])
+    if (x > 0 && muted) mpvSend(["set_property", "mute", false])
+    saveSoon()
+  }
+  function stepVolume(dir) {
+    setVolume(Player.stepVolume(volume, dir, { step: volumeStep, min: 0, max: volumeMax }))
+  }
+  function toggleMute() { mpvSend(["cycle", "mute"]) }
+
   function stop() {
     rememberPosition()
     mpvSend(["stop"])
@@ -348,7 +367,7 @@ Item {
     if (hasBook && asin === a) { resumePlayback(); return }
     loading = true
     var start = Math.max(0, Math.floor(resumePosition(a) - 5))   // back up a few seconds
-    run(["audible-play", file, "--start", String(start), "--speed", String(speed)], function(code, out, err) {
+    run(["audible-play", file, "--start", String(start), "--speed", String(speed), "--volume", String(Math.round(volume))], function(code, out, err) {
       if (code !== 0) {
         loading = false
         setupLog = "Could not start playback: " + String(err || out).split("\n")[0]
@@ -719,7 +738,7 @@ Item {
       return JSON.stringify({
         state: root.setup ? root.setup.state : "checking",
         ready: root.ready,
-        hasBook: root.hasBook, playing: root.playing, paused: root.paused,
+        hasBook: root.hasBook, playing: root.playing, paused: root.paused, volume: root.volume, muted: root.muted,
         asin: root.asin, title: root.title,
         position: root.position, duration: root.duration, speed: root.speed,
         chapterIndex: root.chapterIndex, chapters: root.chapters.length,
@@ -739,6 +758,9 @@ Item {
     function pause(): void { root.pause() }
     function setSpeed(x: real): void { root.setSpeed(x) }
     function stepSpeed(dir: int): void { root.stepSpeed(dir) }
+    function setVolume(v: real): void { root.setVolume(v) }
+    function stepVolume(dir: int): void { root.stepVolume(dir) }
+    function toggleMute(): void { root.toggleMute() }
     function seekBy(sec: real): void { root.seekBy(sec) }
     function next(): void { root.nextChapter() }
     function prev(): void { root.prevChapter() }
