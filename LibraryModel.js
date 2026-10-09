@@ -206,6 +206,7 @@ function merge(books, local) {
   var localAsins = isObj(L.localAsins) ? L.localAsins : {}
   var downloads = isObj(L.downloads) ? L.downloads : {}
   var resume = isObj(L.resume) ? L.resume : {}
+  var plays = isObj(L.plays) ? L.plays : {}
   var list = Array.isArray(books) ? books : []
   var out = []
   for (var i = 0; i < list.length; i++) {
@@ -224,6 +225,15 @@ function merge(books, local) {
     copy.download = download
     copy.resumeSec = isObj(r) ? Math.max(0, num(r.position, 0)) : 0
     copy.lastListenedAt = isObj(r) ? toMs(r.updatedAt) : 0
+
+    // Full listens. Our own count wins; a book Audible says is finished counts as one listen.
+    var p = plays[asin]
+    var ours = isObj(p) ? Math.max(0, Math.floor(num(p.count, 0))) : 0
+    copy.playCount = ours > 0 ? ours : (copy.finished ? 1 : 0)
+    // Marked finished here and not listened to since: treat as finished (it leaves "Continue listening").
+    var finishedHere = ours > 0 && toMs(p.lastAt) >= copy.lastListenedAt
+    if (finishedHere) copy.finished = true
+    copy.finishedHere = finishedHere
     out.push(copy)
   }
   return out
@@ -276,6 +286,13 @@ function filter(books, query) {
   return scored.map(function (s) { return s.book })
 }
 
+// Library view filter: "downloaded" (on this computer), "cloud" (not downloaded, playable), else everything.
+function byStatus(list, mode) {
+  if (mode === "downloaded") return list.filter(function (b) { return !!b.local })
+  if (mode === "cloud") return list.filter(function (b) { return !b.local && b.listenable !== false })
+  return list
+}
+
 function isContinue(b) {
   return b.listenable !== false && !b.finished && (b.percentComplete > 0 || b.resumeSec > 0)
 }
@@ -292,7 +309,7 @@ function recency(b) {
 }
 
 function sections(books, opts) {
-  var list = Array.isArray(books) ? books.filter(isObj) : []
+  var list = byStatus(Array.isArray(books) ? books.filter(isObj) : [], opts && opts.status)
   var query = opts && opts.query
   if (tokens(query).length > 0) {
     var hits = filter(list, query)
@@ -464,7 +481,7 @@ function formatMeta(book) {
   return parts.join(" · ")
 }
 
-if (typeof module !== "undefined") module.exports = { recency,
+if (typeof module !== "undefined") module.exports = { byStatus, recency,
   parseApiPage: parseApiPage,
   normalize: normalize,
   merge: merge,

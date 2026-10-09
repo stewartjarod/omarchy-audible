@@ -16,6 +16,52 @@ Item {
 
   // ------------------------------------------------------------ service state
   readonly property bool ready: root.service ? !!root.service.ready : false
+  // Which books to show: all | downloaded (on this computer) | cloud (not downloaded yet).
+  readonly property string statusFilter: (root.service && root.service.filterMode) ? root.service.filterMode : "all"
+  onStatusFilterChanged: root.rebuild()
+  readonly property string filterLabel: statusFilter === "downloaded" ? "Downloaded"
+    : (statusFilter === "cloud" ? "Not downloaded" : "")
+  function cycleFilter() {
+    if (!root.service || typeof root.service.setFilterMode !== "function") return
+    var next = root.statusFilter === "all" ? "downloaded" : (root.statusFilter === "downloaded" ? "cloud" : "all")
+    root.service.setFilterMode(next)
+    root.statusText = next === "all" ? "Showing every book."
+      : (next === "downloaded" ? "Showing only books downloaded to this computer." : "Showing books that are not downloaded yet.")
+  }
+
+  // Removing a download needs a second press (Ctrl+X again, or click the badge again within 4 s).
+  property string confirmRemoveAsin: ""
+  Timer { id: confirmTimer; interval: 4000; onTriggered: root.confirmRemoveAsin = "" }
+
+  function removeBook(book) {
+    if (!book || !root.service) return
+    if (!root.isLocal(book.asin)) { root.statusText = "That book is not downloaded."; return }
+    if (root.confirmRemoveAsin === book.asin) {
+      confirmTimer.stop()
+      root.confirmRemoveAsin = ""
+      var err = root.service.removeDownload(book.asin)
+      root.statusText = err !== "" ? err : "Removed “" + book.title + "” from this computer. You can download it again any time."
+      return
+    }
+    var mb = Math.max(1, Math.round((Number(book.runtimeSec) || 0) * 16000 / 1048576))
+    root.confirmRemoveAsin = book.asin
+    confirmTimer.restart()
+    root.statusText = "Remove “" + book.title + "” from this computer (about " + mb + " MB)? Press Ctrl+X again to confirm. Your place and listen count are kept."
+  }
+
+  function markFinishedBook(book, undo) {
+    if (!book || !root.service) return
+    root.statusText = (undo ? root.service.unmarkFinished(book.asin) : root.service.markFinished(book.asin))
+  }
+
+  // The badge on a tile: download a book that is not here yet, or remove one that is.
+  function badgeAction(book) {
+    if (!book) return
+    root.selectAsin(book.asin)
+    if (root.isLocal(book.asin)) root.removeBook(book)
+    else root.downloadBook(book)
+  }
+
   readonly property string sortMode: (root.service && root.service.sortMode) ? root.service.sortMode : "recent"
   onSortModeChanged: root.rebuild()
   readonly property var books: (root.service && Array.isArray(root.service.books)) ? root.service.books : []
@@ -120,7 +166,7 @@ Item {
     var map = {}
     for (var i = 0; i < root.books.length; i++) map[root.books[i].asin] = root.books[i]
     root.bookByAsin = map
-    var secs = Lib.sections(root.books, { query: root.query, sort: root.sortMode })
+    var secs = Lib.sections(root.books, { query: root.query, sort: root.sortMode, status: root.statusFilter })
     var built = Lib.buildRows(secs, root.columns)
     root.rows = built
     root.cursor = root.selectedAsin ? Lib.cursorOf(built, root.selectedAsin) : Lib.firstCursor(built)
@@ -136,6 +182,7 @@ Item {
   }
 
   function selectAsin(asin) {
+    if (root.confirmRemoveAsin !== "" && root.confirmRemoveAsin !== asin) { confirmTimer.stop(); root.confirmRemoveAsin = "" }
     root.selectedAsin = asin
     root.cursor = Lib.cursorOf(root.rows, asin)
   }
@@ -301,6 +348,12 @@ Item {
             root.toggleView(); event.accepted = true
           } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             root.playBook(root.selectedBook()); event.accepted = true
+          } else if (ctrl && event.key === Qt.Key_F) {
+            root.cycleFilter(); event.accepted = true
+          } else if (ctrl && event.key === Qt.Key_X) {
+            root.removeBook(root.selectedBook()); event.accepted = true
+          } else if (ctrl && event.key === Qt.Key_M) {
+            root.markFinishedBook(root.selectedBook(), (event.modifiers & Qt.ShiftModifier) !== 0); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_S) {
             if (root.service && typeof root.service.setSortMode === "function")
               root.service.setSortMode(root.sortMode === "recent" ? "added" : "recent")
@@ -377,7 +430,8 @@ Item {
               font.family: root.fontFamily
               font.pixelSize: Style.font.body
               text: root.loading && root.books.length === 0 ? "Loading…"
-                : (root.query !== "" ? root.countResults() + " results" : root.books.length + " books")
+                : (root.query !== "" ? root.countResults() + " results"
+                  : (root.filterLabel !== "" ? root.filterLabel + " · " + root.countResults() + " books" : root.books.length + " books"))
             }
           }
 
@@ -465,14 +519,19 @@ Item {
                         resumeSec: root.resumeFor(book.asin),
                         runtimeSec: book.runtimeSec
                       })
+                      readonly property int plays: book.playCount || 0
+                      readonly property string playsText: plays >= 2 ? "×" + plays : (plays === 1 ? "✓" : "")
+                      readonly property bool busy: !!dl && (dl.state === "queued" || dl.state === "downloading")
+                      // Pointing at a tile reveals what its badge does when clicked.
                       readonly property string badge: !listenable ? "Unavailable"
                         : (dl && dl.state === "failed") ? "Failed"
                         : (dl && dl.state === "queued") ? "Queued"
                         : (dl && dl.state === "downloading") ? Math.round((Number(dl.fraction) || 0) * 100) + "%"
-                        : local ? "Downloaded" : ""
+                        : local ? (selected ? "Downloaded  ✕" : "Downloaded")
+                        : (selected ? "⇣ Download" : "")
                       readonly property color badgeColor: (dl && dl.state === "failed") ? root.urgent
                         : (local || (dl && dl.state === "downloading")) ? root.accent : root.muted
-                      readonly property string titleText: (playing ? "▶ " : "") + book.title
+                      readonly property string titleText: (playing ? "▶ " : "") + book.title + (playsText !== "" ? "  " + playsText : "")
 
                       width: root.isGrid ? root.cellWidth : resultView.width
                       height: root.isGrid ? root.cellHeight : root.listRowHeight
@@ -494,6 +553,7 @@ Item {
 
                         Item {
                           id: coverBox
+                          z: 5   // above the tile's click area, so the badges can take their own clicks
                           width: root.coverSize
                           height: root.coverSize
                           anchors.horizontalCenter: parent.horizontalCenter
@@ -544,6 +604,36 @@ Item {
                               color: tile.badgeColor
                               font.family: root.fontFamily
                               font.pixelSize: Style.font.caption
+                            }
+
+                            MouseArea {
+                              anchors.fill: parent
+                              enabled: tile.listenable && !tile.busy
+                              cursorShape: Qt.PointingHandCursor
+                              onClicked: root.badgeAction(tile.book)
+                            }
+                          }
+
+                          // Full listens: a tick for one, ×N for more (top-left of the cover).
+                          Rectangle {
+                            visible: root.isGrid && tile.playsText !== ""
+                            anchors.left: parent.left
+                            anchors.top: parent.top
+                            anchors.margins: Style.space(4)
+                            height: Style.space(18)
+                            width: playsLabel.implicitWidth + Style.space(10)
+                            radius: root.cornerRadius
+                            color: Util.alpha(root.background, 0.9)
+
+                            Text {
+                              id: playsLabel
+                              anchors.centerIn: parent
+                              textFormat: Text.PlainText
+                              text: tile.playsText
+                              color: root.accent
+                              font.family: root.fontFamily
+                              font.pixelSize: Style.font.caption
+                              font.bold: true
                             }
                           }
                         }
@@ -598,6 +688,7 @@ Item {
                       // ---- list layout
                       Item {
                         id: listContent
+                        z: 5
                         visible: !root.isGrid
                         anchors.fill: parent
 
@@ -635,6 +726,13 @@ Item {
                           color: tile.badgeColor
                           font.family: root.fontFamily
                           font.pixelSize: Style.font.caption
+
+                          MouseArea {
+                            anchors.fill: parent
+                            enabled: tile.listenable && !tile.busy
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.badgeAction(tile.book)
+                          }
                         }
 
                         Column {
@@ -779,7 +877,7 @@ Item {
             textFormat: Text.PlainText
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
-            text: "Enter play  ·  Ctrl+D download  ·  Tab grid/list  ·  Ctrl+S sort: " + (root.sortMode === "recent" ? "last played" : "date added") + "  ·  / search  ·  hjkl move  ·  Esc close"
+            text: "Enter play · Ctrl+D download · Ctrl+X remove · Ctrl+M finished · Ctrl+F filter · Ctrl+S sort: " + (root.sortMode === "recent" ? "last played" : "added") + " · Tab view · Esc"
             color: root.muted
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall

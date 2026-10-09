@@ -803,3 +803,70 @@ test("normalize: reads finished_at_timestamp into finishedAt (ms)", () => {
   assert.equal(b.finishedAt, Date.parse("2026-03-31T19:43:59.308Z"))
   assert.equal(L.normalize({ asin: "Y", title: "Y" }).finishedAt, 0)
 })
+
+// ------------------------------------------------- play counts, finished-here, status filter
+
+test("merge: our play count wins, and an Audible-finished book with no local count is one listen", () => {
+  const src = [
+    book({ asin: "A", finished: true }),
+    book({ asin: "B", finished: false }),
+    book({ asin: "C", finished: true })
+  ]
+  const out = L.merge(src, { plays: { B: { count: 3, lastAt: 1 }, C: { count: 2, lastAt: 1 } } })
+  const by = Object.fromEntries(out.map(b => [b.asin, b.playCount]))
+  assert.deepEqual(by, { A: 1, B: 3, C: 2 })
+})
+
+test("merge: unplayed books have playCount 0", () => {
+  assert.equal(L.merge([book({ asin: "Z" })], {})[0].playCount, 0)
+})
+
+test("merge: marked finished here (nothing played since) leaves Continue listening", () => {
+  const src = [book({ asin: "M", percentComplete: 40, finished: false })]
+  const out = L.merge(src, {
+    plays: { M: { count: 1, lastAt: 2000 } },
+    resume: { M: { position: 0, updatedAt: 2000 } }
+  })
+  assert.equal(out[0].finishedHere, true)
+  assert.equal(out[0].finished, true)
+  assert.equal(L.sections(out).some(s => s.id === "continue"), false)
+})
+
+test("merge: listening again after marking finished brings it back to Continue", () => {
+  const src = [book({ asin: "M", percentComplete: 40, finished: false })]
+  const out = L.merge(src, {
+    plays: { M: { count: 1, lastAt: 2000 } },
+    resume: { M: { position: 600, updatedAt: 9000 } }
+  })
+  assert.equal(out[0].finishedHere, false)
+  assert.equal(out[0].finished, false)
+  assert.deepEqual(L.sections(out).find(s => s.id === "continue").books.map(b => b.asin), ["M"])
+  assert.equal(out[0].playCount, 1)   // the earlier full listen still counts
+})
+
+test("byStatus: downloaded, cloud (playable only) and all", () => {
+  const list = [
+    book({ asin: "L1", local: true }),
+    book({ asin: "C1", local: false }),
+    book({ asin: "X1", local: false, listenable: false })
+  ]
+  assert.deepEqual(L.byStatus(list, "downloaded").map(b => b.asin), ["L1"])
+  assert.deepEqual(L.byStatus(list, "cloud").map(b => b.asin), ["C1"])
+  assert.deepEqual(L.byStatus(list, "all").map(b => b.asin), ["L1", "C1", "X1"])
+  assert.deepEqual(L.byStatus(list).map(b => b.asin), ["L1", "C1", "X1"])
+})
+
+test("sections: status filter applies to every section and to search", () => {
+  const list = [
+    book({ asin: "L1", title: "Alpha local", local: true, percentComplete: 20, resumeSec: 100 }),
+    book({ asin: "L2", title: "Alpha two local", local: true }),
+    book({ asin: "C1", title: "Alpha cloud", local: false })
+  ]
+  const dl = L.sections(list, { status: "downloaded" })
+  assert.deepEqual(dl.flatMap(s => s.books.map(b => b.asin)).sort(), ["L1", "L2"])
+  const cloud = L.sections(list, { status: "cloud" })
+  assert.deepEqual(cloud.flatMap(s => s.books.map(b => b.asin)), ["C1"])
+  const q = L.sections(list, { status: "downloaded", query: "alpha" })
+  assert.deepEqual(q[0].books.map(b => b.asin).sort(), ["L1", "L2"])
+  assert.deepEqual(L.sections(list, { status: "cloud", query: "local" }), [])
+})

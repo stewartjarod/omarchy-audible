@@ -48,6 +48,7 @@ Item {
   // ---- player -------------------------------------------------------------
   property bool linked: false
   property bool savePositionOnReply: false
+  property bool eofSeen: false
   readonly property bool connected: linked
   property bool idle: true
   property bool paused: false
@@ -113,6 +114,8 @@ Item {
   property var resume: ({})
   property string viewMode: "grid"
   property string sortMode: "recent"
+  property string filterMode: "all"     // library view: all | downloaded | cloud
+  property var plays: ({})                 // { asin: { count, lastAt } } full listens, kept locally
   property bool libraryOpen: false
   property bool libraryEverOpened: false
   property string pendingPlay: ""
@@ -180,6 +183,8 @@ Item {
       var s = JSON.parse(text)
       if (s.viewMode === "grid" || s.viewMode === "list") viewMode = s.viewMode
       if (s.sort === "recent" || s.sort === "added") sortMode = s.sort
+      if (s.filter === "all" || s.filter === "downloaded" || s.filter === "cloud") filterMode = s.filter
+      if (s.plays && typeof s.plays === "object") plays = s.plays
       if (Number(s.volume) >= 0) volume = Player.clampVolume(Number(s.volume), 0, volumeMax)
       if (Number(s.speed) > 0) speed = Player.clampSpeed(Number(s.speed), speedMin, speedMax)
       if (s.resume && typeof s.resume === "object") resume = s.resume
@@ -199,13 +204,15 @@ Item {
     id: saveTimer
     interval: 1500
     onTriggered: {
-      var body = JSON.stringify({ version: 1, viewMode: root.viewMode, sort: root.sortMode, volume: root.volume, speed: root.speed, resume: root.resume, last: root.lastAsin })
+      var body = JSON.stringify({ version: 1, viewMode: root.viewMode, sort: root.sortMode, filter: root.filterMode, plays: root.plays, volume: root.volume, speed: root.speed, resume: root.resume, last: root.lastAsin })
       root.run(["mkdir", "-p", root.stateDir], function() { stateFile.setText(body) })
     }
   }
 
   function rememberPosition() {
     if (asin === "" || duration <= 0) return
+    // At the very end the book is finished; saving that spot would drop you into the credits next time.
+    if (position >= duration - 30) return
     var r = {}
     for (var k in resume) r[k] = resume[k]
     r[asin] = { position: position, updatedAt: Date.now() }
@@ -214,6 +221,63 @@ Item {
     saveSoon()
     // The open library reads progress live; rebuilding its rows here would jump the scroll.
     if (!libraryOpen) rebuildBooks()
+  }
+
+  // ---- finished / play counts ---------------------------------------------
+  function setFilterMode(m) {
+    if (m !== "all" && m !== "downloaded" && m !== "cloud") return
+    filterMode = m
+    saveSoon()
+  }
+
+  // A full listen: bump the count, start the book over next time, and take it out of "Continue listening".
+  // Called automatically when mpv reaches the end, or by hand (the library's Ctrl+M).
+  function markFinished(a) {
+    if (!a) return ""
+    var now = Date.now()
+    var cur = plays[a] ? Math.max(0, Number(plays[a].count) || 0) : 0
+    if (plays[a] && now - (Number(plays[a].lastAt) || 0) < 30000) return "Already marked."   // double-fire guard
+    var p = {}
+    for (var k in plays) p[k] = plays[k]
+    p[a] = { count: cur + 1, lastAt: now }
+    plays = p
+    var r = {}
+    for (var j in resume) r[j] = resume[j]
+    r[a] = { position: 0, updatedAt: now }
+    resume = r
+    if (hasBook && asin === a && !playing) mpvSend(["stop"])   // no half-state: it is finished, so unload it
+    saveSoon()
+    rebuildBooks()
+    return "Marked finished (" + (cur + 1) + (cur + 1 === 1 ? " listen)" : " listens)")
+  }
+
+  function unmarkFinished(a) {
+    if (!a || !plays[a]) return "Not marked finished here."
+    var n = Math.max(0, (Number(plays[a].count) || 0) - 1)
+    var p = {}
+    for (var k in plays) if (k !== a) p[k] = plays[k]
+    if (n > 0) p[a] = { count: n, lastAt: Number(plays[a].lastAt) || 0 }
+    plays = p
+    saveSoon()
+    rebuildBooks()
+    return n > 0 ? "Now " + n + (n === 1 ? " listen." : " listens.") : "Cleared."
+  }
+
+  // Delete the downloaded files and the CLI's record of them (so a later download is not skipped).
+  // Returns an error message, or "" when the removal has started.
+  function removeDownload(a) {
+    if (!/^[A-Z0-9]{10}$/.test(String(a || ""))) return "Not a valid book."
+    if (hasBook && asin === a) return "That book is loaded in the player. Open another book first."
+    if (!isLocal(a)) return "It is not downloaded."
+    run(["audible", "db", "downloads", "remove", "--asin", a, "--with-files", "-y"], function() {
+      run(["sh", "-c", "rm -rf -- \"$1/$2\"", "sh", booksDir, a], function() {
+        var d = {}
+        for (var k in downloads) if (k !== a) d[k] = downloads[k]
+        downloads = d
+        scanLocal(function() { rebuildBooks() })
+      })
+    })
+    return ""
   }
 
   function setSortMode(m) {
@@ -278,12 +342,13 @@ Item {
   }
 
   function onMpvConnected() {
-    var props = ["pause", "speed", "chapter-list", "duration", "path", "idle-active", "media-title", "volume", "mute"]
+    var props = ["pause", "speed", "chapter-list", "duration", "path", "idle-active", "media-title", "volume", "mute", "eof-reached"]
     for (var i = 0; i < props.length; i++) mpvSend(["observe_property", i + 1, props[i]])
   }
 
   function onMpvGone() {
     linked = false
+    eofSeen = false
     idle = true
     path = ""
     asin = ""
@@ -317,6 +382,12 @@ Item {
       case "media-title": mediaTitle = m.data ? String(m.data) : ""; break
       case "volume": if (typeof m.data === "number") { volume = m.data; saveSoon() } break
       case "mute": muted = m.data === true; break
+      case "eof-reached":
+        // The first report after (re)connecting is just the current state, not an event: ignore it, or a
+        // Service restart while mpv sits at the end of a book would count another listen.
+        if (!eofSeen) { eofSeen = true; break }
+        if (m.data === true && asin !== "") markFinished(asin)
+        break
       }
     } else if (m.event === "file-loaded") {
       loading = false
@@ -433,7 +504,7 @@ Item {
   // ======================================================================
   function rebuildBooks() {
     try {
-      books = Lib.merge(rawBooks, { localAsins: localAsins, downloads: downloads, resume: resume })
+      books = Lib.merge(rawBooks, { localAsins: localAsins, downloads: downloads, resume: resume, plays: plays })
     } catch (e) { books = rawBooks }
   }
 
@@ -778,7 +849,7 @@ Item {
       return JSON.stringify({
         state: root.setup ? root.setup.state : "checking",
         ready: root.ready,
-        hasBook: root.hasBook, playing: root.playing, paused: root.paused, volume: root.volume, muted: root.muted, pending: root.pendingStatus, pendingFraction: root.pendingFraction, download: root.activeDownload !== "" ? Object.assign({ asin: root.activeDownload }, root.downloads[root.activeDownload] || {}) : null,
+        hasBook: root.hasBook, playing: root.playing, paused: root.paused, volume: root.volume, muted: root.muted, plays: root.plays, filter: root.filterMode, pending: root.pendingStatus, pendingFraction: root.pendingFraction, download: root.activeDownload !== "" ? Object.assign({ asin: root.activeDownload }, root.downloads[root.activeDownload] || {}) : null,
         asin: root.asin, title: root.title,
         position: root.position, duration: root.duration, speed: root.speed,
         chapterIndex: root.chapterIndex, chapters: root.chapters.length,
@@ -801,6 +872,10 @@ Item {
     function setVolume(v: real): void { root.setVolume(v) }
     function stepVolume(dir: int): void { root.stepVolume(dir) }
     function toggleMute(): void { root.toggleMute() }
+    function markFinished(asin: string): string { return root.markFinished(asin) }
+    function unmarkFinished(asin: string): string { return root.unmarkFinished(asin) }
+    function removeDownload(asin: string): string { return root.removeDownload(asin) }
+    function setFilter(mode: string): void { root.setFilterMode(mode) }
     function download(asin: string): void { root.download(asin) }
     function seekBy(sec: real): void { root.seekBy(sec) }
     function next(): void { root.nextChapter() }
