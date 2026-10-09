@@ -299,13 +299,17 @@ Item {
     mpvSend(["stop"])
   }
 
+  // Where to start a book: our own saved position, else Audible's percent. A finished book, or one
+  // saved within the last minute, starts over instead of dropping you at the credits.
   function resumePosition(a) {
     var r = resume[a]
     var b = bookFor(a)
-    if (r && typeof r.position === "number") return r.position
-    if (b && !b.finished && b.percentComplete > 0 && b.percentComplete < 99 && b.runtimeSec > 0)
-      return b.runtimeSec * b.percentComplete / 100
-    return 0
+    var total = b && b.runtimeSec > 0 ? b.runtimeSec : 0
+    var p = 0
+    if (r && typeof r.position === "number") p = r.position
+    else if (b && !b.finished && b.percentComplete > 0 && b.runtimeSec > 0) p = b.runtimeSec * b.percentComplete / 100
+    if (p <= 0 || (total > 0 && p > total - 60)) return 0
+    return p
   }
 
   function startPlayback(a) {
@@ -345,6 +349,9 @@ Item {
     } catch (e) { books = rawBooks }
   }
 
+  property int libraryRetries: 0
+  Timer { id: libraryRetry; interval: 5000; onTriggered: root.refreshLibrary() }
+
   function refreshLibrary() {
     if (libraryLoading) return
     libraryLoading = true
@@ -355,9 +362,18 @@ Item {
          "--query", "sort_by=-PurchaseDate", "-o", "json"],
       function(code, out, err) {
         libraryLoading = false
-        if (code !== 0) { libraryError = String(err || out).split("\n")[0] || "Could not load your library"; return }
+        if (code !== 0) {
+          libraryError = String(err || out).split("\n")[0] || "Could not load your library"
+          if (libraryRetries++ < 3) libraryRetry.restart()
+          return
+        }
         var res = Lib.parseApiPage(out)
-        if (res.error) { libraryError = String(res.error); return }
+        if (res.error) {
+          libraryError = String(res.error)
+          if (libraryRetries++ < 3) libraryRetry.restart()
+          return
+        }
+        libraryRetries = 0
         rawBooks = res.books
         rebuildBooks()
       })
@@ -520,7 +536,39 @@ Item {
     return m && map[m[1]] ? map[m[1]] : "us"
   }
 
+  property bool previewing: false
+
+  // Show an onboarding state without touching anything (for screenshots/demos). Any action
+  // while previewing just restores the real state, so a stray Enter cannot install or log in.
+  function previewSetup(name) {
+    if (!lastProbe) return
+    var p = {}
+    for (var k in lastProbe) p[k] = lastProbe[k]
+    var none = '{"error":null,"result":[],"warnings":[]}'
+    var locked = '{"error":{"message":"account \\"jarod\\" is locked (password_source = prompt) \u2014 unlock it with `audible account unlock -a jarod`"},"result":null,"warnings":[]}'
+    p.busy = ""
+    p.login = { url: "", waiting: false }
+    var log = ""
+    if (name === "no-audible") { p.audible = { found: false, version: "" }; p.accounts = Setup.parseAccountList("", ""); p.library = Setup.parseLibraryProbe("", "", 127) }
+    else if (name === "no-player") p.mpv = { found: false }
+    else if (name === "no-helper") p.helper = { found: false }
+    else if (name === "no-account" || name === "login") {
+      p.accounts = Setup.parseAccountList(none, ""); p.library = Setup.parseLibraryProbe("", "", 1)
+      if (name === "login") { p.login = { url: "http://127.0.0.1:39457/0123456789abcdef/", waiting: true }; log = "Sign in to Amazon in the browser window that just opened." }
+    }
+    else if (name === "locked") p.library = Setup.parseLibraryProbe(locked, "", 1)
+    else if (name === "unsynced" || name === "syncing") {
+      p.library = Setup.parseLibraryProbe(none, "", 0)
+      if (name === "syncing") { p.busy = "sync"; log = "Syncing your library... 120 of 237" }
+    }
+    else { previewing = false; recheck(); return }
+    previewing = true
+    setupLog = log
+    setup = Setup.detect(p)
+  }
+
   function runSetupAction(id, payload) {
+    if (previewing) { previewing = false; setupLog = ""; recheck(); return }
     switch (id) {
     case "recheck": setupLog = ""; recheck(); break
     case "install-audible": installAudible(); break
@@ -648,7 +696,8 @@ Item {
         timeLeftSec: root.timeLeftSec,
         books: root.books.length, local: Object.keys(root.localAsins).length,
         libraryOpen: root.libraryOpen, view: root.viewMode,
-        busy: root.setupBusyId, log: root.setupLog
+        busy: root.setupBusyId, log: root.setupLog,
+        libraryLoading: root.libraryLoading, libraryError: root.libraryError
       })
     }
     function toggleLibrary(): void { root.toggleLibrary() }
@@ -664,7 +713,8 @@ Item {
     function next(): void { root.nextChapter() }
     function prev(): void { root.prevChapter() }
     function refresh(): void { root.refreshLibrary(); root.scanLocal() }
-    function recheck(): void { root.recheck() }
+    function recheck(): void { root.previewing = false; root.recheck() }
+    function previewSetup(name: string): void { root.previewSetup(name) }
   }
 
   Component.onCompleted: {

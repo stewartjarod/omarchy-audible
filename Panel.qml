@@ -169,7 +169,7 @@ Panel {
     open: root.opened
     focusTarget: keys
     contentWidth: panel.fittedContentWidth(Style.space(360))
-    contentHeight: panel.fittedContentHeight(root.ready ? column.implicitHeight : Style.space(360), Style.space(560))
+    contentHeight: panel.fittedContentHeight(root.ready ? column.implicitHeight : onboarding.implicitHeight, Style.space(640))
 
     Item {
       id: keys
@@ -180,6 +180,7 @@ Panel {
 
       // Setup not finished: the Onboarding flow takes over this surface.
       Onboarding {
+        id: onboarding
         anchors.fill: parent
         visible: !root.ready
         service: root.service
@@ -584,7 +585,7 @@ Panel {
                       width: Style.space(22)
                       horizontalAlignment: Text.AlignRight
                       anchors.verticalCenter: parent.verticalCenter
-                      text: chapterRow.isCurrent ? "▶" : String(chapterRow.index + 1)
+                      text: chapterRow.isCurrent ? "▶" : (/^\s*\d/.test(String(chapterRow.modelData.title)) ? "" : String(chapterRow.index + 1))
                       textFormat: Text.PlainText
                       color: chapterRow.isCurrent ? Color.accent : root.dim
                       font.family: root.fontFamily

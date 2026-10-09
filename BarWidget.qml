@@ -25,8 +25,8 @@ BarWidget {
     setupReady: ready
   }, { maxTitle: 32 })
 
-  readonly property string bookGlyph: "󰒺" // nerd-font book icon (U+F00BA)
-  readonly property int labelMaxWidth: Style.space(180)
+  readonly property string bookGlyph: "\uDB80\uDCBA" // nerd-font book icon, U+F00BA
+  readonly property int labelMaxWidth: Style.space(260)
 
   // ---- panel lifecycle, forwarded for shell.summon/hide/toggle routing ----
   //      Bar.findPanelWidget requires open/close/opened on the bar-widget root.

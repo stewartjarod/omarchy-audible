@@ -1,5 +1,4 @@
 import Quickshell
-import Quickshell.Wayland
 import QtQuick
 import qs.Commons
 import qs.Ui
@@ -49,8 +48,6 @@ Item {
   property int contentSpacing: Style.spacing.md
 
   // ------------------------------------------------------------ sizes
-  property int cardWidth: Math.min(Style.space(1120), panel.width - Style.space(48))
-  property int cardHeight: Math.min(Style.space(780), panel.height - Style.space(48))
   property int coverSize: Style.space(132)
   property int coverPx: Style.space(264)     // decode size: 2x for HiDPI, bounded memory
   property int thumbSize: Style.space(38)
@@ -234,37 +231,25 @@ Item {
   }
 
   // ------------------------------------------------------------ window
-  PanelWindow {
+  // A regular toplevel (xdg-toplevel), not a layer-shell surface: Hyprland tiles it like any
+  // other app. Closing it from the window manager (SUPER+W) closes the library too.
+  FloatingWindow {
     id: panel
+    title: "Audible"
     visible: root.opened
-    anchors { top: true; bottom: true; left: true; right: true }
-    color: "transparent"
-    WlrLayershell.namespace: "jarod-audible-library"
-    WlrLayershell.layer: WlrLayer.Overlay
-    WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
-    exclusionMode: ExclusionMode.Ignore
+    color: root.background
+    implicitWidth: Style.space(1120)
+    implicitHeight: Style.space(780)
+    minimumSize: Qt.size(Style.space(520), Style.space(420))
+    onVisibleChanged: if (!visible && root.opened) root.close()
 
-    Rectangle {
-      anchors.fill: parent
-      color: root.scrim
-    }
-
-    MouseArea {
-      anchors.fill: parent
-      onClicked: root.close()
-    }
-
-    BorderSurface {
+    Item {
       id: card
-      width: root.cardWidth
-      height: root.cardHeight
-      radius: root.cornerRadius
-      anchors.centerIn: parent
-      color: root.background
-      borderSpec: root.borderSpec
-      padding: root.contentMargin
-
-      MouseArea { anchors.fill: parent; onClicked: {} }
+      anchors.fill: parent
+      readonly property int contentTopInset: root.contentMargin
+      readonly property int contentRightInset: root.contentMargin
+      readonly property int contentBottomInset: root.contentMargin
+      readonly property int contentLeftInset: root.contentMargin
 
       Item {
         id: keyCatcher

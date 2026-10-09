@@ -11,6 +11,8 @@ Item {
   id: root
 
   property var service: null
+  // Lets a host (the bar popup) size itself to the current state's content.
+  implicitHeight: column.implicitHeight + Style.spacing.popupPadding * 2
   signal closeRequested()
 
   // Exposed so the host panel can focus this surface's key catcher on open.
