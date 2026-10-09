@@ -23,7 +23,7 @@ BarWidget {
     playing: service ? service.playing === true : false,
     hasBook: hasBook,
     setupReady: ready
-  }, { maxTitle: 32 })
+  }, { maxTitle: Number(root.setting("maxTitleChars", 28)) || 28 })
 
   readonly property string bookGlyph: "\uDB80\uDCBA" // nerd-font book icon, U+F00BA
   readonly property int labelMaxWidth: Style.space(260)
@@ -73,7 +73,7 @@ BarWidget {
     function onPopupRequested() { if (!root.opened) root.open() }
   }
 
-  implicitWidth: button.implicitWidth + (labelText.visible ? labelText.width + Style.space(4) : 0)
+  implicitWidth: button.implicitWidth + (labelButton.visible ? labelButton.implicitWidth : 0)
   implicitHeight: button.implicitHeight
 
   Loader {
@@ -108,34 +108,27 @@ BarWidget {
     }
   }
 
-  Text {
-    id: labelText
+  // The title / time-left text is its own bar click target (same primitive as the icon), so
+  // clicking it opens the popup, right-click opens the library, middle-click plays/pauses and
+  // the wheel changes speed, exactly like the icon.
+  WidgetButton {
+    id: labelButton
     anchors.left: button.right
-    anchors.leftMargin: Style.space(4)
     anchors.verticalCenter: parent.verticalCenter
+    bar: root.bar
     visible: !root.vertical && root.label.text !== "" && root.ready
-    width: Math.min(implicitWidth, root.labelMaxWidth)
     text: root.label.text
-    textFormat: Text.PlainText
-    color: root.bar ? root.bar.barForeground : Color.foreground
-    opacity: root.hasBook && root.paused ? 0.5 : 1
-    font.family: root.bar ? root.bar.fontFamily : Style.font.family
-    font.pixelSize: Style.font.body
-    elide: Text.ElideRight
-
-    MouseArea {
-      anchors.fill: parent
-      cursorShape: Qt.PointingHandCursor
-      acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
-      onPressed: function(mouse) {
-        if (mouse.button === Qt.RightButton) root.openLibrary()
-        else if (mouse.button === Qt.MiddleButton) root.togglePause()
-        else root.togglePanel()
-      }
-      onWheel: function(wheel) {
-        if (wheel.angleDelta.y > 0) root.stepSpeed(1)
-        else if (wheel.angleDelta.y < 0) root.stepSpeed(-1)
-      }
+    horizontalMargin: 4
+    dimmed: root.hasBook && root.paused
+    tooltipText: root.label.tooltip
+    onPressed: function(buttonCode) {
+      if (buttonCode === Qt.RightButton) root.openLibrary()
+      else if (buttonCode === Qt.MiddleButton) root.togglePause()
+      else root.togglePanel()
+    }
+    onWheelMoved: function(delta) {
+      if (delta > 0) root.stepSpeed(1)
+      else if (delta < 0) root.stepSpeed(-1)
     }
   }
 }
