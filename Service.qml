@@ -177,7 +177,8 @@ Item {
     resume = r
     lastAsin = asin
     saveSoon()
-    rebuildBooks()
+    // The open library reads progress live; rebuilding its rows here would jump the scroll.
+    if (!libraryOpen) rebuildBooks()
   }
 
   function setViewMode(m) {
@@ -456,7 +457,7 @@ Item {
         var expected = b && b.runtimeSec > 0 ? b.runtimeSec * 16000 : 0
         if (!(size > 0) || !(expected > 0) || root.activeDownload !== a) return
         root.downloads = root.withKey(root.downloads, a, { state: "downloading", fraction: Math.min(0.99, size / expected), error: "" })
-        root.rebuildBooks()
+        if (!root.libraryOpen) root.rebuildBooks()   // the open library reads downloads live
       })
     }
   }
@@ -464,6 +465,7 @@ Item {
   // ---- library overlay ----------------------------------------------------
   function openLibrary() {
     libraryEverOpened = true
+    rebuildBooks()   // catch up on anything skipped while it was closed
     libraryOpen = true
     if (ready) { if (rawBooks.length === 0) refreshLibrary(); scanLocal() }
   }
