@@ -1,30 +1,22 @@
 import QtQuick
 import Quickshell.Io
 
-// One-shot command runner. Create with Service.run(); it destroys itself when done.
+// One-shot command runner; Service.run() creates it and it destroys itself when done.
 //   done(exitCode, stdoutText, stderrText)
-// `line` (optional) receives each stdout line as it arrives (for long-running commands
-// like the sign-in server). `input` is written to stdin once, then stdin is closed, so
-// secrets never touch argv.
+// stdout is collected in one piece (the library API call prints ~2 MB / 57k lines, and any
+// per-line handling of that on the shell's main thread stalls the whole shell).
+// `input` is written to stdin once, then stdin is closed, so secrets never touch argv.
+// For commands that report progress line by line, see CmdLines.qml.
 Process {
   id: proc
 
   property var done: null
-  property var line: null
   property string input: ""
 
   stdinEnabled: input.length > 0
 
-  stdout: SplitParser {
-    splitMarker: "\n"
-    onRead: function(data) {
-      proc._out += data + "\n"
-      if (typeof proc.line === "function") proc.line(String(data))
-    }
-  }
+  stdout: StdioCollector { id: out; waitForEnd: true }
   stderr: StdioCollector { id: err; waitForEnd: true }
-
-  property string _out: ""
 
   onStarted: {
     if (proc.input.length > 0) {
@@ -36,11 +28,8 @@ Process {
 
   onExited: function(exitCode) {
     var cb = proc.done
-    var out = proc._out
-    var errText = String(err.text || "")
     proc.done = null
-    proc.line = null
-    if (typeof cb === "function") cb(exitCode, out, errText)
+    if (typeof cb === "function") cb(exitCode, String(out.text || ""), String(err.text || ""))
     proc.destroy(50)
   }
 }
