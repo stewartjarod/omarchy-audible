@@ -26,6 +26,14 @@ BarWidget {
   }, { maxTitle: Number(root.setting("maxTitleChars", 28)) || 28 })
 
   // The bar text is only shown while a book is actually playing; paused or idle is icon-only.
+  // The label keeps its last text while it fades out, then clears, so it fades and slides instead of popping.
+  property string shownText: ""
+  onBarTextChanged: {
+    if (barText !== "") { shownText = barText; clearTimer.stop() }
+    else clearTimer.restart()
+  }
+  Timer { id: clearTimer; interval: 200; onTriggered: root.shownText = "" }
+
   // Exception: while a book is being downloaded or started, say so (otherwise the bar is silent for
   // the whole download).
   readonly property string barText: {
@@ -90,6 +98,7 @@ BarWidget {
   }
 
   implicitWidth: button.implicitWidth + (labelButton.visible ? labelButton.implicitWidth : 0)
+  Behavior on implicitWidth { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
   implicitHeight: button.implicitHeight
 
   Loader {
@@ -149,8 +158,9 @@ BarWidget {
     anchors.right: button.left
     anchors.verticalCenter: parent.verticalCenter
     bar: root.bar
-    visible: !root.vertical && root.barText !== "" && root.ready
-    text: root.barText
+    visible: !root.vertical && root.shownText !== "" && root.ready
+    text: root.shownText
+    concealed: root.barText === ""   // WidgetButton fades to 0 over 140 ms when concealed
     horizontalMargin: 4
     dimmed: root.hasBook && root.paused
     tooltipText: root.label.tooltip

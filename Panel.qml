@@ -476,12 +476,29 @@ Panel {
             onClicked: root.seekBy(-root.skip)
           }
           PanelActionButton {
-            iconText: root.paused ? "▶" : "⏸"
+            // Play is a text triangle; pause is drawn, because the pause character falls back to a
+            // colour emoji (orange, different size) that made the button visibly change on every toggle.
+            iconText: root.paused ? "▶" : ""
             tooltipText: root.paused ? "Play (space)" : "Pause (space)"
             fontFamily: root.fontFamily
             foreground: root.foreground
             fontSize: Style.font.display
             onClicked: root.togglePlay()
+
+            Row {
+              anchors.centerIn: parent
+              spacing: Style.space(3)
+              visible: !root.paused
+              Repeater {
+                model: 2
+                Rectangle {
+                  width: Style.space(4)
+                  height: Style.font.display * 0.8
+                  radius: Style.space(1)
+                  color: root.foreground
+                }
+              }
+            }
           }
           PanelActionButton {
             iconText: "+" + root.skip
