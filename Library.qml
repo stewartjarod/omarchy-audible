@@ -31,7 +31,15 @@ Item {
 
   // Removing a download needs a second press (Ctrl+X again, or click the badge again within 4 s).
   property string confirmRemoveAsin: ""
-  Timer { id: confirmTimer; interval: 4000; onTriggered: root.confirmRemoveAsin = "" }
+  property string confirmPrompt: ""
+  // Drop the pending removal, and the prompt text with it (a stale "press again to confirm" misleads).
+  function cancelRemoveConfirm() {
+    confirmTimer.stop()
+    if (root.confirmPrompt !== "" && root.statusText === root.confirmPrompt) root.statusText = ""
+    root.confirmRemoveAsin = ""
+    root.confirmPrompt = ""
+  }
+  Timer { id: confirmTimer; interval: 4000; onTriggered: root.cancelRemoveConfirm() }
 
   function removeBook(book) {
     if (!book || !root.service) return
@@ -39,6 +47,7 @@ Item {
     if (root.confirmRemoveAsin === book.asin) {
       confirmTimer.stop()
       root.confirmRemoveAsin = ""
+      root.confirmPrompt = ""
       var err = root.service.removeDownload(book.asin)
       root.statusText = err !== "" ? err : "Removed “" + book.title + "” from this computer. You can download it again any time."
       return
@@ -46,7 +55,8 @@ Item {
     var mb = Math.max(1, Math.round((Number(book.runtimeSec) || 0) * 16000 / 1048576))
     root.confirmRemoveAsin = book.asin
     confirmTimer.restart()
-    root.statusText = "Remove “" + book.title + "” from this computer (about " + mb + " MB)? Press Ctrl+X again to confirm. Your place and listen count are kept."
+    root.confirmPrompt = "Remove “" + book.title + "” from this computer (about " + mb + " MB)? Press Ctrl+X again to confirm. Your place and listen count are kept."
+    root.statusText = root.confirmPrompt
   }
 
   function markFinishedBook(book, undo) {
@@ -182,7 +192,7 @@ Item {
   }
 
   function selectAsin(asin) {
-    if (root.confirmRemoveAsin !== "" && root.confirmRemoveAsin !== asin) { confirmTimer.stop(); root.confirmRemoveAsin = "" }
+    if (root.confirmRemoveAsin !== "" && root.confirmRemoveAsin !== asin) root.cancelRemoveConfirm()
     root.selectedAsin = asin
     root.cursor = Lib.cursorOf(root.rows, asin)
   }
