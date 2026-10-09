@@ -1,0 +1,699 @@
+import QtQuick
+import QtQuick.Controls
+import qs.Commons
+import qs.Ui
+import "PlayerModel.js" as Model
+
+// Audible player popup: time-left readout, whole-book progress with chapter
+// ticks and a playhead (click to seek), transport + speed controls, and the
+// chapter list. Keyboard-first; every surface shows a key legend.
+Panel {
+  id: root
+  moduleName: "jarod.audible"
+  ipcTarget: "jarod.audible"
+  manageIpc: false // BarWidget.qml owns the IPC surface for this plugin
+
+  property var service: null
+  property var anchorItem: null
+
+  // The bar tracks the widget mounted in its slot (BarWidget.qml), not this
+  // nested panel, so the popout coordinator compares against the host widget.
+  property var hostWidget: null
+  readonly property var barIdentity: hostWidget || root
+
+  readonly property color foreground: bar ? bar.barForeground : Color.foreground
+  readonly property color urgent: bar ? bar.urgent : Color.urgent
+  readonly property color dim: Qt.darker(foreground, 1.4)
+  readonly property string fontFamily: bar ? bar.fontFamily : Style.font.family
+  readonly property color hoverFill: Style.hoverFillFor(foreground, Color.accent)
+  readonly property color selectedFill: Style.selectedFillFor(foreground, Color.accent)
+
+  // ---- service state (read-only mirror) ------------------------------------
+
+  function svc(name, fallback) {
+    var v = service ? service[name] : undefined
+    return v === undefined || v === null ? fallback : v
+  }
+
+  readonly property bool ready: svc("ready", false) === true
+  readonly property bool hasBook: svc("hasBook", false) === true
+  readonly property bool paused: svc("paused", true) === true
+  readonly property var chapters: svc("chapters", [])
+  readonly property int chapterCount: chapters ? chapters.length : 0
+  readonly property real duration: Math.max(0, Number(svc("duration", 0)) || 0)
+  readonly property real position: Math.max(0, Number(svc("position", 0)) || 0)
+  readonly property real speed: Number(svc("speed", 1)) || 1
+  readonly property int currentChapter: Math.max(0, Math.floor(Number(svc("chapterIndex", 0)) || 0))
+  readonly property real bookLeft: Math.max(0, Number(svc("timeLeftSec", 0)) || 0)
+  readonly property real chapterLeft: Math.max(0, Number(svc("chapterTimeLeftSec", 0)) || 0)
+  readonly property real progress: duration > 0 ? Math.min(1, position / duration) : 0
+  readonly property int skip: Math.max(1, Math.round(Number(svc("skipSeconds", 30)) || 30))
+  readonly property var speedOpts: ({
+    step: Number(svc("speedStep", 0.05)) || 0.05,
+    min: Number(svc("speedMin", 0.5)) || 0.5,
+    max: Number(svc("speedMax", 3)) || 3
+  })
+  readonly property var chapterTicks: Model.chapterTicks(chapters, duration)
+  readonly property var currentChapterObj: chapterCount > 0 && currentChapter < chapterCount ? chapters[currentChapter] : null
+  readonly property string chapterName: currentChapterObj ? currentChapterObj.title : ""
+
+  // ---- cursor (chapter list) ----------------------------------------------
+
+  property int cursor: 0
+  readonly property int rowH: Style.spacing.popupRowHeight + Style.space(4)
+  readonly property int listMaxH: Style.space(200)
+
+  function clampCursor() {
+    if (chapterCount <= 0) cursor = 0
+    else cursor = Math.max(0, Math.min(chapterCount - 1, cursor))
+  }
+
+  function scrollToCursor() {
+    if (!chapterFlick) return
+    Qt.callLater(function() {
+      if (!chapterFlick) return
+      var y = root.cursor * root.rowH
+      var viewTop = chapterFlick.contentY
+      var viewH = chapterFlick.height
+      var maxY = Math.max(0, chapterFlick.contentHeight - viewH)
+      if (y < viewTop) chapterFlick.contentY = Math.max(0, y)
+      else if (y + root.rowH > viewTop + viewH) chapterFlick.contentY = Math.min(maxY, y + root.rowH - viewH)
+    })
+  }
+
+  function moveCursor(delta) {
+    if (chapterCount <= 0) return
+    cursor = Math.max(0, Math.min(chapterCount - 1, cursor + delta))
+    scrollToCursor()
+  }
+
+  function jumpCursor() {
+    if (!service || !hasBook || chapterCount <= 0) return
+    service.jumpToChapter(cursor)
+  }
+
+  onCurrentChapterChanged: {
+    cursor = currentChapter
+    scrollToCursor()
+  }
+
+  onChapterCountChanged: clampCursor()
+
+  onOpenedChanged: {
+    if (opened) {
+      cursor = currentChapter
+      clampCursor()
+      scrollToCursor()
+    }
+  }
+
+  // ---- commands -----------------------------------------------------------
+
+  function togglePlay() { if (service && hasBook) service.togglePause() }
+  function seekBy(delta) { if (service && hasBook) service.seekBy(delta) }
+  function nextChapter() { if (service && hasBook) service.nextChapter() }
+  function prevChapter() { if (service && hasBook) service.prevChapter() }
+  function stepSpeed(dir) { if (service) service.stepSpeed(dir) }
+
+  function seekAt(x) {
+    if (!service || !hasBook || duration <= 0 || progressTrack.width <= 0) return
+    var f = Math.max(0, Math.min(1, x / progressTrack.width))
+    service.seekTo(f * duration)
+  }
+
+  function openLibrary() {
+    root.close()
+    if (service) service.openLibrary()
+  }
+
+  function setSpeedFromSlider(v) {
+    if (!service) return
+    service.setSpeed(Model.stepSpeed(v, 0, speedOpts))
+  }
+
+  // Keys. Plain letters and arrows only; Ctrl/Alt/Meta pass through. Before
+  // the book is ready only Esc is taken so Onboarding receives typing.
+  function handleKey(event) {
+    var k = event.key
+    var t = event.text || ""
+    if (k === Qt.Key_Escape) { root.close(); event.accepted = true; return }
+    if (!root.ready) return
+    if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
+
+    var handled = true
+    if (k === Qt.Key_Space) togglePlay()
+    else if (k === Qt.Key_Return || k === Qt.Key_Enter) jumpCursor()
+    else if (k === Qt.Key_Down || t === "j") moveCursor(1)
+    else if (k === Qt.Key_Up || t === "k") moveCursor(-1)
+    else if (k === Qt.Key_Left || t === "h") seekBy(-root.skip)
+    else if (k === Qt.Key_Right || t === "l") seekBy(root.skip)
+    else if (k === Qt.Key_Home) { cursor = 0; scrollToCursor() }
+    else if (k === Qt.Key_End) { cursor = Math.max(0, chapterCount - 1); scrollToCursor() }
+    else if (t === "n") nextChapter()
+    else if (t === "p") prevChapter()
+    else if (t === "[" || t === "-" || t === "_") stepSpeed(-1)
+    else if (t === "]" || t === "+" || t === "=") stepSpeed(1)
+    else if (t === "o") openLibrary()
+    else handled = false
+
+    if (handled) event.accepted = true
+  }
+
+  // ---- panel body ---------------------------------------------------------
+
+  KeyboardPanel {
+    id: panel
+    anchorItem: root.anchorItem
+    owner: root.barIdentity
+    bar: root.bar
+    open: root.opened
+    focusTarget: keys
+    contentWidth: panel.fittedContentWidth(Style.space(360))
+    contentHeight: panel.fittedContentHeight(root.ready ? column.implicitHeight : Style.space(360), Style.space(560))
+
+    Item {
+      id: keys
+      anchors.fill: parent
+      focus: true
+      Keys.priority: Keys.BeforeItem
+      Keys.onPressed: function(event) { root.handleKey(event) }
+
+      // Setup not finished: the Onboarding flow takes over this surface.
+      Onboarding {
+        anchors.fill: parent
+        visible: !root.ready
+        service: root.service
+        onCloseRequested: root.close()
+      }
+
+      Column {
+        id: column
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        spacing: Style.space(10)
+        visible: root.ready
+
+        // -- header: cover, title, author -----------------------------------
+        Row {
+          id: header
+          width: parent.width
+          spacing: Style.space(10)
+          visible: root.hasBook
+
+          Rectangle {
+            id: coverFrame
+            width: Style.space(52)
+            height: width
+            radius: Style.cornerRadius
+            color: root.hoverFill
+            clip: true
+
+            Image {
+              anchors.fill: parent
+              source: root.svc("coverUrl", "")
+              asynchronous: true
+              fillMode: Image.PreserveAspectCrop
+              visible: source !== ""
+            }
+          }
+
+          Column {
+            width: parent.width - coverFrame.width - header.spacing
+            anchors.verticalCenter: coverFrame.verticalCenter
+            spacing: Style.space(2)
+
+            Text {
+              width: parent.width
+              text: root.svc("title", "")
+              textFormat: Text.PlainText
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.title
+              font.bold: true
+              elide: Text.ElideRight
+            }
+            Text {
+              width: parent.width
+              text: root.svc("author", "")
+              textFormat: Text.PlainText
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.bodySmall
+              elide: Text.ElideRight
+              visible: text !== ""
+            }
+          }
+        }
+
+        // -- time-left readout ----------------------------------------------
+        Row {
+          width: parent.width
+          visible: root.hasBook
+
+          Column {
+            width: parent.width * 0.58
+            spacing: 0
+
+            Text {
+              id: bigLeft
+              text: Model.formatDuration(root.bookLeft, "hm")
+              textFormat: Text.PlainText
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.display
+              font.bold: true
+            }
+            Text {
+              text: "left in book at " + Model.formatSpeed(root.speed)
+              textFormat: Text.PlainText
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+          }
+
+          Column {
+            width: parent.width * 0.42
+            spacing: 0
+
+            Text {
+              width: parent.width
+              horizontalAlignment: Text.AlignRight
+              text: root.chapterCount > 0 ? "Chapter " + (root.currentChapter + 1) + " of " + root.chapterCount : ""
+              textFormat: Text.PlainText
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+            Text {
+              width: parent.width
+              horizontalAlignment: Text.AlignRight
+              text: Model.formatDuration(root.chapterLeft, "left")
+              textFormat: Text.PlainText
+              color: root.foreground
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.body
+              elide: Text.ElideRight
+            }
+          }
+        }
+
+        // -- whole-book progress: track, chapter ticks, playhead --------------
+        Column {
+          width: parent.width
+          spacing: Style.space(4)
+          visible: root.hasBook
+
+          Item {
+            id: progressTrack
+            width: parent.width
+            height: Style.space(18)
+
+            readonly property real trackH: Style.space(4)
+            readonly property real trackY: (height - trackH) / 2
+
+            Rectangle {
+              x: 0
+              y: progressTrack.trackY
+              width: parent.width
+              height: progressTrack.trackH
+              radius: height / 2
+              color: root.selectedFill
+            }
+
+            Rectangle {
+              x: 0
+              y: progressTrack.trackY
+              width: parent.width * root.progress
+              height: progressTrack.trackH
+              radius: height / 2
+              color: root.foreground
+            }
+
+            Repeater {
+              model: root.chapterTicks
+
+              delegate: Rectangle {
+                required property real modelData
+                x: Math.round(progressTrack.width * modelData)
+                y: progressTrack.trackY - Style.space(3)
+                width: Math.max(1, Style.space(1))
+                height: progressTrack.trackH + Style.space(6)
+                color: root.dim
+              }
+            }
+
+            Rectangle {
+              id: playhead
+              width: Style.space(4)
+              height: Style.space(14)
+              radius: width / 2
+              x: Math.max(0, Math.min(progressTrack.width - width, progressTrack.width * root.progress - width / 2))
+              y: (progressTrack.height - height) / 2
+              color: Color.accent
+            }
+
+            MouseArea {
+              anchors.fill: parent
+              cursorShape: Qt.PointingHandCursor
+              onPressed: function(mouse) { root.seekAt(mouse.x) }
+              onPositionChanged: function(mouse) { if (pressed) root.seekAt(mouse.x) }
+            }
+          }
+
+          Item {
+            width: parent.width
+            height: elapsedText.implicitHeight
+
+            Text {
+              id: elapsedText
+              anchors.left: parent.left
+              text: Model.formatDuration(root.position, "clock")
+              textFormat: Text.PlainText
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+            Text {
+              anchors.right: parent.right
+              text: Model.formatDuration(root.duration, "clock")
+              textFormat: Text.PlainText
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+            }
+          }
+        }
+
+        // -- transport ------------------------------------------------------
+        Row {
+          id: transport
+          anchors.horizontalCenter: parent.horizontalCenter
+          spacing: Style.space(12)
+          visible: root.hasBook
+
+          PanelActionButton {
+            iconText: "−" + root.skip
+            tooltipText: "Back " + root.skip + "s (h)"
+            fontFamily: root.fontFamily
+            foreground: root.foreground
+            fontSize: Style.font.body
+            onClicked: root.seekBy(-root.skip)
+          }
+          PanelActionButton {
+            iconText: root.paused ? "▶" : "⏸"
+            tooltipText: root.paused ? "Play (space)" : "Pause (space)"
+            fontFamily: root.fontFamily
+            foreground: root.foreground
+            fontSize: Style.font.display
+            onClicked: root.togglePlay()
+          }
+          PanelActionButton {
+            iconText: "+" + root.skip
+            tooltipText: "Forward " + root.skip + "s (l)"
+            fontFamily: root.fontFamily
+            foreground: root.foreground
+            fontSize: Style.font.body
+            onClicked: root.seekBy(root.skip)
+          }
+        }
+
+        // -- speed ----------------------------------------------------------
+        Column {
+          width: parent.width
+          spacing: Style.space(4)
+          visible: root.hasBook
+
+          Item {
+            width: parent.width
+            height: speedValue.implicitHeight
+
+            Text {
+              anchors.left: parent.left
+              anchors.verticalCenter: parent.verticalCenter
+              text: "SPEED"
+              textFormat: Text.PlainText
+              color: root.dim
+              font.family: root.fontFamily
+              font.pixelSize: Style.font.caption
+              font.bold: true
+              font.letterSpacing: 1.2
+            }
+
+            Row {
+              anchors.right: parent.right
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(8)
+
+              PanelActionButton {
+                iconText: "−"
+                tooltipText: "Slower ([ or -)"
+                fontFamily: root.fontFamily
+                foreground: root.foreground
+                fontSize: Style.font.body
+                onClicked: root.stepSpeed(-1)
+              }
+              Text {
+                id: speedValue
+                width: Style.space(48)
+                horizontalAlignment: Text.AlignHCenter
+                anchors.verticalCenter: parent.verticalCenter
+                text: Model.formatSpeed(root.speed)
+                textFormat: Text.PlainText
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.subtitle
+                font.bold: true
+              }
+              PanelActionButton {
+                iconText: "+"
+                tooltipText: "Faster (] or +)"
+                fontFamily: root.fontFamily
+                foreground: root.foreground
+                fontSize: Style.font.body
+                onClicked: root.stepSpeed(1)
+              }
+            }
+          }
+
+          PanelSlider {
+            width: parent.width
+            bar: root.bar
+            value: root.speed
+            minimum: root.speedOpts.min
+            maximum: root.speedOpts.max
+            step: root.speedOpts.step
+            onMoved: function(v) { root.setSpeedFromSlider(v) }
+            onReleased: function(v) { root.setSpeedFromSlider(v) }
+          }
+        }
+
+        // -- chapters -------------------------------------------------------
+        Column {
+          width: parent.width
+          spacing: Style.space(2)
+          visible: root.hasBook
+
+          Item {
+            width: parent.width
+            height: chapterHeader.implicitHeight + Style.space(4)
+
+            PanelSectionHeader {
+              id: chapterHeader
+              anchors.left: parent.left
+              anchors.right: parent.right
+              text: "CHAPTERS  ·  " + root.chapterCount
+              foreground: root.foreground
+              fontFamily: root.fontFamily
+            }
+          }
+
+          Flickable {
+            id: chapterFlick
+            width: parent.width
+            height: Math.min(root.chapterCount * root.rowH, root.listMaxH)
+            contentWidth: width
+            contentHeight: chapterColumn.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.VerticalFlick
+            interactive: contentHeight > height
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+
+            Column {
+              id: chapterColumn
+              width: chapterFlick.width
+
+              Repeater {
+                model: root.chapters
+
+                delegate: Item {
+                  id: chapterRow
+                  required property var modelData
+                  required property int index
+
+                  readonly property bool isCurrent: index === root.currentChapter
+                  readonly property bool isCursor: index === root.cursor
+                  readonly property real rowProgress: isCurrent ? Model.chapterProgress(modelData, root.position) : 0
+
+                  width: chapterColumn.width
+                  height: root.rowH
+
+                  Rectangle {
+                    anchors.fill: parent
+                    radius: Style.cornerRadius
+                    color: chapterRow.isCursor ? root.selectedFill
+                      : rowMouse.containsMouse ? root.hoverFill : "transparent"
+                  }
+
+                  // Played part of the current chapter.
+                  Rectangle {
+                    x: 0
+                    y: parent.height - Style.space(2)
+                    width: parent.width * chapterRow.rowProgress
+                    height: Style.space(2)
+                    color: root.foreground
+                    opacity: 0.6
+                  }
+
+                  // Left marker: cursor bar, and a dot on the playing chapter.
+                  Rectangle {
+                    visible: chapterRow.isCursor
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Style.space(2)
+                    height: parent.height - Style.space(10)
+                    color: Color.accent
+                  }
+
+                  Row {
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.leftMargin: Style.space(10)
+                    anchors.rightMargin: Style.space(10)
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: Style.space(8)
+
+                    Text {
+                      id: rowNum
+                      width: Style.space(22)
+                      horizontalAlignment: Text.AlignRight
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: chapterRow.isCurrent ? "▶" : String(chapterRow.index + 1)
+                      textFormat: Text.PlainText
+                      color: chapterRow.isCurrent ? Color.accent : root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                    }
+
+                    Text {
+                      id: rowTitle
+                      width: Math.max(0, parent.width - rowNum.width - rowLen.width - parent.spacing * 2)
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: chapterRow.modelData.title
+                      textFormat: Text.PlainText
+                      color: root.foreground
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.body
+                      font.bold: chapterRow.isCurrent
+                      elide: Text.ElideRight
+                    }
+
+                    Text {
+                      id: rowLen
+                      anchors.verticalCenter: parent.verticalCenter
+                      text: Model.formatDuration(chapterRow.modelData.length, "hm")
+                      textFormat: Text.PlainText
+                      color: root.dim
+                      font.family: root.fontFamily
+                      font.pixelSize: Style.font.caption
+                      font.bold: true
+                    }
+                  }
+
+                  MouseArea {
+                    id: rowMouse
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onPositionChanged: root.cursor = chapterRow.index
+                    onClicked: {
+                      root.cursor = chapterRow.index
+                      if (root.service) root.service.jumpToChapter(chapterRow.index)
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        // -- empty state ----------------------------------------------------
+        Column {
+          width: parent.width
+          spacing: Style.space(6)
+          visible: root.ready && !root.hasBook
+
+          Text {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: "Nothing playing"
+            textFormat: Text.PlainText
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.heading
+            font.bold: true
+          }
+          Text {
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: "Pick a book from your library to start listening."
+            textFormat: Text.PlainText
+            wrapMode: Text.WordWrap
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.bodySmall
+          }
+          Item {
+            width: parent.width
+            height: browseButton.height
+
+            PanelActionButton {
+              id: browseButton
+              anchors.horizontalCenter: parent.horizontalCenter
+              iconText: "Browse library  (o)"
+              fontSize: Style.font.body
+              fontFamily: root.fontFamily
+              foreground: root.foreground
+              onClicked: root.openLibrary()
+            }
+          }
+        }
+
+        PanelSeparator {
+          width: parent.width
+          foreground: root.foreground
+        }
+
+        // -- key legend -----------------------------------------------------
+        Text {
+          width: parent.width
+          text: root.hasBook
+            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · o library · esc"
+            : "o library · esc close"
+          textFormat: Text.PlainText
+          wrapMode: Text.WordWrap
+          color: root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+        }
+      }
+    }
+  }
+}
