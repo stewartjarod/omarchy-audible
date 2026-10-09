@@ -22,6 +22,8 @@ Item {
   readonly property real speedMin: num("speedMin", 0.5)
   readonly property real speedMax: Math.max(speedMin, num("speedMax", 3.5))
   readonly property int skipSeconds: Math.round(num("skipSeconds", 30))
+  // "normal" is roughly half the download size of "high" (about 64 vs 128 kbps): a faster first listen.
+  readonly property string downloadQuality: (settings && settings.downloadQuality === "normal") ? "normal" : "high"
   readonly property int volumeStep: Math.round(num("volumeStep", 5))
   readonly property int volumeMax: 130   // mpv's default ceiling (100 = unchanged)
 
@@ -49,6 +51,7 @@ Item {
   property bool idle: true
   property bool paused: false
   property bool loading: false
+  property string startingAsin: ""
   property string path: ""
   property string mediaTitle: ""
   property real position: 0
@@ -76,6 +79,26 @@ Item {
     if (asin === "") return ""
     if (localAsins[asin]) return "file://" + booksDir + "/" + asin + "/" + asin + ".cover_500.jpg"
     return currentBook ? (currentBook.coverUrl || "") : ""
+  }
+
+  // What a "play" is waiting on, so the bar and popup can show progress instead of silence.
+  readonly property string pendingAsin: pendingPlay !== "" ? pendingPlay : (loading ? startingAsin : "")
+  readonly property string pendingStatus: {
+    if (pendingAsin === "") return ""
+    var b = bookFor(pendingAsin)
+    var name = b && b.title ? b.title : "your book"
+    var d = downloads[pendingAsin]
+    if (pendingPlay !== "") {
+      if (d && d.state === "downloading") return "Downloading " + name + " \u00B7 " + Math.round((d.fraction || 0) * 100) + "%"
+      if (d && d.state === "queued") return "Waiting to download " + name
+      return "Preparing " + name
+    }
+    return "Starting " + name
+  }
+  // 0..1 while downloading, else -1 (indeterminate)
+  readonly property real pendingFraction: {
+    var d = pendingAsin !== "" ? downloads[pendingAsin] : null
+    return pendingPlay !== "" && d && d.state === "downloading" ? Math.max(0, Math.min(1, d.fraction || 0)) : -1
   }
 
   // ---- library ------------------------------------------------------------
@@ -237,6 +260,12 @@ Item {
   }
   Timer { id: observeTimer; interval: 400; onTriggered: root.onMpvConnected() }
 
+  function relink() {
+    mpvLink.active = false
+    mpvLink.active = true
+    observeTimer.restart()
+  }
+
   function mpvSend(command, requestId) {
     var sock = mpvLink.item
     if (!sock) return false
@@ -366,11 +395,14 @@ Item {
     if (hasBook && asin !== a) rememberPosition()
     if (hasBook && asin === a) { resumePlayback(); return }
     loading = true
+    startingAsin = a
     var start = Math.max(0, Math.floor(resumePosition(a) - 5))   // back up a few seconds
     run(["audible-play", file, "--start", String(start), "--speed", String(speed), "--volume", String(Math.round(volume))], function(code, out, err) {
       if (code !== 0) {
         loading = false
         setupLog = "Could not start playback: " + String(err || out).split("\n")[0]
+      } else if (!linked) {
+        relink()   // a fresh mpv just started: connect now instead of waiting for the retry timer
       }
     })
     lastAsin = a
@@ -466,7 +498,7 @@ Item {
     activeDownload = a
     downloads = withKey(downloads, a, { state: "downloading", fraction: 0, error: "" })
     rebuildBooks()
-    run(["audible", "download", "--asin", a, "--kind", "audio,chapter,cover", "-o", "json"], function(code, out, err) {
+    run(["audible", "download", "--asin", a, "--kind", "audio,chapter,cover", "--quality", downloadQuality, "-o", "json"], function(code, out, err) {
       activeDownload = ""
       if (code === 0) {
         downloads = withKey(downloads, a, { state: "done", fraction: 1, error: "" })
@@ -497,7 +529,7 @@ Item {
       root.run(["sh", "-c", "stat -c %s \"$1\"/\"$2\"/\"$2\".*.aaxc 2>/dev/null | head -1; true", "sh", root.booksDir, a], function(code, out) {
         var size = Number(String(out).trim())
         var b = root.bookFor(a)
-        var expected = b && b.runtimeSec > 0 ? b.runtimeSec * 16000 : 0
+        var expected = b && b.runtimeSec > 0 ? b.runtimeSec * (downloadQuality === "normal" ? 8000 : 16000) : 0
         if (!(size > 0) || !(expected > 0) || root.activeDownload !== a) return
         root.downloads = root.withKey(root.downloads, a, { state: "downloading", fraction: Math.min(0.99, size / expected), error: "" })
         if (!root.libraryOpen) root.rebuildBooks()   // the open library reads downloads live
@@ -738,7 +770,7 @@ Item {
       return JSON.stringify({
         state: root.setup ? root.setup.state : "checking",
         ready: root.ready,
-        hasBook: root.hasBook, playing: root.playing, paused: root.paused, volume: root.volume, muted: root.muted,
+        hasBook: root.hasBook, playing: root.playing, paused: root.paused, volume: root.volume, muted: root.muted, pending: root.pendingStatus, pendingFraction: root.pendingFraction, download: root.activeDownload !== "" ? Object.assign({ asin: root.activeDownload }, root.downloads[root.activeDownload] || {}) : null,
         asin: root.asin, title: root.title,
         position: root.position, duration: root.duration, speed: root.speed,
         chapterIndex: root.chapterIndex, chapters: root.chapters.length,
@@ -761,6 +793,7 @@ Item {
     function setVolume(v: real): void { root.setVolume(v) }
     function stepVolume(dir: int): void { root.stepVolume(dir) }
     function toggleMute(): void { root.toggleMute() }
+    function download(asin: string): void { root.download(asin) }
     function seekBy(sec: real): void { root.seekBy(sec) }
     function next(): void { root.nextChapter() }
     function prev(): void { root.prevChapter() }

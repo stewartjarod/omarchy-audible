@@ -26,7 +26,13 @@ BarWidget {
   }, { maxTitle: Number(root.setting("maxTitleChars", 28)) || 28 })
 
   // The bar text is only shown while a book is actually playing; paused or idle is icon-only.
-  readonly property string barText: (service && service.playing === true) ? root.label.text : ""
+  // Exception: while a book is being downloaded or started, say so (otherwise the bar is silent for
+  // the whole download).
+  readonly property string barText: {
+    if (!service) return ""
+    if (service.playing === true) return root.label.text
+    return service.pendingStatus ? String(service.pendingStatus) : ""
+  }
 
   // Icon tooltip: the playback summary, or an offer to continue the last book when idle.
   readonly property string iconTip: {
@@ -63,7 +69,7 @@ BarWidget {
     if ("bar" in target) target.bar = root.bar
     if ("settings" in target) target.settings = root.settings
     if ("service" in target) target.service = root.service
-    if ("anchorItem" in target) target.anchorItem = button
+    if ("anchorItem" in target) target.anchorItem = popupAnchor
     if ("hostWidget" in target) target.hostWidget = root
   }
 
@@ -95,6 +101,20 @@ BarWidget {
       root.injectPanel()
       Qt.callLater(root.injectPanel)
     }
+  }
+
+  // The popup opens from the right edge of the whole widget (icon + text). The text only shows
+  // while playing, which moves the icon; the right edge stays put, so the popup does not jump
+  // when you pause or stop. The popup centres on its anchor, so the anchor is as wide as the popup
+  // and pinned to the widget's right edge, making the popup's right edge line up with it.
+  Item {
+    id: popupAnchor
+    width: Style.space(360)
+    height: parent.height
+    anchors.right: parent.right
+    anchors.verticalCenter: parent.verticalCenter
+    opacity: 0
+    enabled: false
   }
 
   BarIconButton {

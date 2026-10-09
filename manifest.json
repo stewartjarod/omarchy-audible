@@ -26,7 +26,8 @@
       "speedMax": 3.5,
       "skipSeconds": 30,
       "maxTitleChars": 28,
-      "volumeStep": 5
+      "volumeStep": 5,
+      "downloadQuality": "high"
     },
     "schema": [
       {
@@ -85,6 +86,17 @@
         "max": 80,
         "step": 2,
         "defaultValue": 28
+      },
+      {
+        "key": "downloadQuality",
+        "type": "enum",
+        "label": "Download quality",
+        "options": [
+          "high",
+          "normal"
+        ],
+        "defaultValue": "high",
+        "description": "high is about 128 kbps. normal is about half the size, so a new book is ready roughly twice as fast, with little difference for speech."
       }
     ]
   }

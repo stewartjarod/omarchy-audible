@@ -110,6 +110,8 @@ Panel {
   // ---- commands -----------------------------------------------------------
 
   readonly property var lastBook: svc("lastBook", null)
+  readonly property string pendingStatus: String(svc("pendingStatus", ""))
+  readonly property real pendingFraction: Number(svc("pendingFraction", -1))
   // "5h 28m left at 1.7x" for the book we would continue, at the current speed.
   readonly property string continueMeta: {
     if (!lastBook) return ""
@@ -223,6 +225,44 @@ Panel {
         anchors.top: parent.top
         spacing: Style.space(10)
         visible: root.ready
+
+        // -- getting a book ready: download / start progress -----------------
+        Column {
+          width: parent.width
+          spacing: Style.space(4)
+          visible: root.pendingStatus !== ""
+
+          Text {
+            width: parent.width
+            text: root.pendingStatus
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            color: root.foreground
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.body
+            font.bold: true
+          }
+          Rectangle {
+            width: parent.width
+            height: Style.space(3)
+            radius: height / 2
+            color: root.hoverFill
+
+            Rectangle {
+              height: parent.height
+              radius: parent.radius
+              color: Color.accent
+              width: root.pendingFraction >= 0 ? parent.width * root.pendingFraction : parent.width * 0.3
+              // no percentage yet (waiting / starting): a slim bar that sweeps back and forth
+              SequentialAnimation on x {
+                running: root.pendingStatus !== "" && root.pendingFraction < 0
+                loops: Animation.Infinite
+                NumberAnimation { from: 0; to: Style.space(260); duration: 900; easing.type: Easing.InOutQuad }
+                NumberAnimation { from: Style.space(260); to: 0; duration: 900; easing.type: Easing.InOutQuad }
+              }
+            }
+          }
+        }
 
         // -- header: cover, title, author -----------------------------------
         Row {
