@@ -235,11 +235,14 @@ Item {
   function markFinished(a) {
     if (!a) return ""
     var now = Date.now()
-    var cur = plays[a] ? Math.max(0, Number(plays[a].count) || 0) : 0
+    // A book Audible already counts as finished is one listen before we add ours.
+    var bk = bookFor(a)
+    var cur = plays[a] ? Math.max(0, Number(plays[a].count) || 0) : (bk && bk.finished ? 1 : 0)
     if (plays[a] && now - (Number(plays[a].lastAt) || 0) < 30000) return "Already marked."   // double-fire guard
     var p = {}
     for (var k in plays) p[k] = plays[k]
-    p[a] = { count: cur + 1, lastAt: now }
+    // remember where you were, so "unmark" can put you back
+    p[a] = { count: cur + 1, lastAt: now, prevResume: plays[a] && plays[a].prevResume !== undefined ? plays[a].prevResume : (resume[a] || null) }
     plays = p
     var r = {}
     for (var j in resume) r[j] = resume[j]
@@ -254,10 +257,16 @@ Item {
   function unmarkFinished(a) {
     if (!a || !plays[a]) return "Not marked finished here."
     var n = Math.max(0, (Number(plays[a].count) || 0) - 1)
+    var prev = plays[a].prevResume
     var p = {}
     for (var k in plays) if (k !== a) p[k] = plays[k]
-    if (n > 0) p[a] = { count: n, lastAt: Number(plays[a].lastAt) || 0 }
+    if (n > 0) p[a] = { count: n, lastAt: Number(plays[a].lastAt) || 0, prevResume: prev !== undefined ? prev : null }
     plays = p
+    // put you back where you were before it was marked finished
+    var r = {}
+    for (var j in resume) if (j !== a) r[j] = resume[j]
+    if (prev) r[a] = prev
+    resume = r
     saveSoon()
     rebuildBooks()
     return n > 0 ? "Now " + n + (n === 1 ? " listen." : " listens.") : "Cleared."
