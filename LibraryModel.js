@@ -308,6 +308,141 @@ function recency(b) {
   return Math.max(toMs(b.lastListenedAt), toMs(b.finishedAt))
 }
 
+
+// ---- series ------------------------------------------------------------------
+// Books that share a series (two or more owned) can be collapsed into one tile that opens a view of
+// just that series. A "series tile" is a Book-shaped object with isSeries: true, so rows, cursor
+// and drawing code treat it like any other tile.
+
+function seriesTitleOf(b) {
+  return isObj(b) && isObj(b.series) && b.series.title ? str(b.series.title).trim() : ""
+}
+
+function seriesKeyOf(b) {
+  return fold(seriesTitleOf(b))
+}
+
+// Book number inside the series: "2" -> 2, "2.5" -> 2.5, "" -> null (unnumbered).
+function seriesNumber(b) {
+  var n = isObj(b) && isObj(b.series) ? parseFloat(str(b.series.sequence)) : NaN
+  return isFinite(n) ? n : null
+}
+
+// Members in reading order: numbered books by number, then unnumbered ones by title.
+function sortSeriesMembers(members) {
+  return byIndex(members).sort(function (x, y) {
+    var nx = seriesNumber(x.b), ny = seriesNumber(y.b)
+    if (nx !== null && ny !== null) { if (nx !== ny) return nx - ny; return x.i - y.i }
+    if (nx !== null) return -1
+    if (ny !== null) return 1
+    var tx = fold(x.b.title), ty = fold(y.b.title)
+    if (tx !== ty) return tx < ty ? -1 : 1
+    return x.i - y.i
+  }).map(function (e) { return e.b })
+}
+
+// { seriesKey: [members in reading order] } for every series with at least `min` books in the list.
+function seriesIndex(list, min) {
+  var need = Math.max(2, Math.floor(num(min, 2)))
+  var raw = {}
+  for (var i = 0; i < list.length; i++) {
+    var k = seriesKeyOf(list[i])
+    if (!k) continue
+    if (!raw[k]) raw[k] = []
+    raw[k].push(list[i])
+  }
+  var out = {}
+  var keys = Object.keys(raw)
+  for (var j = 0; j < keys.length; j++) {
+    if (raw[keys[j]].length >= need) out[keys[j]] = sortSeriesMembers(raw[keys[j]])
+  }
+  return out
+}
+
+// The book to open a series on: the first one you have not finished (else the first).
+function nextUp(members) {
+  var list = Array.isArray(members) ? members : []
+  for (var i = 0; i < list.length; i++) {
+    if (!list[i].finished && list[i].listenable !== false) return list[i]
+  }
+  return list.length ? list[0] : null
+}
+
+function seriesTile(members) {
+  var first = members[0]
+  var total = members.length
+  var finished = 0, local = 0, runtime = 0, share = 0, last = 0, fin = 0, purchase = ""
+  var authors = []
+  for (var i = 0; i < total; i++) {
+    var m = members[i]
+    if (m.finished) finished++
+    if (m.local) local++
+    runtime += num(m.runtimeSec, 0)
+    share += m.finished ? 1 : progressFraction(m)
+    last = Math.max(last, toMs(m.lastListenedAt))
+    fin = Math.max(fin, toMs(m.finishedAt))
+    if (str(m.purchaseDate) > purchase) purchase = str(m.purchaseDate)
+    var as = Array.isArray(m.authors) ? m.authors : []
+    for (var a = 0; a < as.length; a++) if (authors.indexOf(as[a]) < 0) authors.push(as[a])
+  }
+  var by = authors.length ? authors[0] + (authors.length > 1 ? " +" + (authors.length - 1) : "") : ""
+  return {
+    asin: "series:" + seriesKeyOf(first),
+    isSeries: true,
+    title: seriesTitleOf(first),
+    subtitle: "",
+    authors: authors,
+    author: total + " books" + (by ? " · " + by : ""),
+    narrators: [],
+    coverUrl: str(first.coverUrl),
+    covers: members.slice(0, 3).map(function (m) { return str(m.coverUrl) }),
+    runtimeSec: runtime,
+    series: null,
+    seriesCount: total,
+    finishedCount: finished,
+    localCount: local,
+    memberAsins: members.map(function (m) { return m.asin }),
+    percentComplete: Math.round(100 * share / total),
+    remainingSec: 0,
+    finished: finished === total,
+    listenable: true,
+    releaseDate: "",
+    purchaseDate: purchase,
+    local: false,
+    download: null,
+    resumeSec: 0,
+    lastListenedAt: last,
+    finishedAt: fin,
+    playCount: 0
+  }
+}
+
+// Replace each series' members in this section with one tile (at the position of its first member).
+// `placed` is shared across sections so a series gets a single tile in the whole view.
+function groupInto(sectionBooks, index, placed) {
+  var out = []
+  for (var i = 0; i < sectionBooks.length; i++) {
+    var b = sectionBooks[i]
+    var k = seriesKeyOf(b)
+    if (k && index[k]) {
+      if (!placed[k]) { placed[k] = true; out.push(seriesTile(index[k])) }
+      continue
+    }
+    out.push(b)
+  }
+  return out
+}
+
+// The "fresh view" for one series: all its books in reading order (honours the status filter and search).
+function seriesSections(books, title, opts) {
+  var o = isObj(opts) ? opts : {}
+  var list = byStatus(Array.isArray(books) ? books.filter(isObj) : [], o.status)
+  var key = fold(title)
+  var members = sortSeriesMembers(list.filter(function (b) { return seriesKeyOf(b) === key }))
+  if (tokens(o.query).length > 0) members = filter(members, o.query)
+  return members.length ? [{ id: "series", title: str(title), books: members }] : []
+}
+
 function sections(books, opts) {
   var list = byStatus(Array.isArray(books) ? books.filter(isObj) : [], opts && opts.status)
   var query = opts && opts.query
@@ -350,6 +485,15 @@ function sections(books, opts) {
   downloaded = byIndex(downloaded).sort(recent ? byRecency : byPurchase).map(function (e) { return e.b })
   all = byIndex(all).sort(recent ? byRecency : byPurchase).map(function (e) { return e.b })
 
+  // Optional: collapse each series (2+ books) into one tile. "Continue listening" stays individual,
+  // and a series gets one tile in the whole view even if its books fall into different sections.
+  if (opts && opts.group) {
+    var index = seriesIndex(list, 2)
+    var placed = {}
+    downloaded = groupInto(downloaded, index, placed)
+    all = groupInto(all, index, placed)
+  }
+
   var out = []
   if (cont.length) out.push({ id: "continue", title: "Continue listening", books: cont })
   if (downloaded.length) out.push({ id: "downloaded", title: "Downloaded", books: downloaded })
@@ -373,14 +517,27 @@ function moveSelection(o) {
 }
 
 // Rows for a ListView: one header row per section, then rows of up to `columns` books.
-function buildRows(sectionList, columns) {
+// opts.limits: { sectionId: maxBooks } shows only that many books of a long section (rounded up to a
+// whole row) unless opts.expanded[sectionId] is true. The header row says how many are hidden.
+function buildRows(sectionList, columns, opts) {
   var cols = Math.max(1, Math.floor(num(columns, 1)))
+  var o = isObj(opts) ? opts : {}
+  var limits = isObj(o.limits) ? o.limits : {}
+  var expanded = isObj(o.expanded) ? o.expanded : {}
   var rows = []
   var list = Array.isArray(sectionList) ? sectionList : []
   for (var s = 0; s < list.length; s++) {
     var sec = list[s]
     var books = Array.isArray(sec.books) ? sec.books : []
-    rows.push({ kind: "header", id: sec.id, title: sec.title, count: books.length })
+    var total = books.length
+    var limit = limits[sec.id] > 0 ? Math.ceil(limits[sec.id] / cols) * cols : 0
+    var collapsible = limit > 0 && total > limit
+    var isExpanded = !!expanded[sec.id]
+    if (collapsible && !isExpanded) books = books.slice(0, limit)
+    rows.push({
+      kind: "header", id: sec.id, title: sec.title, count: total,
+      collapsible: collapsible, expanded: collapsible && isExpanded, hidden: collapsible && !isExpanded ? total - books.length : 0
+    })
     for (var i = 0; i < books.length; i += cols) {
       rows.push({ kind: "books", sectionId: sec.id, books: books.slice(i, i + cols) })
     }
@@ -481,7 +638,7 @@ function formatMeta(book) {
   return parts.join(" · ")
 }
 
-if (typeof module !== "undefined") module.exports = { byStatus, recency,
+if (typeof module !== "undefined") module.exports = { seriesTitleOf, seriesKeyOf, seriesNumber, sortSeriesMembers, seriesIndex, nextUp, seriesTile, seriesSections, byStatus, recency,
   parseApiPage: parseApiPage,
   normalize: normalize,
   merge: merge,

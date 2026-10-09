@@ -17,6 +17,48 @@ Item {
   // ------------------------------------------------------------ service state
   readonly property bool ready: root.service ? !!root.service.ready : false
   // Which books to show: all | downloaded (on this computer) | cloud (not downloaded yet).
+  readonly property bool groupSeries: root.service ? root.service.groupSeries !== false : true
+  onGroupSeriesChanged: root.rebuild()
+  readonly property bool continueExpanded: root.service ? root.service.continueExpanded === true : false
+  onContinueExpandedChanged: root.rebuild()
+
+  // A series view replaces the grid with just that series' books (Esc / Backspace goes back).
+  property string openSeries: ""
+  property string seriesReturnAsin: ""
+
+  function openSeriesView(tile) {
+    if (!tile) return
+    root.seriesReturnAsin = tile.asin
+    root.openSeries = tile.title
+    root.query = ""
+    root.searching = false
+    root.statusText = ""
+    var secs = Lib.seriesSections(root.books, tile.title, { status: root.statusFilter })
+    var next = secs.length ? Lib.nextUp(secs[0].books) : null   // land on the next book you have not finished
+    root.selectedAsin = next ? next.asin : ""
+    root.rebuild()
+  }
+
+  function closeSeriesView() {
+    if (root.openSeries === "") return
+    root.openSeries = ""
+    root.selectedAsin = root.seriesReturnAsin
+    root.seriesReturnAsin = ""
+    root.query = ""
+    root.statusText = ""
+    root.rebuild()
+  }
+
+  function toggleContinue() {
+    if (root.service && typeof root.service.setContinueExpanded === "function") root.service.setContinueExpanded(!root.continueExpanded)
+  }
+
+  function toggleGroup() {
+    if (!root.service || typeof root.service.setGroupSeries !== "function") return
+    root.service.setGroupSeries(!root.groupSeries)
+    root.statusText = root.groupSeries ? "Showing every book separately." : "Grouping books by series."
+  }
+
   readonly property real wheelRows: (root.service && root.service.scrollRows > 0) ? root.service.scrollRows : 0.5
   readonly property string statusFilter: (root.service && root.service.filterMode) ? root.service.filterMode : "all"
   onStatusFilterChanged: root.rebuild()
@@ -40,6 +82,7 @@ Item {
 
   function askRemove(book) {
     if (!book || !root.service) return
+    if (book.isSeries) { root.statusText = "Open the series (Enter) to delete a book from it."; return }
     if (!root.isLocal(book.asin)) { root.statusText = "That book is not downloaded."; return }
     root.removeTarget = book
   }
@@ -60,12 +103,14 @@ Item {
 
   function markFinishedBook(book, undo) {
     if (!book || !root.service) return
+    if (book.isSeries) { root.statusText = "Open the series (Enter) to mark a book finished."; return }
     root.statusText = (undo ? root.service.unmarkFinished(book.asin) : root.service.markFinished(book.asin))
   }
 
   // The badge on a tile: download a book that is not here yet, or remove one that is.
   function badgeAction(book) {
     if (!book) return
+    if (book.isSeries) { root.selectAsin(book.asin); root.openSeriesView(book); return }
     root.selectAsin(book.asin)
     if (root.isLocal(book.asin)) root.askRemove(book)
     else root.downloadBook(book)
@@ -119,6 +164,8 @@ Item {
 
   // ------------------------------------------------------------ public interface
   function open(payloadJson) {
+    root.openSeries = ""
+    root.seriesReturnAsin = ""
     if (root.opened) return
     root.opened = true
     root.query = ""
@@ -174,9 +221,17 @@ Item {
   function rebuild() {
     var map = {}
     for (var i = 0; i < root.books.length; i++) map[root.books[i].asin] = root.books[i]
+    var secs = root.openSeries !== ""
+      ? Lib.seriesSections(root.books, root.openSeries, { query: root.query, status: root.statusFilter })
+      : Lib.sections(root.books, { query: root.query, sort: root.sortMode, status: root.statusFilter, group: root.groupSeries })
+    // Series tiles are not in root.books: register them so selection and activation can find them.
+    for (var s = 0; s < secs.length; s++)
+      for (var t = 0; t < secs[s].books.length; t++) if (secs[s].books[t].isSeries) map[secs[s].books[t].asin] = secs[s].books[t]
     root.bookByAsin = map
-    var secs = Lib.sections(root.books, { query: root.query, sort: root.sortMode, status: root.statusFilter })
-    var built = Lib.buildRows(secs, root.columns)
+    // "Continue listening" is one row until expanded (the main view only, and not while searching).
+    var limits = {}
+    if (root.openSeries === "" && root.query === "") limits["continue"] = root.isGrid ? root.columns : 5
+    var built = Lib.buildRows(secs, root.columns, { limits: limits, expanded: { "continue": root.continueExpanded } })
     root.rows = built
     root.cursor = root.selectedAsin ? Lib.cursorOf(built, root.selectedAsin) : Lib.firstCursor(built)
     root.selectedAsin = Lib.asinAt(built, root.cursor)
@@ -225,6 +280,7 @@ Item {
 
   function playBook(book) {
     if (!book) return
+    if (book.isSeries) { root.openSeriesView(book); return }
     if (book.listenable === false) {
       root.statusText = "“" + book.title + "” isn’t available on this account (borrowed or lapsed subscription)."
       return
@@ -236,6 +292,7 @@ Item {
 
   function downloadBook(book) {
     if (!book) return
+    if (book.isSeries) { root.statusText = "Open the series (Enter) to download a book from it."; return }
     if (book.listenable === false) {
       root.statusText = "Not available on this account, so it can't be downloaded."
       return
@@ -356,10 +413,14 @@ Item {
               root.searching = false
             } else if (root.searching) {
               root.searching = false
+            } else if (root.openSeries !== "") {
+              root.closeSeriesView()
             } else {
               root.close()
             }
             event.accepted = true
+          } else if (event.key === Qt.Key_Backspace && root.query === "" && !root.searching && root.openSeries !== "") {
+            root.closeSeriesView(); event.accepted = true
           } else if (Util.editsFilter(event, root.query)) {
             root.setQuery(Util.editedFilter(event, root.query))
             event.accepted = true
@@ -381,6 +442,10 @@ Item {
             root.playBook(root.selectedBook()); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_F) {
             root.cycleFilter(); event.accepted = true
+          } else if (ctrl && event.key === Qt.Key_G) {
+            root.toggleGroup(); event.accepted = true
+          } else if (ctrl && event.key === Qt.Key_E) {
+            root.toggleContinue(); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_X) {
             root.askRemove(root.selectedBook()); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_M) {
@@ -461,8 +526,16 @@ Item {
               font.family: root.fontFamily
               font.pixelSize: Style.font.body
               text: root.loading && root.books.length === 0 ? "Loading…"
+                : (root.openSeries !== "" ? "‹ Back to library (Esc)"
                 : (root.query !== "" ? root.countResults() + " results"
-                  : (root.filterLabel !== "" ? root.filterLabel + " · " + root.countResults() + " books" : root.books.length + " books"))
+                  : (root.filterLabel !== "" ? root.filterLabel + " · " + root.countResults() + " books" : root.books.length + " books")))
+
+              MouseArea {
+                anchors.fill: parent
+                enabled: root.openSeries !== ""
+                cursorShape: Qt.PointingHandCursor
+                onClicked: root.closeSeriesView()
+              }
             }
           }
 
@@ -533,9 +606,31 @@ Item {
 
                 // Section header
                 Text {
+                  id: expandHint
+                  visible: rowItem.modelData.kind === "header" && rowItem.modelData.collapsible === true
+                  anchors.right: parent.right
+                  anchors.bottom: parent.bottom
+                  anchors.bottomMargin: Style.space(4)
+                  textFormat: Text.PlainText
+                  text: rowItem.modelData.kind !== "header" ? ""
+                    : (rowItem.modelData.expanded ? "Show less ▴" : "Show " + rowItem.modelData.hidden + " more ▾")
+                  color: root.accent
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.body
+
+                  MouseArea {
+                    anchors.fill: parent
+                    anchors.margins: -Style.space(6)
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.toggleContinue()
+                  }
+                }
+
+                Text {
                   visible: rowItem.modelData.kind === "header"
                   anchors.left: parent.left
-                  anchors.right: parent.right
+                  anchors.right: expandHint.visible ? expandHint.left : parent.right
+                  anchors.rightMargin: expandHint.visible ? Style.space(12) : 0
                   anchors.bottom: parent.bottom
                   anchors.bottomMargin: Style.space(4)
                   textFormat: Text.PlainText
@@ -576,13 +671,15 @@ Item {
                       readonly property string playsText: plays >= 2 ? "×" + plays : (plays === 1 ? "✓" : "")
                       readonly property bool busy: !!dl && (dl.state === "queued" || dl.state === "downloading")
                       // Pointing at a tile reveals what its badge does when clicked.
-                      readonly property string badge: !listenable ? "Unavailable"
+                      readonly property string badge: book.isSeries === true ? book.seriesCount + " books"
+                        : !listenable ? "Unavailable"
                         : (dl && dl.state === "failed") ? "Failed"
                         : (dl && dl.state === "queued") ? "Queued"
                         : (dl && dl.state === "downloading") ? Math.round((Number(dl.fraction) || 0) * 100) + "%"
                         : local ? (selected ? "Downloaded  ✕" : "Downloaded")
                         : (selected ? "⇣ Download" : "")
-                      readonly property color badgeColor: (dl && dl.state === "failed") ? root.urgent
+                      readonly property color badgeColor: book.isSeries === true ? root.accent
+                        : (dl && dl.state === "failed") ? root.urgent
                         : (local || (dl && dl.state === "downloading")) ? root.accent : root.muted
                       readonly property string titleText: (playing ? "▶ " : "") + book.title + (playsText !== "" ? "  " + playsText : "")
 
@@ -604,6 +701,21 @@ Item {
                         z: 5   // above the tile's whole-tile click area (declared later), so the badges get their own clicks
                         visible: root.isGrid
                         anchors.fill: parent
+
+                        // A series: two more covers peeking out behind the first.
+                        Repeater {
+                          model: tile.book.isSeries === true && root.isGrid ? 2 : 0
+                          Rectangle {
+                            required property int index
+                            x: coverBox.x + Style.space(4) * (index + 1)
+                            y: coverBox.y - Style.space(4) * (index + 1)
+                            width: coverBox.width
+                            height: coverBox.height
+                            color: Util.alpha(root.foreground, index === 0 ? 0.16 : 0.09)
+                            border.width: 1
+                            border.color: Util.alpha(root.foreground, 0.28)
+                          }
+                        }
 
                         Item {
                           id: coverBox
@@ -931,7 +1043,7 @@ Item {
             textFormat: Text.PlainText
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
-            text: "Enter play · Ctrl+D download · Ctrl+X remove · Ctrl+M finished · Ctrl+F filter · Ctrl+S sort: " + (root.sortMode === "recent" ? "last played" : "added") + " · Tab view · Esc"
+            text: "Enter play/open · Ctrl+D download · Ctrl+X delete · Ctrl+M finished · Ctrl+F filter · Ctrl+G series · Ctrl+E more · Ctrl+S sort: " + (root.sortMode === "recent" ? "last played" : "added") + " · Tab view · Esc"
             color: root.muted
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall

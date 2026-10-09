@@ -870,3 +870,171 @@ test("sections: status filter applies to every section and to search", () => {
   assert.deepEqual(q[0].books.map(b => b.asin).sort(), ["L1", "L2"])
   assert.deepEqual(L.sections(list, { status: "cloud", query: "local" }), [])
 })
+
+// ----------------------------------------------------------------------- series grouping
+
+const inSeries = (asin, title, seq, extra) => book(Object.assign({
+  asin, title, series: { title: title.split(":")[0] === "Sol" ? "Sol Cycle" : "Hyperion Cantos", sequence: seq },
+  authors: ["Dan Simmons"], coverUrl: "u/" + asin, purchaseDate: "2024-01-0" + (Number(seq) || 1)
+}, extra))
+
+test("seriesNumber parses numbers, decimals and blanks", () => {
+  assert.equal(L.seriesNumber({ series: { sequence: "2" } }), 2)
+  assert.equal(L.seriesNumber({ series: { sequence: "2.5" } }), 2.5)
+  assert.equal(L.seriesNumber({ series: { sequence: "0" } }), 0)
+  assert.equal(L.seriesNumber({ series: { sequence: "" } }), null)
+  assert.equal(L.seriesNumber({ series: null }), null)
+  assert.equal(L.seriesNumber(null), null)
+})
+
+test("sortSeriesMembers: by number (2.5 between 2 and 3), unnumbered last by title", () => {
+  const m = [
+    inSeries("c", "C book", "3"), inSeries("n2", "Zeta novella", ""), inSeries("a", "A book", "1"),
+    inSeries("h", "Half book", "2.5"), inSeries("b", "B book", "2"), inSeries("n1", "Alpha novella", "")
+  ]
+  assert.deepEqual(L.sortSeriesMembers(m).map(b => b.asin), ["a", "b", "h", "c", "n1", "n2"])
+})
+
+test("nextUp: first unfinished listenable member, else the first", () => {
+  const m = [
+    inSeries("1", "One", "1", { finished: true }), inSeries("2", "Two", "2", { finished: true }),
+    inSeries("3", "Three", "3"), inSeries("4", "Four", "4")
+  ]
+  assert.equal(L.nextUp(m).asin, "3")
+  assert.equal(L.nextUp(m.map(b => Object.assign({}, b, { finished: true }))).asin, "1")
+  assert.equal(L.nextUp([]), null)
+})
+
+test("sections without group: series books stay individual (default behaviour unchanged)", () => {
+  const list = [inSeries("1", "One", "1"), inSeries("2", "Two", "2"), book({ asin: "S", title: "Solo" })]
+  assert.equal(L.sections(list).find(s => s.id === "all").books.length, 3)
+})
+
+test("sections with group: a series of 2+ becomes one tile; singles and unseries'd books stay", () => {
+  const list = [
+    inSeries("1", "One", "1"), inSeries("2", "Two", "2"), inSeries("3", "Three", "3"),
+    book({ asin: "S", title: "Solo" }),
+    book({ asin: "L", title: "Lonely", series: { title: "Only One Owned", sequence: "1" } })
+  ]
+  const all = L.sections(list, { group: true }).find(s => s.id === "all").books
+  assert.equal(all.length, 3)
+  const tile = all.find(b => b.isSeries)
+  assert.equal(tile.title, "Hyperion Cantos")
+  assert.equal(tile.seriesCount, 3)
+  assert.deepEqual(tile.memberAsins, ["1", "2", "3"])
+  assert.equal(tile.asin, "series:hyperion cantos")
+  assert.ok(all.some(b => b.asin === "S") && all.some(b => b.asin === "L"))
+  assert.equal(all.filter(b => !b.isSeries && b.series && b.series.title === "Hyperion Cantos").length, 0)
+})
+
+test("sections with group: Continue listening keeps in-progress members individual; the tile still counts them", () => {
+  const list = [
+    inSeries("1", "One", "1", { percentComplete: 30, resumeSec: 500 }),
+    inSeries("2", "Two", "2"), inSeries("3", "Three", "3")
+  ]
+  const out = L.sections(list, { group: true })
+  assert.deepEqual(out.find(s => s.id === "continue").books.map(b => b.asin), ["1"])
+  const tile = out.find(s => s.id === "all").books.find(b => b.isSeries)
+  assert.equal(tile.seriesCount, 3)       // opening it shows all three
+  assert.equal(out.find(s => s.id === "all").books.length, 1)
+})
+
+test("sections with group: one tile in the whole view even when members span Downloaded and All", () => {
+  const list = [
+    inSeries("1", "One", "1", { local: true }), inSeries("2", "Two", "2"), inSeries("3", "Three", "3", { local: true })
+  ]
+  const out = L.sections(list, { group: true })
+  const tiles = out.flatMap(s => s.books).filter(b => b.isSeries)
+  assert.equal(tiles.length, 1)
+  assert.equal(tiles[0].localCount, 2)
+  assert.equal(out.find(s => s.id === "downloaded").books.length, 1)
+  assert.equal(out.find(s => s.id === "all"), undefined)   // its remaining member lives inside the tile
+})
+
+test("sections with group: status filter shrinks the series; a series left with one book is a plain tile", () => {
+  const list = [inSeries("1", "One", "1", { local: true }), inSeries("2", "Two", "2")]
+  const dl = L.sections(list, { group: true, status: "downloaded" }).flatMap(s => s.books)
+  assert.equal(dl.length, 1)
+  assert.equal(dl[0].isSeries, undefined)
+  assert.equal(dl[0].asin, "1")
+})
+
+test("sections with group: a search returns plain books, not tiles", () => {
+  const list = [inSeries("1", "One", "1"), inSeries("2", "Two", "2")]
+  const out = L.sections(list, { group: true, query: "two" })
+  assert.deepEqual(out[0].books.map(b => b.asin), ["2"])
+})
+
+test("seriesTile aggregates progress, runtime, authors and reading state", () => {
+  const m = L.sortSeriesMembers([
+    inSeries("1", "One", "1", { finished: true, runtimeSec: 3600 }),
+    inSeries("2", "Two", "2", { percentComplete: 50, runtimeSec: 7200, authors: ["Dan Simmons", "Co Author"], local: true })
+  ])
+  const t = L.seriesTile(m)
+  assert.equal(t.runtimeSec, 10800)
+  assert.equal(t.finishedCount, 1)
+  assert.equal(t.localCount, 1)
+  assert.equal(t.percentComplete, 75)       // (1 + 0.5) / 2
+  assert.equal(t.finished, false)
+  assert.deepEqual(t.authors, ["Dan Simmons", "Co Author"])
+  assert.equal(t.author, "2 books · Dan Simmons +1")
+  assert.equal(t.coverUrl, "u/1")
+  assert.deepEqual(t.covers, ["u/1", "u/2"])
+})
+
+test("seriesSections: reading order, honours search and the status filter", () => {
+  const list = [
+    inSeries("3", "Three", "3", { local: true }), inSeries("1", "One", "1"), inSeries("2", "Two", "2", { local: true }),
+    book({ asin: "S", title: "Solo" })
+  ]
+  const all = L.seriesSections(list, "Hyperion Cantos", {})
+  assert.deepEqual(all[0].books.map(b => b.asin), ["1", "2", "3"])
+  assert.equal(all[0].title, "Hyperion Cantos")
+  assert.deepEqual(L.seriesSections(list, "hyperion cantos", { status: "downloaded" })[0].books.map(b => b.asin), ["2", "3"])
+  assert.deepEqual(L.seriesSections(list, "Hyperion Cantos", { query: "three" })[0].books.map(b => b.asin), ["3"])
+  assert.deepEqual(L.seriesSections(list, "No Such Series", {}), [])
+})
+
+// ------------------------------------------------- one-row "Continue listening" (buildRows limits)
+
+const nBooks = n => Array.from({ length: n }, (_, i) => book({ asin: "B" + i, title: "Book " + i }))
+
+test("buildRows: a long section collapses to one row with the hidden count in its header", () => {
+  const secs = [{ id: "continue", title: "Continue listening", books: nBooks(10) }, { id: "all", title: "All", books: nBooks(3) }]
+  const rows = L.buildRows(secs, 4, { limits: { continue: 4 } })
+  assert.deepEqual(rows[0], { kind: "header", id: "continue", title: "Continue listening", count: 10, collapsible: true, expanded: false, hidden: 6 })
+  assert.equal(rows[1].books.length, 4)
+  assert.equal(rows[2].kind, "header")          // the next section follows straight after the one row
+})
+
+test("buildRows: expanding shows everything and keeps the toggle available", () => {
+  const secs = [{ id: "continue", title: "C", books: nBooks(10) }]
+  const rows = L.buildRows(secs, 4, { limits: { continue: 4 }, expanded: { continue: true } })
+  assert.equal(rows[0].expanded, true)
+  assert.equal(rows[0].hidden, 0)
+  assert.equal(rows.filter(r => r.kind === "books").reduce((n, r) => n + r.books.length, 0), 10)
+})
+
+test("buildRows: a section that already fits is not collapsible", () => {
+  const rows = L.buildRows([{ id: "continue", title: "C", books: nBooks(4) }], 4, { limits: { continue: 4 } })
+  assert.equal(rows[0].collapsible, false)
+  assert.equal(rows[0].hidden, 0)
+})
+
+test("buildRows: the limit rounds up to a whole row; no options means no limits", () => {
+  const secs = [{ id: "continue", title: "C", books: nBooks(20) }]
+  assert.equal(L.buildRows(secs, 6, { limits: { continue: 4 } }).filter(r => r.kind === "books").length, 1)   // 4 -> one row of 6
+  assert.equal(L.buildRows(secs, 6).filter(r => r.kind === "books").length, 4)
+  assert.equal(L.buildRows(secs, 6, { limits: { continue: 5 } })[1].books.length, 6)
+})
+
+test("buildRows: list mode (1 column) can show a few rows", () => {
+  const rows = L.buildRows([{ id: "continue", title: "C", books: nBooks(12) }], 1, { limits: { continue: 5 } })
+  assert.equal(rows.filter(r => r.kind === "books").length, 5)
+  assert.equal(rows[0].hidden, 7)
+})
+
+test("cursorOf falls back to the first book when the selection is hidden by a collapsed section", () => {
+  const rows = L.buildRows([{ id: "continue", title: "C", books: nBooks(10) }], 4, { limits: { continue: 4 } })
+  assert.deepEqual(L.cursorOf(rows, "B9"), { row: 1, col: 0 })
+})

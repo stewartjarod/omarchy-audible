@@ -115,6 +115,8 @@ Item {
   property var resume: ({})
   property string viewMode: "grid"
   property string sortMode: "recent"
+  property bool groupSeries: true            // library: collapse series (2+ books) into one tile
+  property bool continueExpanded: false      // library: "Continue listening" shows one row until expanded
   property string filterMode: "all"     // library view: all | downloaded | cloud
   property var plays: ({})                 // { asin: { count, lastAt } } full listens, kept locally
   property bool libraryOpen: false
@@ -186,6 +188,8 @@ Item {
       if (s.sort === "recent" || s.sort === "added") sortMode = s.sort
       if (s.filter === "all" || s.filter === "downloaded" || s.filter === "cloud") filterMode = s.filter
       if (s.plays && typeof s.plays === "object") plays = s.plays
+      if (s.group === false) groupSeries = false
+      if (s.expandContinue === true) continueExpanded = true
       if (Number(s.volume) >= 0) volume = Player.clampVolume(Number(s.volume), 0, volumeMax)
       if (Number(s.speed) > 0) speed = Player.clampSpeed(Number(s.speed), speedMin, speedMax)
       if (s.resume && typeof s.resume === "object") resume = s.resume
@@ -205,7 +209,7 @@ Item {
     id: saveTimer
     interval: 1500
     onTriggered: {
-      var body = JSON.stringify({ version: 1, viewMode: root.viewMode, sort: root.sortMode, filter: root.filterMode, plays: root.plays, volume: root.volume, speed: root.speed, resume: root.resume, last: root.lastAsin })
+      var body = JSON.stringify({ version: 1, viewMode: root.viewMode, sort: root.sortMode, filter: root.filterMode, group: root.groupSeries, expandContinue: root.continueExpanded, plays: root.plays, volume: root.volume, speed: root.speed, resume: root.resume, last: root.lastAsin })
       root.run(["mkdir", "-p", root.stateDir], function() { stateFile.setText(body) })
     }
   }
@@ -225,6 +229,9 @@ Item {
   }
 
   // ---- finished / play counts ---------------------------------------------
+  function setGroupSeries(v) { groupSeries = v === true; saveSoon() }
+  function setContinueExpanded(v) { continueExpanded = v === true; saveSoon() }
+
   function setFilterMode(m) {
     if (m !== "all" && m !== "downloaded" && m !== "cloud") return
     filterMode = m
@@ -887,6 +894,9 @@ Item {
     function unmarkFinished(asin: string): string { return root.unmarkFinished(asin) }
     function removeDownload(asin: string): string { return root.removeDownload(asin) }
     function setFilter(mode: string): void { root.setFilterMode(mode) }
+    function setGroup(on: bool): void { root.setGroupSeries(on) }
+    function setContinueExpanded(on: bool): void { root.setContinueExpanded(on) }
+    function openSeries(title: string): void { if (libraryLoader.item && libraryLoader.item.openSeriesView) libraryLoader.item.openSeriesView({ asin: "series:" + title.toLowerCase(), title: title }) }
     function download(asin: string): void { root.download(asin) }
     function seekBy(sec: real): void { root.seekBy(sec) }
     function next(): void { root.nextChapter() }
