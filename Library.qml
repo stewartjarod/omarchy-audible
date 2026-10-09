@@ -17,6 +17,7 @@ Item {
   // ------------------------------------------------------------ service state
   readonly property bool ready: root.service ? !!root.service.ready : false
   // Which books to show: all | downloaded (on this computer) | cloud (not downloaded yet).
+  readonly property real wheelRows: (root.service && root.service.scrollRows > 0) ? root.service.scrollRows : 0.5
   readonly property string statusFilter: (root.service && root.service.filterMode) ? root.service.filterMode : "all"
   onStatusFilterChanged: root.rebuild()
   readonly property string filterLabel: statusFilter === "downloaded" ? "Downloaded"
@@ -29,34 +30,32 @@ Item {
       : (next === "downloaded" ? "Showing only books downloaded to this computer." : "Showing books that are not downloaded yet.")
   }
 
-  // Removing a download needs a second press (Ctrl+X again, or click the badge again within 4 s).
-  property string confirmRemoveAsin: ""
-  property string confirmPrompt: ""
-  // Drop the pending removal, and the prompt text with it (a stale "press again to confirm" misleads).
-  function cancelRemoveConfirm() {
-    confirmTimer.stop()
-    if (root.confirmPrompt !== "" && root.statusText === root.confirmPrompt) root.statusText = ""
-    root.confirmRemoveAsin = ""
-    root.confirmPrompt = ""
-  }
-  Timer { id: confirmTimer; interval: 4000; onTriggered: root.cancelRemoveConfirm() }
+  // Removing a download asks first, in a modal dialog (Delete is pre-selected; Esc or Cancel backs out).
+  property var removeTarget: null
+  readonly property string removeMessage: removeTarget
+    ? "Delete “" + removeTarget.title + "” from this computer?\n\nThis frees about "
+      + Math.max(1, Math.round((Number(removeTarget.runtimeSec) || 0) * 16000 / 1048576))
+      + " MB. Your place and listen count are kept, and you can download it again any time."
+    : ""
 
-  function removeBook(book) {
+  function askRemove(book) {
     if (!book || !root.service) return
     if (!root.isLocal(book.asin)) { root.statusText = "That book is not downloaded."; return }
-    if (root.confirmRemoveAsin === book.asin) {
-      confirmTimer.stop()
-      root.confirmRemoveAsin = ""
-      root.confirmPrompt = ""
-      var err = root.service.removeDownload(book.asin)
-      root.statusText = err !== "" ? err : "Removed “" + book.title + "” from this computer. You can download it again any time."
-      return
-    }
-    var mb = Math.max(1, Math.round((Number(book.runtimeSec) || 0) * 16000 / 1048576))
-    root.confirmRemoveAsin = book.asin
-    confirmTimer.restart()
-    root.confirmPrompt = "Remove “" + book.title + "” from this computer (about " + mb + " MB)? Press Ctrl+X again to confirm. Your place and listen count are kept."
-    root.statusText = root.confirmPrompt
+    root.removeTarget = book
+  }
+
+  function cancelRemove() {
+    root.removeTarget = null
+    keyCatcher.forceActiveFocus()
+  }
+
+  function confirmRemove() {
+    var book = root.removeTarget
+    root.removeTarget = null
+    keyCatcher.forceActiveFocus()
+    if (!book || !root.service) return
+    var err = root.service.removeDownload(book.asin)
+    root.statusText = err !== "" ? err : "Deleted “" + book.title + "” from this computer. You can download it again any time."
   }
 
   function markFinishedBook(book, undo) {
@@ -68,7 +67,7 @@ Item {
   function badgeAction(book) {
     if (!book) return
     root.selectAsin(book.asin)
-    if (root.isLocal(book.asin)) root.removeBook(book)
+    if (root.isLocal(book.asin)) root.askRemove(book)
     else root.downloadBook(book)
   }
 
@@ -192,7 +191,6 @@ Item {
   }
 
   function selectAsin(asin) {
-    if (root.confirmRemoveAsin !== "" && root.confirmRemoveAsin !== asin) root.cancelRemoveConfirm()
     root.selectedAsin = asin
     root.cursor = Lib.cursorOf(root.rows, asin)
   }
@@ -305,6 +303,26 @@ Item {
     Item {
       id: card
       anchors.fill: parent
+
+      ConfirmDialog {
+        id: removeDialog
+        anchors.fill: parent
+        z: 100
+        opened: root.removeTarget !== null
+        message: root.removeMessage
+        confirmText: "Delete"
+        cancelText: "Cancel"
+        background: root.background
+        foreground: root.foreground
+        scrim: root.scrim
+        selectedBackground: root.selectedBackground
+        selectedText: root.selectedText
+        fontFamily: root.fontFamily
+        cornerRadius: root.cornerRadius
+        onOpenedChanged: if (opened) selectedIndex = 1   // Delete is the pre-selected button
+        onCanceled: root.cancelRemove()
+        onConfirmed: root.confirmRemove()
+      }
       readonly property int contentTopInset: root.contentMargin
       readonly property int contentRightInset: root.contentMargin
       readonly property int contentBottomInset: root.contentMargin
@@ -317,6 +335,9 @@ Item {
 
         Keys.priority: Keys.BeforeItem
         Keys.onPressed: function(event) {
+          // The delete dialog is modal: it gets every key until it closes.
+          if (removeDialog.opened) { removeDialog.handleKey(event); event.accepted = true; return }
+
           // While setup is needed, Onboarding owns the keyboard.
           if (!root.ready) return
 
@@ -361,7 +382,7 @@ Item {
           } else if (ctrl && event.key === Qt.Key_F) {
             root.cycleFilter(); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_X) {
-            root.removeBook(root.selectedBook()); event.accepted = true
+            root.askRemove(root.selectedBook()); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_M) {
             root.markFinishedBook(root.selectedBook(), (event.modifiers & Qt.ShiftModifier) !== 0); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_S) {
@@ -478,6 +499,28 @@ Item {
               boundsBehavior: Flickable.StopAtBounds
               cacheBuffer: Math.max(Style.space(200), root.cellHeight * 2)
               reuseItems: true
+
+              // Qt's default wheel step is ~55 px a notch, a fifth of a grid row here. Scroll by a
+              // fraction of a row per notch (grid) or a few rows (list), animated, and let notches
+              // queue up instead of stalling.
+              NumberAnimation { id: wheelAnim; target: resultView; property: "contentY"; duration: 130; easing.type: Easing.OutCubic }
+              WheelHandler {
+                target: null
+                acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+                onWheel: function(event) {
+                  var rowH = root.isGrid ? root.cellHeight : root.listRowHeight
+                  var step = event.pixelDelta.y !== 0 ? event.pixelDelta.y * 1.5
+                    : (event.angleDelta.y / 120) * rowH * (root.isGrid ? root.wheelRows : 3)
+                  var minY = resultView.originY
+                  var maxY = resultView.originY + Math.max(0, resultView.contentHeight - resultView.height)
+                  var base = wheelAnim.running ? wheelAnim.to : resultView.contentY
+                  resultView.cancelFlick()
+                  wheelAnim.stop()
+                  wheelAnim.to = Math.max(minY, Math.min(maxY, base - step))
+                  wheelAnim.restart()
+                  event.accepted = true
+                }
+              }
 
               delegate: Item {
                 id: rowItem

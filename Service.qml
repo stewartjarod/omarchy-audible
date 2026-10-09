@@ -24,6 +24,7 @@ Item {
   readonly property int skipSeconds: Math.round(num("skipSeconds", 30))
   // "normal" is roughly half the download size of "high" (about 64 vs 128 kbps): a faster first listen.
   readonly property string downloadQuality: (settings && settings.downloadQuality === "normal") ? "normal" : "high"
+  readonly property real scrollRows: num("libraryScrollRows", 0.5)   // library grid: rows scrolled per wheel notch
   readonly property int volumeStep: Math.round(num("volumeStep", 5))
   readonly property int volumeMax: 130   // mpv's default ceiling (100 = unchanged)
 
@@ -881,6 +882,7 @@ Item {
     function setVolume(v: real): void { root.setVolume(v) }
     function stepVolume(dir: int): void { root.stepVolume(dir) }
     function toggleMute(): void { root.toggleMute() }
+    function askRemove(asin: string): void { if (libraryLoader.item && libraryLoader.item.askRemove) libraryLoader.item.askRemove(root.bookFor(asin)) }
     function markFinished(asin: string): string { return root.markFinished(asin) }
     function unmarkFinished(asin: string): string { return root.unmarkFinished(asin) }
     function removeDownload(asin: string): string { return root.removeDownload(asin) }
