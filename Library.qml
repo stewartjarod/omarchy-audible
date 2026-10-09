@@ -548,6 +548,7 @@ Item {
                       // ---- grid layout
                       Item {
                         id: gridContent
+                        z: 5   // above the tile's whole-tile click area (declared later), so the badges get their own clicks
                         visible: root.isGrid
                         anchors.fill: parent
 
