@@ -109,7 +109,26 @@ Panel {
 
   // ---- commands -----------------------------------------------------------
 
-  function togglePlay() { if (service && hasBook) service.togglePause() }
+  readonly property var lastBook: svc("lastBook", null)
+  // "5h 28m left at 1.7x" for the book we would continue, at the current speed.
+  readonly property string continueMeta: {
+    if (!lastBook) return ""
+    var total = Number(lastBook.runtimeSec) || 0
+    var done = Number(lastBook.resumeSec) > 0 ? Number(lastBook.resumeSec) : total * (Number(lastBook.percentComplete) || 0) / 100
+    var left = Math.max(0, total - done)
+    return left > 0 ? Model.formatDuration(left / (speed > 0 ? speed : 1), "hm") + " left at " + Model.formatSpeed(speed) : ""
+  }
+  readonly property string continueCover: {
+    if (!lastBook || !service) return ""
+    var local = service.localAsins && service.localAsins[lastBook.asin]
+    return local ? "file://" + service.booksDir + "/" + lastBook.asin + "/" + lastBook.asin + ".cover_500.jpg" : (lastBook.coverUrl || "")
+  }
+
+  function togglePlay() {
+    if (!service) return
+    if (hasBook) service.togglePause()
+    else if (lastBook) service.continueLast()
+  }
   function seekBy(delta) { if (service && hasBook) service.seekBy(delta) }
   function nextChapter() { if (service && hasBook) service.nextChapter() }
   function prevChapter() { if (service && hasBook) service.prevChapter() }
@@ -142,7 +161,7 @@ Panel {
 
     var handled = true
     if (k === Qt.Key_Space) togglePlay()
-    else if (k === Qt.Key_Return || k === Qt.Key_Enter) jumpCursor()
+    else if (k === Qt.Key_Return || k === Qt.Key_Enter) { if (!hasBook && lastBook) togglePlay(); else jumpCursor() }
     else if (k === Qt.Key_Down || t === "j") moveCursor(1)
     else if (k === Qt.Key_Up || t === "k") moveCursor(-1)
     else if (k === Qt.Key_Left || t === "h") seekBy(-root.skip)
@@ -644,7 +663,7 @@ Panel {
           Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
-            text: "Nothing playing"
+            text: root.lastBook ? "Pick up where you left off" : "Nothing playing"
             textFormat: Text.PlainText
             color: root.foreground
             font.family: root.fontFamily
@@ -654,12 +673,77 @@ Panel {
           Text {
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
+            visible: !root.lastBook
             text: "Pick a book from your library to start listening."
             textFormat: Text.PlainText
             wrapMode: Text.WordWrap
             color: root.dim
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
+          }
+          Row {
+            width: parent.width
+            spacing: Style.space(12)
+            visible: root.lastBook !== null
+
+            Image {
+              width: Style.space(56)
+              height: Style.space(56)
+              source: root.continueCover
+              fillMode: Image.PreserveAspectCrop
+              asynchronous: true
+              sourceSize.width: Style.space(112)
+              sourceSize.height: Style.space(112)
+            }
+            Column {
+              width: parent.width - Style.space(56) - parent.spacing
+              anchors.verticalCenter: parent.verticalCenter
+              spacing: Style.space(2)
+              Text {
+                width: parent.width
+                text: root.lastBook ? root.lastBook.title : ""
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: root.foreground
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.body
+                font.bold: true
+              }
+              Text {
+                width: parent.width
+                text: root.lastBook ? (root.lastBook.author || "") : ""
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+              }
+              Text {
+                width: parent.width
+                text: root.continueMeta
+                visible: text !== ""
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: root.dim
+                font.family: root.fontFamily
+                font.pixelSize: Style.font.bodySmall
+              }
+            }
+          }
+          Item {
+            width: parent.width
+            height: continueButton.height
+            visible: root.lastBook !== null
+
+            PanelActionButton {
+              id: continueButton
+              anchors.horizontalCenter: parent.horizontalCenter
+              iconText: "Continue listening  (Space)"
+              fontSize: Style.font.body
+              fontFamily: root.fontFamily
+              foreground: root.foreground
+              onClicked: root.togglePlay()
+            }
           }
           Item {
             width: parent.width

@@ -161,6 +161,9 @@ Item {
   }
 
   property string lastAsin: ""
+  // The book to offer when nothing is loaded ("pick up where you left off").
+  readonly property var lastBook: lastAsin !== "" ? bookFor(lastAsin) : null
+  function continueLast() { if (lastAsin !== "") play(lastAsin) }
 
   function saveSoon() { saveTimer.restart() }
   Timer {

@@ -25,6 +25,16 @@ BarWidget {
     setupReady: ready
   }, { maxTitle: Number(root.setting("maxTitleChars", 28)) || 28 })
 
+  // With nothing loaded, offer the last book instead of showing nothing.
+  readonly property string barText: {
+    if (root.label.text !== "") return root.label.text
+    var b = service ? service.lastBook : null
+    if (!b || !b.title) return ""
+    var max = Number(root.setting("maxTitleChars", 28)) || 28
+    var t = String(b.title)
+    return "Continue \u00B7 " + (t.length > max ? t.slice(0, max - 1) + "\u2026" : t)
+  }
+
   readonly property string bookGlyph: "\uDB80\uDCBA" // nerd-font book icon, U+F00BA
   readonly property int labelMaxWidth: Style.space(260)
 
@@ -43,7 +53,7 @@ BarWidget {
   }
 
   // ---- player commands from the bar -----------------------------------------
-  function togglePause() { if (service && hasBook) service.togglePause() }
+  function togglePause() { if (service) service.togglePause() }
   function openLibrary() { if (service) service.openLibrary() }
   function stepSpeed(dir) { if (service) service.stepSpeed(dir) }
 
@@ -116,8 +126,8 @@ BarWidget {
     anchors.left: button.right
     anchors.verticalCenter: parent.verticalCenter
     bar: root.bar
-    visible: !root.vertical && root.label.text !== "" && root.ready
-    text: root.label.text
+    visible: !root.vertical && root.barText !== "" && root.ready
+    text: root.barText
     horizontalMargin: 4
     dimmed: root.hasBook && root.paused
     tooltipText: root.label.tooltip
