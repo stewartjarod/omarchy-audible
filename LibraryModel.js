@@ -157,7 +157,9 @@ function normalize(item) {
     local: false,
     download: null,
     resumeSec: 0,
-    lastListenedAt: 0
+    lastListenedAt: 0,
+    // When Audible says it was finished (a fallback for "last played" for books played elsewhere).
+    finishedAt: toMs(ls ? str(ls.finished_at_timestamp) : "")
   }
 }
 
@@ -284,6 +286,11 @@ function byIndex(list) {
 
 // Sections for the screen. Without a query each book lands in exactly one of
 // continue / downloaded / all. Empty sections are omitted.
+// Best-known "last played" time in ms: our own history first, else Audible's finish date.
+function recency(b) {
+  return Math.max(toMs(b.lastListenedAt), toMs(b.finishedAt))
+}
+
 function sections(books, opts) {
   var list = Array.isArray(books) ? books.filter(isObj) : []
   var query = opts && opts.query
@@ -302,6 +309,10 @@ function sections(books, opts) {
     else all.push(b)
   }
 
+  // "recent" (default): most recently played first. Local listening history wins; Audible's
+  // finish date stands in for books played elsewhere. "added": newest purchase first.
+  var recent = !(opts && opts.sort === "added")
+
   cont = byIndex(cont).sort(function (x, y) {
     var ax = toMs(x.b.lastListenedAt), ay = toMs(y.b.lastListenedAt)
     if (ax !== ay) return ay - ax
@@ -314,8 +325,13 @@ function sections(books, opts) {
     if (px !== py) return px < py ? 1 : -1
     return x.i - y.i
   }
-  downloaded = byIndex(downloaded).sort(byPurchase).map(function (e) { return e.b })
-  all = byIndex(all).sort(byPurchase).map(function (e) { return e.b })
+  var byRecency = function (x, y) {
+    var rx = recency(x.b), ry = recency(y.b)
+    if (rx !== ry) return ry - rx
+    return byPurchase(x, y)
+  }
+  downloaded = byIndex(downloaded).sort(recent ? byRecency : byPurchase).map(function (e) { return e.b })
+  all = byIndex(all).sort(recent ? byRecency : byPurchase).map(function (e) { return e.b })
 
   var out = []
   if (cont.length) out.push({ id: "continue", title: "Continue listening", books: cont })
@@ -448,7 +464,7 @@ function formatMeta(book) {
   return parts.join(" · ")
 }
 
-if (typeof module !== "undefined") module.exports = {
+if (typeof module !== "undefined") module.exports = { recency,
   parseApiPage: parseApiPage,
   normalize: normalize,
   merge: merge,

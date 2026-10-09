@@ -105,6 +105,7 @@ test("normalize maps the first fixture item exactly", () => {
     percentComplete: 0,
     remainingSec: 30660,
     finished: false,
+    finishedAt: 0,
     listenable: true,
     releaseDate: "2025-09-09",
     purchaseDate: "2025-11-04T16:25:23.271Z",
@@ -481,11 +482,11 @@ test("sections: a downloaded in-progress book goes to continue, not downloaded",
   assert.equal(out.find(s => s.id === "downloaded"), undefined)
 })
 
-test("sections: downloaded (not in progress) books get their own section, newest purchase first", () => {
+test("sections: downloaded (not in progress) books get their own section; sort 'added' = newest purchase first", () => {
   const merged = L.merge(BOOKS, {
     localAsins: { B085L1MKYX: true, B0DTRR458T: true, B0833FMYH9: true }
   })
-  const out = L.sections(merged)
+  const out = L.sections(merged, { sort: "added" })
   assert.deepEqual(out.map(s => s.id), ["continue", "downloaded", "all"])
   const dl = out.find(s => s.id === "downloaded")
   // purchase dates: B0DTRR458T 2025-11, B085L1MKYX 2024-12, B0833FMYH9 2024-02
@@ -494,8 +495,8 @@ test("sections: downloaded (not in progress) books get their own section, newest
   assert.equal(out.find(s => s.id === "all").books.some(b => b.local), false)
 })
 
-test("sections: all section is sorted by purchaseDate descending", () => {
-  const all = L.sections(BOOKS).find(s => s.id === "all").books
+test("sections: with sort 'added' the all section is sorted by purchaseDate descending", () => {
+  const all = L.sections(BOOKS, { sort: "added" }).find(s => s.id === "all").books
   for (let i = 1; i < all.length; i++) {
     assert.ok(all[i - 1].purchaseDate >= all[i].purchaseDate, `${all[i - 1].asin} before ${all[i].asin}`)
   }
@@ -748,4 +749,57 @@ test("formatMeta: non-listenable book with no runtime shows only the author", ()
 test("normalize: unicode author names survive into formatMeta", () => {
   const b = L.normalize({ asin: "U", authors: [{ name: "José Ørsted" }], runtime_length_min: 60 })
   assert.equal(L.formatMeta(b), "José Ørsted · 1h")
+})
+
+// ------------------------------------------------------------ last-played ordering
+
+test("sections: default order is last played first (local history beats purchase date)", () => {
+  const books = [
+    book({ asin: "OLD", purchaseDate: "2026-01-01", finished: true }),
+    book({ asin: "NEW", purchaseDate: "2020-01-01", finished: true, lastListenedAt: Date.parse("2026-10-09T10:00:00Z") }),
+    book({ asin: "MID", purchaseDate: "2024-01-01", finished: true, lastListenedAt: Date.parse("2026-09-01T10:00:00Z") })
+  ]
+  const all = L.sections(books).find(s => s.id === "all").books.map(b => b.asin)
+  assert.deepEqual(all, ["NEW", "MID", "OLD"])
+})
+
+test("sections: Audible's finish date stands in for last played on books played elsewhere", () => {
+  const books = [
+    book({ asin: "A", purchaseDate: "2026-06-01", finished: true }),
+    book({ asin: "B", purchaseDate: "2019-01-01", finished: true, finishedAt: Date.parse("2026-08-01T00:00:00Z") }),
+    book({ asin: "C", purchaseDate: "2024-01-01", finished: true, lastListenedAt: Date.parse("2026-09-15T00:00:00Z"), finishedAt: Date.parse("2026-01-01T00:00:00Z") })
+  ]
+  const all = L.sections(books).find(s => s.id === "all").books.map(b => b.asin)
+  assert.deepEqual(all, ["C", "B", "A"])   // C: local 09-15, B: finished 08-01, A: never played
+})
+
+test("sections: books never played fall back to newest purchase first", () => {
+  const books = [
+    book({ asin: "P1", purchaseDate: "2021-01-01" }),
+    book({ asin: "P3", purchaseDate: "2025-01-01" }),
+    book({ asin: "P2", purchaseDate: "2023-01-01" })
+  ]
+  assert.deepEqual(L.sections(books).find(s => s.id === "all").books.map(b => b.asin), ["P3", "P2", "P1"])
+})
+
+test("sections: sort 'added' ignores play history", () => {
+  const books = [
+    book({ asin: "PLAYED", purchaseDate: "2020-01-01", lastListenedAt: Date.parse("2026-10-09T00:00:00Z") }),
+    book({ asin: "FRESH", purchaseDate: "2026-05-01" })
+  ]
+  assert.deepEqual(L.sections(books, { sort: "added" }).find(s => s.id === "all").books.map(b => b.asin), ["FRESH", "PLAYED"])
+})
+
+test("sections: downloaded section also follows last played", () => {
+  const books = [
+    book({ asin: "D1", local: true, purchaseDate: "2026-01-01", finished: true }),
+    book({ asin: "D2", local: true, purchaseDate: "2019-01-01", finished: true, lastListenedAt: Date.parse("2026-10-01T00:00:00Z") })
+  ]
+  assert.deepEqual(L.sections(books).find(s => s.id === "downloaded").books.map(b => b.asin), ["D2", "D1"])
+})
+
+test("normalize: reads finished_at_timestamp into finishedAt (ms)", () => {
+  const b = L.normalize({ asin: "Z", title: "Z", listening_status: { percent_complete: 100, is_finished: true, finished_at_timestamp: "2026-03-31T19:43:59.308Z" } })
+  assert.equal(b.finishedAt, Date.parse("2026-03-31T19:43:59.308Z"))
+  assert.equal(L.normalize({ asin: "Y", title: "Y" }).finishedAt, 0)
 })

@@ -42,7 +42,8 @@ Item {
   property var loginProc: null
 
   // ---- player -------------------------------------------------------------
-  property bool connected: mpv.connected
+  property bool linked: false
+  readonly property bool connected: linked
   property bool idle: true
   property bool paused: false
   property bool loading: false
@@ -83,6 +84,7 @@ Item {
   property var downloads: ({})
   property var resume: ({})
   property string viewMode: "grid"
+  property string sortMode: "recent"
   property bool libraryOpen: false
   property bool libraryEverOpened: false
   property string pendingPlay: ""
@@ -149,6 +151,7 @@ Item {
     try {
       var s = JSON.parse(text)
       if (s.viewMode === "grid" || s.viewMode === "list") viewMode = s.viewMode
+      if (s.sort === "recent" || s.sort === "added") sortMode = s.sort
       if (Number(s.speed) > 0) speed = Player.clampSpeed(Number(s.speed), speedMin, speedMax)
       if (s.resume && typeof s.resume === "object") resume = s.resume
       if (s.last && typeof s.last === "string") lastAsin = s.last
@@ -164,7 +167,7 @@ Item {
     id: saveTimer
     interval: 1500
     onTriggered: {
-      var body = JSON.stringify({ version: 1, viewMode: root.viewMode, speed: root.speed, resume: root.resume, last: root.lastAsin })
+      var body = JSON.stringify({ version: 1, viewMode: root.viewMode, sort: root.sortMode, speed: root.speed, resume: root.resume, last: root.lastAsin })
       root.run(["mkdir", "-p", root.stateDir], function() { stateFile.setText(body) })
     }
   }
@@ -181,6 +184,12 @@ Item {
     if (!libraryOpen) rebuildBooks()
   }
 
+  function setSortMode(m) {
+    if (m !== "recent" && m !== "added") return
+    sortMode = m
+    saveSoon()
+  }
+
   function setViewMode(m) {
     if (m !== "grid" && m !== "list") return
     viewMode = m
@@ -190,33 +199,43 @@ Item {
   // ======================================================================
   // mpv over IPC
   // ======================================================================
-  Socket {
-    id: mpv
-    path: root.mpvSock
-    parser: SplitParser {
-      splitMarker: "\n"
-      onRead: function(line) { root.onMpvLine(String(line)) }
-    }
-    onConnectedChanged: {
-      if (connected) root.onMpvConnected()
-      else root.onMpvGone()
+  // A Quickshell Socket never retries after a failed connect, and `connected` does not signal a
+  // successful one. So: build a brand-new Socket until mpv answers (the first line it sends
+  // marks us linked), then register the property observers.
+  Component {
+    id: mpvSocketComponent
+    Socket {
+      path: root.mpvSock
+      connected: true
+      parser: SplitParser {
+        splitMarker: "\n"
+        onRead: function(line) { root.onMpvLine(String(line)) }
+      }
+      onConnectedChanged: if (!connected) root.onMpvGone()
     }
   }
+  Loader { id: mpvLink; sourceComponent: mpvSocketComponent; active: true }
 
-  // Retry until the socket exists (mpv is started lazily by audible-play).
   Timer {
     interval: 2000
     repeat: true
     running: true
-    onTriggered: if (!mpv.connected) { mpv.connected = false; mpv.connected = true }
+    onTriggered: {
+      if (root.linked) return
+      mpvLink.active = false
+      mpvLink.active = true
+      observeTimer.restart()
+    }
   }
+  Timer { id: observeTimer; interval: 400; onTriggered: root.onMpvConnected() }
 
   function mpvSend(command, requestId) {
-    if (!mpv.connected) return false
+    var sock = mpvLink.item
+    if (!sock) return false
     var o = { command: command }
     if (requestId) o.request_id = requestId
-    mpv.write(JSON.stringify(o) + "\n")
-    mpv.flush()
+    sock.write(JSON.stringify(o) + "\n")
+    sock.flush()
     return true
   }
 
@@ -226,6 +245,7 @@ Item {
   }
 
   function onMpvGone() {
+    linked = false
     idle = true
     path = ""
     asin = ""
@@ -236,6 +256,7 @@ Item {
   function onMpvLine(line) {
     var m
     try { m = JSON.parse(line) } catch (e) { return }
+    if (!linked) linked = true
     if (m.request_id === 100) {
       if (typeof m.data === "number") position = m.data
       return

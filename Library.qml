@@ -16,6 +16,8 @@ Item {
 
   // ------------------------------------------------------------ service state
   readonly property bool ready: root.service ? !!root.service.ready : false
+  readonly property string sortMode: (root.service && root.service.sortMode) ? root.service.sortMode : "recent"
+  onSortModeChanged: root.rebuild()
   readonly property var books: (root.service && Array.isArray(root.service.books)) ? root.service.books : []
   readonly property bool loading: root.service ? !!root.service.libraryLoading : false
   readonly property string libraryError: root.service && root.service.libraryError ? String(root.service.libraryError) : ""
@@ -118,7 +120,7 @@ Item {
     var map = {}
     for (var i = 0; i < root.books.length; i++) map[root.books[i].asin] = root.books[i]
     root.bookByAsin = map
-    var secs = Lib.sections(root.books, { query: root.query })
+    var secs = Lib.sections(root.books, { query: root.query, sort: root.sortMode })
     var built = Lib.buildRows(secs, root.columns)
     root.rows = built
     root.cursor = root.selectedAsin ? Lib.cursorOf(built, root.selectedAsin) : Lib.firstCursor(built)
@@ -299,6 +301,10 @@ Item {
             root.toggleView(); event.accepted = true
           } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             root.playBook(root.selectedBook()); event.accepted = true
+          } else if (ctrl && event.key === Qt.Key_S) {
+            if (root.service && typeof root.service.setSortMode === "function")
+              root.service.setSortMode(root.sortMode === "recent" ? "added" : "recent")
+            event.accepted = true
           } else if (ctrl && event.key === Qt.Key_D) {
             root.downloadBook(root.selectedBook()); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_R) {
@@ -773,7 +779,7 @@ Item {
             textFormat: Text.PlainText
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
-            text: "Enter play  ·  Ctrl+D download  ·  Tab grid/list  ·  / or type to search  ·  hjkl / arrows move  ·  Esc clear, then close"
+            text: "Enter play  ·  Ctrl+D download  ·  Tab grid/list  ·  Ctrl+S sort: " + (root.sortMode === "recent" ? "last played" : "date added") + "  ·  / search  ·  hjkl move  ·  Esc close"
             color: root.muted
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
