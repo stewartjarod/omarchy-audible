@@ -209,7 +209,7 @@ Item {
           wrapMode: Text.WordWrap
           maximumLineCount: 2
           elide: Text.ElideRight
-          color: root.muted
+          color: Util.alpha(root.foreground, 0.7)
           font.family: root.fontFamily
           font.pixelSize: Style.font.heading
         }

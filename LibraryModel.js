@@ -161,7 +161,7 @@ function normalize(item) {
     publisher: str(item.publisher_name),
     rating: ratingOf(item.rating).average,
     ratingCount: ratingOf(item.rating).count,
-    format: item.format_type ? str(item.format_type).charAt(0).toUpperCase() + str(item.format_type).slice(1) : "",
+    format: item.format_type ? str(item.format_type).replace(/_/g, " ").replace(/^./, function (c) { return c.toUpperCase() }) : "",
     purchaseDate: str(item.purchase_date) || str(lib && lib.date_added),
     // Local state, filled by merge().
     local: false,

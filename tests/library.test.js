@@ -1166,3 +1166,9 @@ test("detailActions: finish button toggles with finishedHere", () => {
   assert.equal(L.detailActions(book({ finished: true }), {}).finish.label, "Count another listen")
   assert.deepEqual(L.detailActions(book({ finishedHere: true, finished: true }), {}).finish, { id: "unfinish", label: "Undo finished", enabled: true })
 })
+
+test("normalize: format_type reads naturally (underscores become spaces)", () => {
+  assert.equal(L.normalize({ asin: "F", title: "F", format_type: "original_recording" }).format, "Original recording")
+  assert.equal(L.normalize({ asin: "G", title: "G", format_type: "unabridged" }).format, "Unabridged")
+  assert.equal(L.normalize({ asin: "H", title: "H" }).format, "")
+})
