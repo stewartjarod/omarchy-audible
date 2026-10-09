@@ -94,7 +94,7 @@ One Service instance per shell. All surfaces get it as `service`.
 
 Source: `fixtures/library-api.json` (real `audible api GET /1.0/library` output, trimmed). Quirks seen:
 `listening_status.percent_complete` is 0..100; a book can have `finished_at_timestamp` set while
-`is_finished` is false (treat percent >= 99 or finished_at set as finished for display, but still list
+`is_finished` is false (finished = is_finished true or percent >= 99; finished_at is stale and ignored; list
 under "Continue" only if not finished); `is_listenable: false` titles exist (borrowed/lapsed
 subscription: not playable or downloadable, show but dim and block); `series[].sequence` may be "";
 `product_images` is `{ "500": url }`, prefer the largest key; authors/narrators are `[{asin,name}]`.
