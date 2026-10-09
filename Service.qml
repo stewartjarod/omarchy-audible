@@ -517,8 +517,8 @@ Item {
     })
   }
 
-  // The CLI prints nothing while downloading when not on a TTY, so progress is the
-  // growing file size against runtime * 128 kbps (the "high" quality default).
+  // The CLI prints nothing while downloading when not on a TTY, and writes to <asin>.*.aaxc.part until
+  // it finishes, so progress is that file's size against runtime * bitrate.
   Timer {
     interval: 1500
     repeat: true
@@ -526,7 +526,7 @@ Item {
     onTriggered: {
       var a = root.activeDownload
       if (a === "") return
-      root.run(["sh", "-c", "stat -c %s \"$1\"/\"$2\"/\"$2\".*.aaxc 2>/dev/null | head -1; true", "sh", root.booksDir, a], function(code, out) {
+      root.run(["sh", "-c", "stat -c %s \"$1\"/\"$2\"/\"$2\".*.aaxc.part 2>/dev/null | head -1; true", "sh", root.booksDir, a], function(code, out) {
         var size = Number(String(out).trim())
         var b = root.bookFor(a)
         var expected = b && b.runtimeSec > 0 ? b.runtimeSec * (downloadQuality === "normal" ? 8000 : 16000) : 0
