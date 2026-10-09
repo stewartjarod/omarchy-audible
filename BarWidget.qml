@@ -117,9 +117,12 @@ BarWidget {
     enabled: false
   }
 
+  // The icon is the fixed anchor: pinned to the widget's right edge, so it never moves when the text
+  // appears (playing) or disappears (paused). The text grows to its left. This widget is the first in
+  // its section, so nothing else on the bar shifts either.
   BarIconButton {
     id: button
-    anchors.left: parent.left
+    anchors.right: parent.right
     anchors.verticalCenter: parent.verticalCenter
     bar: root.bar
     text: root.bookGlyph
@@ -143,7 +146,7 @@ BarWidget {
   // the wheel changes speed, exactly like the icon.
   WidgetButton {
     id: labelButton
-    anchors.left: button.right
+    anchors.right: button.left
     anchors.verticalCenter: parent.verticalCenter
     bar: root.bar
     visible: !root.vertical && root.barText !== "" && root.ready

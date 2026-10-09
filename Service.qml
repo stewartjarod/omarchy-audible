@@ -47,6 +47,7 @@ Item {
 
   // ---- player -------------------------------------------------------------
   property bool linked: false
+  property bool savePositionOnReply: false
   readonly property bool connected: linked
   property bool idle: true
   property bool paused: false
@@ -296,11 +297,18 @@ Item {
     if (!linked) linked = true
     if (m.request_id === 100) {
       if (typeof m.data === "number") position = m.data
+      if (savePositionOnReply) { savePositionOnReply = false; rememberPosition() }
       return
     }
     if (m.event === "property-change") {
       switch (m.name) {
-      case "pause": paused = m.data === true; if (paused) rememberPosition(); break
+      case "pause":
+        paused = m.data === true
+        // Read the real position right now: the 1 Hz poll can be up to a second (more at 2-3x) stale,
+        // which showed as the time/progress snapping when you hit play or pause.
+        if (paused) savePositionOnReply = true
+        mpvSend(["get_property", "time-pos"], 100)
+        break
       case "speed": if (typeof m.data === "number") { speed = m.data; saveSoon() } break
       case "chapter-list": rawChapters = Array.isArray(m.data) ? m.data : []; break
       case "duration": duration = typeof m.data === "number" ? m.data : 0; break
