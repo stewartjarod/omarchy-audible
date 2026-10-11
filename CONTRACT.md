@@ -57,7 +57,8 @@ One Service instance per shell. All surfaces get it as `service`.
 - `setup` (var): result of `SetupModel.detect(probe)` (see below). `ready` (bool): `setup.ready`.
 - `setupBusy` (bool), `setupLog` (string, last human-readable progress line), `setupInput` unused.
 - `runSetupAction(id, payload)`: ids are `install-audible`, `login`, `store-password`
-  (payload = `{password}`), `remove-password`, `sync`, `recheck`, `cancel`.
+  (payload = `{password}`), `remove-password`, `sync`, `recheck`, `cancel`, `login-terminal`
+  (the guided sign-in in a terminal window), `sign-out`.
 - `loginUrl` (string): the local sign-in URL while a login is in progress (else "").
 
 **Player** (read-only)
@@ -127,7 +128,7 @@ Actions: `no-audible` -> primary `install-audible`; `no-player` -> no primary, m
 says exactly what to install (`omarchy pkg add mpv` for mpv);
 `no-account` -> primary `login` (while `login.waiting`: no primary, message tells them to finish in
 the browser, secondary `cancel`); `locked` -> if `secretTool.found`: primary
-`store-password` with `input: "password"`, secondary `remove-password`; else primary
+`store-password` with `input: "password"`, secondaries `sign-out` and `remove-password`; else primary
 `remove-password` only; `unsynced` -> primary `sync`; `ready` -> null. When `busy` is set, `primary`
 keeps its id but add `busy: true` and label like "Syncing...". The unlocked login must NEVER be
 described as "failed"; be reassuring.

@@ -339,6 +339,15 @@ writes it back after your next change, so the file must be deleted before the
 restart. This clears resume positions, finished marks, and view settings. It does
 not touch your books, your account, or your saved password.
 
+**If the browser sign-in is blocked.** Amazon sometimes answers the plugin's local sign-in page
+with "There was a problem" (its check against automated sign-ins; several attempts in a row make
+it likelier). Wait about 30 minutes, or press Tab to "Sign in with a terminal instead". That
+opens a terminal window running the CLI's own sign-in: it prints a normal amazon.com address, you
+sign in there, and paste back the address you land on. The script then protects the login file
+with a random keyring password and the popup carries on by itself (it re-checks every few seconds
+and whenever you open it). If you forgot the password you set yourself, "Sign out and start over"
+on the unlock screen clears the account so you can sign in again.
+
 **How sign-in handles the login-file password.** The Audible CLI's own prompt for a login-file
 password needs a terminal, which the shell does not have. So the plugin signs in with an
 unencrypted login file for a few seconds, then encrypts it with a random password (passed

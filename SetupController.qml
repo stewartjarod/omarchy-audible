@@ -125,6 +125,7 @@ Item {
       break
     case "sync": syncLibrary(); break
     case "sign-out": signOut(); break
+    case "login-terminal": terminalLogin(); break
     }
   }
 
@@ -180,6 +181,19 @@ Item {
         } })
     rerenderSetup()
     loginPoll.restart()
+    urlWatch.restart()
+  }
+
+  // No sign-in address after 15 s: say so instead of sitting on "Starting the sign-in page...".
+  Timer {
+    id: urlWatch
+    interval: 15000
+    onTriggered: {
+      if (ctl.loginWaiting && ctl.loginUrl === "") {
+        ctl.svc.setupLog = "The sign-in page did not start. Cancel and try again, or sign in with a terminal instead."
+        ctl.rerenderSetup()
+      }
+    }
   }
 
   // The sign-in command is over (or was stopped): check for the account, then lock its login file.
@@ -205,6 +219,28 @@ Item {
         storePassword(pw)
       }, { env: { AUDIBLE_NEW_AUTH_PASSWORD: pw } })
     })
+  }
+
+  // The fallback when the browser page is blocked: the CLI's own sign-in in a terminal window.
+  // recheckPoll notices the account appearing, so nothing has to be pressed afterwards.
+  function terminalLogin() {
+    var argv
+    try { argv = Setup.terminalLoginArgs(Setup.accountNameFor(Quickshell.env("USER")), marketplaceGuess()) }
+    catch (e) { svc.setupLog = "Could not start the terminal sign-in."; return }
+    if (loginWaiting) cancelLogin()
+    Quickshell.execDetached(["xdg-terminal-exec"].concat(argv))
+    svc.setupLog = "Finish signing in in the terminal window that opened. This page updates by itself."
+  }
+
+  // While setup is waiting on something outside the popup (a terminal sign-in, an unlock done with
+  // the CLI), look again every few seconds. Idle once the library is ready or an action is running.
+  Timer {
+    id: recheckPoll
+    interval: 4000
+    repeat: true
+    running: !ctl.ready && !ctl.loginWaiting && ctl.setupBusyId === "" && !ctl.previewing
+      && ctl.setup && (ctl.setup.state === "no-account" || ctl.setup.state === "locked")
+    onTriggered: ctl.recheck()
   }
 
   function cancelLogin() {

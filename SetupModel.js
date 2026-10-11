@@ -35,6 +35,7 @@ var BUSY_LABELS = {
   "login": "Starting sign-in...",
   "store-password": "Saving...",
   "remove-password": "Removing...",
+  "sign-out": "Signing out...",
   "sync": "Syncing..."
 }
 
@@ -173,6 +174,44 @@ function signOutArgs(accountName) {
   return ["account", "remove", n, "--yes", "--delete-auth-file"]
 }
 
+// A name for a new account: the login name, cleaned to what the CLI accepts.
+function accountNameFor(user) {
+  var n = _str(user).replace(/[^A-Za-z0-9._@-]/g, "").slice(0, 64)
+  return n === "" ? "audible" : n
+}
+
+// The guided sign-in that runs in a terminal window (the fallback when the browser page is blocked
+// or does not work). It has a real terminal, so the CLI's own prompts work: the sign-in prints a
+// normal amazon.com address and asks for the address you land on. Afterwards the login file is
+// protected with a random keyring password so the popup never needs one. Positional args: $1 account
+// name, $2 marketplace. Nothing secret is on a command line.
+var TERMINAL_LOGIN_SCRIPT = [
+  'export PATH="$HOME/.local/bin:$PATH"',
+  'name="$1"; mp="$2"',
+  'pause() { echo; printf "Press Enter to close "; read -r _; }',
+  'echo "Sign in to Audible (account: $name)"; echo',
+  'audible account login --external --plain -m "$mp" --name "$name" || { echo; echo "Sign-in did not finish. Close this and try again from the Audible popup."; pause; exit 1; }',
+  'if ! command -v secret-tool >/dev/null 2>&1; then',
+  '  echo; echo "Signed in. This machine has no keyring tool (libsecret), so the login file is not password protected."; pause; exit 0',
+  'fi',
+  'pw=$(head -c 24 /dev/urandom | base64 | tr -d "=+/\\n")',
+  'if AUDIBLE_NEW_AUTH_PASSWORD="$pw" audible account password set -a "$name" \\',
+  '   && printf %s "$pw" | secret-tool store --label="audible-rs $name" service audible-rs account "$name" \\',
+  '   && audible account password source command -a "$name" --command "secret-tool lookup service audible-rs account $name"; then',
+  '  echo; echo "Signed in. Your login is protected by your keyring; you will not be asked for a password."',
+  'else',
+  '  echo; echo "Signed in, but could not protect the login file. The Audible popup will ask you to unlock it."',
+  'fi',
+  'pause'
+].join("\n")
+
+function terminalLoginArgs(accountName, marketplace) {
+  var n = _checkAccount(accountName)
+  var mp = _str(marketplace)
+  if (!/^[a-z]{2}$/.test(mp)) throw new Error("invalid marketplace")
+  return ["sh", "-c", TERMINAL_LOGIN_SCRIPT, "sh", n, mp]
+}
+
 function installPlan(tag, arch) {
   if (arch !== PINNED_ARCH) return { error: "Only " + PINNED_ARCH + " is supported right now." }
   var t = tag || PINNED_TAG
@@ -281,23 +320,25 @@ function detect(probe) {
   } else if (state === "no-account") {
     if (loginWaiting) {
       out.title = "Finish signing in in your browser"
-      out.message = "Complete the sign-in in your browser, on the page that opened. We're waiting for it to finish; this can take a few minutes. If no page opened, use the link below. An error page at the end can still mean it worked: we confirm by checking your account."
-      out.secondary = [{ id: "cancel", label: "Cancel sign-in" }]
+      out.message = "Complete the sign-in in your browser, on the page that opened. We're waiting for it to finish; this can take a few minutes. If no page opened, use the link below. An error page at the end can still mean it worked: we confirm by checking your account. If Amazon says \"There was a problem\", it is blocking automated sign-ins for a while: wait about 30 minutes, or sign in with a terminal instead."
+      out.secondary = [{ id: "cancel", label: "Cancel sign-in" }, { id: "login-terminal", label: "Sign in with a terminal instead" }]
     } else {
       out.title = "Sign in to Audible"
       out.message = "Connect your Audible account once. A sign-in page opens in your browser; finish there and come back. We confirm the sign-in by checking your account, so an odd message from the browser isn't a failure."
       out.primary = _action("login", "Sign in to Audible", !!busy)
+      out.secondary = [{ id: "login-terminal", label: "Sign in with a terminal instead" }]
     }
   } else if (state === "locked") {
     if (secretFound) {
       out.title = "Unlock your saved login"
       out.message = "Your Audible login is saved, but it needs your Audible password once before it can sync. Type it below; it goes straight into your system keyring and is never written to a file or shown here."
       out.primary = _action("store-password", "Save password", !!busy, "password")
-      out.secondary = [{ id: "remove-password", label: "Remove saved password" }]
+      out.secondary = [{ id: "sign-out", label: "Forgot it? Sign out and start over" }, { id: "remove-password", label: "Remove saved password" }]
     } else {
       out.title = "Unlock your saved login"
       out.message = "Your Audible login is saved, but it's locked and this machine has no keyring tool (secret-tool, from libsecret) to unlock it with. Install libsecret to save your password here, or remove the saved login and sign in again."
       out.primary = _action("remove-password", "Remove saved password", !!busy)
+      out.secondary = [{ id: "sign-out", label: "Sign out and start over" }]
     }
   } else if (state === "unsynced") {
     out.title = "Sync your library"
@@ -322,6 +363,8 @@ if (typeof module !== "undefined") module.exports = {
   passwordSourceArgs: passwordSourceArgs,
   keyringStoreArgs: keyringStoreArgs,
   signOutArgs: signOutArgs,
+  accountNameFor: accountNameFor,
+  terminalLoginArgs: terminalLoginArgs,
   installPlan: installPlan,
   verifySums: verifySums,
   versionNotice: versionNotice,

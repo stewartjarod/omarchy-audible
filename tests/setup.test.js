@@ -83,7 +83,7 @@ test("state no-account: empty account list -> primary login", () => {
   assert.equal(r.state, "no-account")
   assert.equal(r.primary.id, "login")
   assert.equal(r.primary.label, "Sign in to Audible")
-  assert.deepEqual(r.secondary, [])
+  assert.deepEqual(r.secondary, [{ id: "login-terminal", label: "Sign in with a terminal instead" }])
   assert.deepEqual(statuses(r), ["done", "done", "current", "todo", "todo"])
 })
 
@@ -91,9 +91,10 @@ test("state no-account while login waiting: no primary, cancel secondary, reassu
   const r = M.detect(probe({ accounts: accountsEmpty(), login: { url: "http://127.0.0.1:39457/x/", waiting: true }, busy: "login" }))
   assert.equal(r.state, "no-account")
   assert.equal(r.primary, null)
-  assert.deepEqual(r.secondary, [{ id: "cancel", label: "Cancel sign-in" }])
+  assert.deepEqual(r.secondary, [{ id: "cancel", label: "Cancel sign-in" }, { id: "login-terminal", label: "Sign in with a terminal instead" }])
   assert.match(r.message, /browser/)
   assert.match(r.message, /checking your account/)
+  assert.match(r.message, /There was a problem/)   // Amazon's block page is explained, with the way out
 })
 
 test("state no-account while login busy but not waiting: primary busy", () => {
@@ -108,7 +109,7 @@ test("state locked with secret-tool: store-password with password input, remove 
   assert.equal(r.state, "locked")
   assert.equal(r.primary.id, "store-password")
   assert.equal(r.primary.input, "password")
-  assert.deepEqual(r.secondary, [{ id: "remove-password", label: "Remove saved password" }])
+  assert.deepEqual(r.secondary, [{ id: "sign-out", label: "Forgot it? Sign out and start over" }, { id: "remove-password", label: "Remove saved password" }])
   assert.deepEqual(statuses(r), ["done", "done", "done", "current", "todo"])
   assert.match(r.message, /keyring/)
   assert.doesNotMatch(r.message, /fail/i)
@@ -126,7 +127,7 @@ test("state locked without secret-tool: remove-password primary only, libsecret 
   assert.equal(r.state, "locked")
   assert.equal(r.primary.id, "remove-password")
   assert.equal(r.primary.input, undefined)
-  assert.deepEqual(r.secondary, [])
+  assert.deepEqual(r.secondary, [{ id: "sign-out", label: "Sign out and start over" }])
   assert.match(r.message, /libsecret/)
 })
 
@@ -257,7 +258,7 @@ test("primary action ids are always from the contract set", () => {
     if (r.primary) ids.add(r.primary.id)
     r.secondary.forEach((s) => ids.add(s.id))
   }
-  assert.deepEqual([...ids].sort(), ["cancel", "install-audible", "login", "remove-password", "store-password", "sync"])
+  assert.deepEqual([...ids].sort(), ["cancel", "install-audible", "login", "login-terminal", "remove-password", "sign-out", "store-password", "sync"])
 })
 
 // ------------------------------------------------------- parseAccountList

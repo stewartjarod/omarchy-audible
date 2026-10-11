@@ -115,6 +115,7 @@ Panel {
 
   onOpenedChanged: {
     if (!opened) signOutArmed = false
+    if (opened && !root.ready && service) service.recheck()   // pick up a sign-in or unlock done outside the popup
     if (opened) {
       cursor = currentChapter
       clampCursor()
