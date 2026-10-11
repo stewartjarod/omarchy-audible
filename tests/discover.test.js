@@ -23,16 +23,16 @@ test("with nothing new, the sections come back unchanged", () => {
   assert.deepEqual(D.compose(null, null), [])
 })
 
-test("suggested then up next come first, each with its reason", () => {
+test("up next then suggested come before the other sections, each with its reason", () => {
   const secs = [{ id: "all", title: "All books", books: [b("X"), b("Y")] }]
   const out = D.compose(secs, {
     suggested: [{ asin: "X", reason: "Book 2 of Run", book: b("X") }],
     upNext: [b("Q1"), b("Q2")]
   })
-  assert.deepEqual(out.map(s => s.id), ["suggested", "upnext", "all"])
-  assert.equal(out[0].books[0].reason, "Book 2 of Run")
-  assert.equal(out[1].books[0].reason, "Up next, number 1")
-  assert.equal(out[1].books[1].reason, "Up next, number 2")
+  assert.deepEqual(out.map(s => s.id), ["upnext", "suggested", "all"])
+  assert.equal(out[1].books[0].reason, "Book 2 of Run")
+  assert.equal(out[0].books[0].reason, "Up next, number 1")
+  assert.equal(out[0].books[1].reason, "Up next, number 2")
 })
 
 test("a book shown in a new section is removed from the regular sections, so it appears once", () => {
@@ -56,4 +56,14 @@ test("library objects are not mutated (copies carry the reason)", () => {
   const book = b("Z")
   D.compose([], { suggested: [{ asin: "Z", reason: "why", book }] })
   assert.equal("reason" in book, false)
+})
+
+test("Continue listening stays first, ahead of Up next and Suggested", () => {
+  const secs = [
+    { id: "downloaded", title: "Downloaded", books: [b("D")] },
+    { id: "continue", title: "Continue listening", books: [b("C")] },
+    { id: "all", title: "All books", books: [b("X")] }
+  ]
+  const out = D.compose(secs, { suggested: [{ asin: "S", reason: "r", book: b("S") }], upNext: [b("Q")] })
+  assert.deepEqual(out.map(s => s.id), ["continue", "upnext", "suggested", "downloaded", "all"])
 })
