@@ -1,0 +1,35 @@
+{
+  "error": null,
+  "result": {
+    "all_time_finished_titles": 100,
+    "all_time_minutes": 33912,
+    "granularity": "yearly",
+    "marketplaces": [
+      {
+        "all_time_finished_titles": 100,
+        "all_time_minutes": 33912,
+        "intervals": [
+          {
+            "interval": "2024",
+            "minutes": 3254
+          },
+          {
+            "interval": "2025",
+            "minutes": 1698
+          },
+          {
+            "interval": "2026",
+            "minutes": 1431
+          }
+        ],
+        "marketplace": "us",
+        "window_minutes": 6383
+      }
+    ],
+    "since": 2024,
+    "span": "2024–2026",
+    "to": 2026,
+    "window_minutes": 6383
+  },
+  "warnings": []
+}

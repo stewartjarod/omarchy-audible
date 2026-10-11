@@ -1,0 +1,46 @@
+{
+  "error": null,
+  "result": {
+    "all_time_finished_titles": 100,
+    "all_time_minutes": 33912,
+    "granularity": "monthly",
+    "marketplaces": [
+      {
+        "all_time_finished_titles": 100,
+        "all_time_minutes": 33912,
+        "intervals": [
+          {
+            "interval": "2026-03",
+            "minutes": 56
+          },
+          {
+            "interval": "2026-04",
+            "minutes": 233
+          },
+          {
+            "interval": "2026-05",
+            "minutes": 649
+          },
+          {
+            "interval": "2026-06",
+            "minutes": 130
+          },
+          {
+            "interval": "2026-07",
+            "minutes": 324
+          },
+          {
+            "interval": "2026-09",
+            "minutes": 36
+          }
+        ],
+        "marketplace": "us",
+        "window_minutes": 1428
+      }
+    ],
+    "span": "2026",
+    "window_minutes": 1428,
+    "year": 2026
+  },
+  "warnings": []
+}
