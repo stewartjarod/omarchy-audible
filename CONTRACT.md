@@ -1,7 +1,6 @@
 # jarod.audible: contract
 
-Omarchy shell plugin: listen to Audible books from the bar. Dev dir: `~/Projects/jarod-audible`
-(moved to `~/.config/omarchy/plugins/jarod.audible` at integration time).
+Omarchy shell plugin: listen to Audible books from the bar. Lives in `~/.config/omarchy/plugins/jarod.audible`.
 
 **Hard rule for everyone building here:** work ONLY in the clone you are given (a scratchpad
 `git clone` of the plugin repo). `~/Projects/jarod-audible` and `~/.config/omarchy/plugins/jarod.audible`
@@ -105,7 +104,7 @@ subscription: not playable or downloadable, show but dim and block); `series[].s
 
 ```
 detect(probe) -> {
-  state: "no-audible"|"no-player"|"no-helper"|"no-account"|"locked"|"unsynced"|"ready",
+  state: "no-audible"|"no-player"|"no-account"|"locked"|"unsynced"|"ready",
   ready: bool, title: str, message: str (plain, friendly, one or two sentences),
   primary: {id, label, input?: "password"} | null,   // ONE main action
   secondary: [{id, label}],
@@ -116,16 +115,16 @@ detect(probe) -> {
 Probe (all fields always present; Service builds it by running commands):
 
 ```
-{ audible: {found, version}, mpv: {found}, helper: {found}, secretTool: {found},
+{ audible: {found, version}, mpv: {found}, secretTool: {found}, pinned: "<release tag>",
   accounts: <parseAccountList result>, library: {ok, count, error},
   busy: str|"" /* id of action currently running */, login: {url, waiting} }
 ```
 
 State priority = order above. Steps (labels are the user's checklist): `audible` "Audible CLI",
-`player` "Audio player (mpv)", `helper` "Playback helper", `account` "Sign in to Audible",
+`player` "Audio player (mpv)", `account` "Sign in to Audible",
 `password` "Unlock the saved login", `library` "Sync your library".
-Actions: `no-audible` -> primary `install-audible`; `no-player`/`no-helper` -> no primary, message
-says exactly what to install (`omarchy pkg add mpv` for mpv; helper: "put audible-play on your PATH");
+Actions: `no-audible` -> primary `install-audible`; `no-player` -> no primary, message
+says exactly what to install (`omarchy pkg add mpv` for mpv);
 `no-account` -> primary `login` (while `login.waiting`: no primary, message tells them to finish in
 the browser, secondary `cancel`); `locked` -> if `secretTool.found`: primary
 `store-password` with `input: "password"`, secondary `remove-password`; else primary
@@ -253,3 +252,15 @@ or missing, say so in your final report instead of inventing data.
   (call it on `onSettingsChanged` and when the service becomes non-null).
 - The Service hosts `Library.qml` itself through a Loader (no overlay manifest kind), so the library's
   window must open/close from `service.libraryOpen`.
+
+## Added since the first contract
+
+- `detect()` also returns `notice` (string or null): a version-mismatch sentence for the audible CLI.
+- Playback no longer uses a helper script: Service starts mpv (`Player.mpvLaunchArgs`) and sends
+  `Player.loadCommands` (loadfile + key/iv as demuxer options, unpause, volume, speed) over the socket.
+- New components owned by Service: `SetupController`, `Listening` (sleep timer, rewind, auto-advance,
+  notifications, audio filters), `Sync` (phone position), `ListeningLog` + `Stats` window, `Queue`, `Catalog`.
+- IPC `status` also returns `detailAsin`. New IPC functions: `sleep`, `sleepChapter`, `sleepCancel`,
+  `toggleStats`/`openStats`/`closeStats`.
+- Each component persists to its own file under `~/.local/state/jarod-audible/` (state.json, sync.json,
+  listening.json, queue.json).
