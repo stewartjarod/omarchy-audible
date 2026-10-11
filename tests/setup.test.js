@@ -557,3 +557,22 @@ test("signOutArgs removes the account and its auth file, never deregisters the d
   assert.throws(() => M.signOutArgs("x; rm -rf ~"))
   assert.ok(!M.signOutArgs("jarod").includes("logout"))
 })
+
+test("parseLoginUrl finds the URL in the real sign-in server output (it prints on stderr)", () => {
+  const out = [
+    "Sign-in server listening on 127.0.0.1:41965.",
+    "Open this URL in a browser on THIS machine:",
+    "",
+    "  http://127.0.0.1:41965/58c4e24344d6ca2dd00c57d3360583d2/",
+    "",
+    "  ssh -L 41965:localhost:41965 <user>@<this-host>"
+  ]
+  const found = out.map((l) => M.parseLoginUrl(l)).filter(Boolean)
+  assert.deepEqual(found, ["http://127.0.0.1:41965/58c4e24344d6ca2dd00c57d3360583d2/"])
+})
+
+test("CmdLines reads stderr line by line (the sign-in URL arrives there)", () => {
+  const src = fs.readFileSync(path.join(ROOT, "CmdLines.qml"), "utf8")
+  assert.match(src, /stderr:\s*SplitParser/)
+  assert.doesNotMatch(src, /stderr:\s*StdioCollector/)
+})
