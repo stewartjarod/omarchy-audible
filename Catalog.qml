@@ -59,6 +59,7 @@ Item {
   // Full catalog details for one book you do not own (cover, summary, rating, narrator, length).
   function ensureDetail(asin) {
     if (!root.svc || !asin || isOwned(asin)) return
+    root.ensureWishlist()   // so "Add to wishlist" / "Remove from wishlist" is right
     if (root.detailCache[asin] && root.detailCache[asin].detailed === true) return
     var argv = W.productArgs(asin)
     if (!argv) return
@@ -77,6 +78,7 @@ Item {
   // "More like this" for any book: catalog suggestions, as Book objects (owned ones stay owned).
   function ensureSims(asin) {
     if (!root.svc || !asin || root.simsCache.hasOwnProperty(asin)) return
+    root.ensureWishlist()
     var argv = W.simsArgs(asin)
     if (!argv) return
     root.simsCache = root.withKey(root.simsCache, asin, null)
@@ -134,6 +136,7 @@ Item {
         root.wishError = res.error || String(err || "").split("\n")[0] || "Could not load your wishlist."
         return
       }
+      root.wishError = ""
       root.wishEntries = res.entries
       root.wishLoaded = true
     })

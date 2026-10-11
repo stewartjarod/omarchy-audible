@@ -695,7 +695,8 @@ Item {
   readonly property var catalog: catalogCtl
   readonly property int queueCount: queueCtl.count
   // The asin that should follow currentAsin, or "" (the LISTEN auto-advance reads queueProvider).
-  function queueNext(currentAsin) { return queueCtl.next(currentAsin) }
+  // With no argument it means "after the book that is playing now".
+  function queueNext(currentAsin) { return queueCtl.next(currentAsin || root.asin) }
   readonly property var queueProvider: function (currentAsin) { return root.queueNext(currentAsin) }
 
   Loader {

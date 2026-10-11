@@ -331,9 +331,10 @@ Item {
     if (root.wishlistView) secs = root.service && root.service.catalog && root.service.catalog.wishlistBooks.length
       ? [{ id: "wishlist", title: "Wishlist (not in your library)", books: root.service.catalog.wishlistBooks }] : []
     else if (root.openSeries === "" && root.query === "") secs = Disc.compose(secs, root.discoverContext())
-    // Series tiles are not in root.books: register them so selection and activation can find them.
+    // Series tiles, wishlist books and Suggested copies are not in root.books: register every book on screen
+    // so selection and activation can find them (HOOK(discover): was series tiles only).
     for (var s = 0; s < secs.length; s++)
-      for (var t = 0; t < secs[s].books.length; t++) if (secs[s].books[t].isSeries) map[secs[s].books[t].asin] = secs[s].books[t]
+      for (var t = 0; t < secs[s].books.length; t++) map[secs[s].books[t].asin] = secs[s].books[t]
     root.bookByAsin = map
     // "Continue listening" is one row until expanded (the main view only, and not while searching).
     var limits = {}
@@ -464,6 +465,12 @@ Item {
     target: root.service && root.service.catalog ? root.service.catalog : null
     ignoreUnknownSignals: true
     function onWishEntriesChanged() { if (root.wishlistView) root.rebuild() }
+    function onWishLoadingChanged() {
+      if (root.wishlistView && root.service.catalog.wishLoading) root.statusText = "Loading your wishlist..."
+    }
+    function onWishErrorChanged() {
+      if (root.wishlistView && root.service.catalog.wishError !== "") root.statusText = "Could not load your wishlist: " + root.service.catalog.wishError
+    }
   }
 
   // ------------------------------------------------------------ window
@@ -1198,7 +1205,9 @@ Item {
             textFormat: Text.PlainText
             elide: Text.ElideRight
             verticalAlignment: Text.AlignVCenter
-            text: "Enter details · Shift+Enter play · Ctrl+D download · Ctrl+X delete · Ctrl+M finished · Ctrl+F filter · Ctrl+G series · Ctrl+E more · Ctrl+S sort: " + (root.sortMode === "recent" ? "last played" : "added") + " · Tab view · Esc"
+            text: root.wishlistView
+              ? "Enter details · Ctrl+W back to library · Esc back to library"
+              : "Enter details · Shift+Enter play · Ctrl+U up next · Ctrl+↑↓ reorder · Ctrl+W wishlist · Ctrl+D download · Ctrl+X delete · Ctrl+M finished · Ctrl+F filter · Ctrl+G series · Ctrl+E more · Ctrl+S sort: " + (root.sortMode === "recent" ? "last played" : "added") + " · Tab view · Esc"
             color: root.muted
             font.family: root.fontFamily
             font.pixelSize: Style.font.bodySmall
