@@ -6,7 +6,7 @@
 var PINNED_TAG = "v0.1.0-alpha.8"
 var PINNED_ARCH = "x86_64"
 var RELEASE_BASE = "https://github.com/mkb79/audible-rs/releases/download/"
-var SUMS_NAME = "SHA256SUMS" // assumed release checksum file name; verify against the release page
+var SUMS_NAME = "SHA256SUMS" // checked against the v0.1.0-alpha.8 release: 5 assets, this exact name
 
 var ACCOUNT_RE = /^[A-Za-z0-9._@-]{1,64}$/
 var LOGIN_URL_RE = /http:\/\/127\.0\.0\.1:(\d{1,5})\/[A-Za-z0-9_-]+\/?/

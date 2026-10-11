@@ -1,0 +1,6 @@
+{
+  "_comment": "Exit codes captured from audible-rs 0.1.0-alpha.8 on a clean HOME (no accounts), with stdin closed.",
+  "accountList": 0,
+  "libraryList": 1,
+  "librarySync": 1
+}

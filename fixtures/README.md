@@ -17,7 +17,8 @@ Scrubbing rules applied before this repo was made public:
 | account-list-empty.json | same, no accounts (stdout); `account-list-empty.err` is the stderr hint text |
 | no-account-list.json / .err | `audible account list -o json` on a clean HOME (no accounts): stdout envelope and stderr hint |
 | no-account-library.json / .err | `audible library list -o json --limit 1` on a clean HOME (exit 1): "no account configured" |
-| no-account-sync.err | `audible library sync` on a clean HOME (exit 1, empty stdout): "no account configured" |
+| no-account-sync.out / .err | `audible library sync` on a clean HOME (exit 1, empty stdout): "no account configured" |
+| no-account-exit-codes.json | Exit codes for the three no-account commands above (account list 0, library list 1, library sync 1); the tests read them from here |
 | locked-out.json / locked-err.txt | `audible library list -o json` stdout/stderr (exit 1) when the account's password_source is `prompt` (locked); account name `example` |
 | unsynced-out.json | SYNTHETIC: `library list` result for a synced-never account (empty result) |
 | library-list.json | `audible library list -o json --limit 15` (basic fields only) |

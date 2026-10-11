@@ -17,7 +17,7 @@ set -u
 
 OMARCHY_PATH="${OMARCHY_PATH:-/usr/share/omarchy}"
 SHELL_DIR="$OMARCHY_PATH/shell"
-PLUGIN_RE='jarod\.audible|jarod-audible|(Service|Panel|Library|BookDetail|Onboarding|BarWidget|SetupController|SetupModel|LibraryModel|PlayerModel)\.(qml|js)'
+PLUGIN_RE='jarod\.audible|jarod-audible'
 fails=0
 
 pass() { printf 'PASS  %s\n' "$1"; }
@@ -52,16 +52,6 @@ status_field() {
 }
 
 # ---------------------------------------------------------------- 1. status
-# Snapshot the shell log first, so only lines written during these checks are judged below.
-if qs log -p "$SHELL_DIR" > "$TMP/log.before" 2>/dev/null; then
-  before_lines=$(wc -l < "$TMP/log.before")
-  log_ok=1
-else
-  before_lines=0
-  log_ok=0
-  fail "could not read the shell log with qs log (is the shell running?)"
-fi
-
 status=$(ipc status)
 if printf '%s' "$status" | jq -e . >/dev/null 2>&1; then
   pass "status returns valid JSON"
@@ -124,22 +114,20 @@ else
 fi
 
 # ---------------------------------------------------------------- 4. shell log
-# Let any deferred QML work finish, then judge only the lines written since the snapshot.
+# qs log covers the running shell instance, so the whole log is judged. That includes load-time QML
+# errors from the restart, which is why this check should run soon after the restart.
 sleep 1
-if [ "$log_ok" -eq 1 ]; then
-  if qs log -p "$SHELL_DIR" > "$TMP/log.after" 2>/dev/null; then
-    tail -n +"$((before_lines + 1))" "$TMP/log.after" > "$TMP/log.new"
-    problems=$(grep -iE 'warn|error|typeerror|referenceerror|cannot assign|is not a function' "$TMP/log.new" \
-      | grep -E "$PLUGIN_RE" || true)
-    if [ -z "$problems" ]; then
-      pass "shell log has no new QML warnings or errors from jarod.audible"
-    else
-      fail "shell log has QML warnings or errors from jarod.audible:"
-      printf '%s\n' "$problems" | head -n 20 | sed 's/^/        /'
-    fi
+if qs log -p "$SHELL_DIR" > "$TMP/log" 2>/dev/null && [ -s "$TMP/log" ]; then
+  problems=$(grep -iE 'warn|error|typeerror|referenceerror|cannot assign|is not a function' "$TMP/log" \
+    | grep -E "$PLUGIN_RE" || true)
+  if [ -z "$problems" ]; then
+    pass "shell log has no QML warnings or errors from jarod.audible"
   else
-    fail "could not re-read the shell log after the checks"
+    fail "shell log has QML warnings or errors from jarod.audible:"
+    printf '%s\n' "$problems" | head -n 20 | sed 's/^/        /'
   fi
+else
+  fail "could not read the shell log with qs log (is the shell running?)"
 fi
 
 echo

@@ -32,6 +32,7 @@ _Screenshots are not added yet._
 | `mpv` (x86_64 Linux) | Plays the audio and handles the decryption | `omarchy pkg add mpv` |
 | `audible` from audible-rs **v0.1.0-alpha.8** | Talks to Audible: sign-in, library list, downloads | The plugin installs it on first run (see below) |
 | `secret-tool` (libsecret, backed by gnome-keyring or similar) | **Optional.** Lets you save your Audible file password in the keyring so the book list can sync without asking each time | Install `libsecret` and a keyring service. Without it, you can still use the plugin; you just can't save the password |
+| `mpv-mpris` | **Optional.** Lets Omarchy's media widget and other MPRIS tools see the audiobook. Loads by itself when installed | `omarchy pkg add mpv-mpris` |
 | `uwsm-app` | **Optional.** When present, mpv starts in its own systemd scope so playback survives a shell restart | Ships with Omarchy's uwsm setup when it is installed |
 
 The pinned audible-rs version lives in `Service.qml` as `pinnedTag`
@@ -41,11 +42,12 @@ The pinned audible-rs version lives in `Service.qml` as `pinnedTag`
 ## Install
 
 ```sh
-git clone <this repository> ~/.config/omarchy/plugins/jarod.audible
+omarchy plugin add <this repository's GitHub URL>
 ```
 
-The folder name must be `jarod.audible`, which is the plugin id in
-`manifest.json`. Then enable the plugin in Omarchy and restart the shell.
+`omarchy plugin add` clones the plugin into `~/.config/omarchy/plugins/jarod.audible`
+(the folder name matches the plugin id in `manifest.json`) and enables it. If the
+bar widget does not appear, restart the shell with `omarchy restart`.
 
 ## First run
 
@@ -144,10 +146,17 @@ not change your Audible account.
 ### Hardware media keys
 
 Omarchy sends the keyboard's Play, Pause, Next, and Previous keys to one
-player: the one that started playing first among those playing right now, or
-else the one you last controlled with those keys. That can be Spotify or another
-app rather than this audiobook. Use the keys in the popup and library for the
-audiobook.
+player at a time, and it only sees players that report over MPRIS:
+
+- **Play / Pause** goes to the player that started playing first among those
+  playing right now. If nothing is playing, it goes to the player you last
+  controlled with those keys. So Spotify or another app can take the key from
+  this audiobook.
+- **Next / Previous** go to the first player that can skip. This audiobook has
+  no next track in its queue, so those keys do not move it between chapters.
+
+Use the keys in the popup and library for chapters and playback. Binding the
+keys to this plugin directly is possible but is not set up by the plugin.
 
 ## Settings
 
@@ -231,10 +240,12 @@ output for the real error.
 **Version notice on the setup screen.** Your `audible` is not the pinned release.
 Install `v0.1.0-alpha.8` or update the plugin's `pinnedTag` to match what you have.
 
-**Reset the plugin's own state.** Stop playback, then delete
-`~/.local/state/jarod-audible/state.json`. This clears resume positions, finished
-marks, and view settings. It does not touch your books, your account, or your
-saved password. The plugin starts fresh the next time it loads.
+**Reset the plugin's own state.** Stop playback, delete
+`~/.local/state/jarod-audible/state.json`, and then restart the shell with
+`omarchy restart` straight away. A running shell keeps its state in memory and
+writes it back after your next change, so the file must be deleted before the
+restart. This clears resume positions, finished marks, and view settings. It does
+not touch your books, your account, or your saved password.
 
 **Remove the saved password.** Use "Remove saved password" on the setup screen, or
 delete the keyring entry with `secret-tool clear service audible-rs account <name>`.

@@ -466,10 +466,12 @@ test("module exports the contract functions", () => {
 
 // ------------------------------------------- no account (captured on a clean HOME, audible-rs alpha.8)
 
+const noAccountCodes = JSON.parse(fx("no-account-exit-codes.json"))
 const noAccountAccounts = () => M.parseAccountList(fx("no-account-list.json"), fx("no-account-list.err"))
-const noAccountLibrary = () => M.parseLibraryProbe(fx("no-account-library.json"), fx("no-account-library.err"), 1)
+const noAccountLibrary = () => M.parseLibraryProbe(fx("no-account-library.json"), fx("no-account-library.err"), noAccountCodes.libraryList)
 
 test("no account: account list is ok with zero accounts (not locked, not an error)", () => {
+  assert.equal(noAccountCodes.accountList, 0)
   const r = noAccountAccounts()
   assert.equal(r.ok, true)
   assert.deepEqual(r.accounts, [])
@@ -478,6 +480,7 @@ test("no account: account list is ok with zero accounts (not locked, not an erro
 })
 
 test("no account: library list exits 1 with an error envelope that is NOT the locked signal", () => {
+  assert.equal(noAccountCodes.libraryList, 1)
   const r = noAccountLibrary()
   assert.equal(r.ok, false)
   assert.equal(r.count, 0)
@@ -486,7 +489,9 @@ test("no account: library list exits 1 with an error envelope that is NOT the lo
 })
 
 test("no account: library sync stderr (no JSON on stdout) is a plain error, not locked", () => {
-  const r = M.parseLibraryProbe("", fx("no-account-sync.err"), 1)
+  assert.equal(noAccountCodes.librarySync, 1)
+  assert.equal(fx("no-account-sync.out"), "")
+  const r = M.parseLibraryProbe(fx("no-account-sync.out"), fx("no-account-sync.err"), noAccountCodes.librarySync)
   assert.equal(r.ok, false)
   assert.equal(r.locked, false)
   assert.equal(r.error, "Error: no account configured: register one with `audible account login` (or import with `audible account import`)")
