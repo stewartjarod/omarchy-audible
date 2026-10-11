@@ -24,6 +24,7 @@ Item {
     return {
       audible: { found: false, version: "" }, mpv: { found: false }, secretTool: { found: false },
       accounts: Setup.parseAccountList("", ""), library: Setup.parseLibraryProbe("", "", 127),
+      pinned: svc.pinnedTag, // HOOK(ship): lets SetupModel.detect flag a non-pinned audible CLI (notice)
       busy: "", login: { url: "", waiting: false }
     }
   }
@@ -87,7 +88,7 @@ Item {
     var p = {}
     for (var k in lastProbe) p[k] = lastProbe[k]
     var none = '{"error":null,"result":[],"warnings":[]}'
-    var locked = '{"error":{"message":"account \\"jarod\\" is locked (password_source = prompt) \u2014 unlock it with `audible account unlock -a jarod`"},"result":null,"warnings":[]}'
+    var locked = '{"error":{"message":"account \\"example\\" is locked (password_source = prompt) \u2014 unlock it with `audible account unlock -a example`"},"result":null,"warnings":[]}'
     p.busy = ""
     p.login = { url: "", waiting: false }
     var log = ""

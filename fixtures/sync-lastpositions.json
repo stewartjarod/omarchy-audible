@@ -1,0 +1,33 @@
+{
+  "error": null,
+  "result": {
+    "asin_last_position_heard_annots": [
+      {
+        "asin": "B08F6D4ZPV",
+        "last_position_heard": {
+          "last_updated": "2023-04-30 14:07:53.386",
+          "position_ms": 0,
+          "status": "Exists"
+        }
+      },
+      {
+        "asin": "B0C7WJXBRL",
+        "last_position_heard": {
+          "last_updated": "2025-08-28 19:24:46.771",
+          "position_ms": 5255484,
+          "status": "Exists"
+        }
+      },
+      {
+        "asin": "B000000000",
+        "last_position_heard": {
+          "status": "DoesNotExist"
+        }
+      }
+    ],
+    "response_groups": [
+      "always-returned"
+    ]
+  },
+  "warnings": []
+}

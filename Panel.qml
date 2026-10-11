@@ -37,6 +37,8 @@ Panel {
 
   readonly property bool ready: svc("ready", false) === true
   readonly property bool hasBook: svc("hasBook", false) === true
+  readonly property var phoneOffer: svc("phoneOffer", null)   // HOOK(sync)
+  function acceptOffer() { if (service && phoneOffer) service.acceptPhonePosition(phoneOffer.asin) }   // HOOK(sync)
   readonly property bool paused: svc("paused", true) === true
   readonly property var chapters: svc("chapters", [])
   readonly property int chapterCount: chapters ? chapters.length : 0
@@ -104,6 +106,7 @@ Panel {
       cursor = currentChapter
       clampCursor()
       scrollToCursor()
+      if (service) service.prefetchCurrent()   // HOOK(sync): refresh the phone position in the background
     }
   }
 
@@ -154,6 +157,20 @@ Panel {
     if (service) service.openLibrary()
   }
 
+  function openStats() {   // HOOK(stats)
+    root.close()
+    if (service) service.openStats()
+  }
+
+  // "time left: 3h 12m · finish by Fri" under the progress bar, from the listening log (HOOK(stats)).
+  readonly property string finishHint: {
+    var st = service ? service.stats : null
+    var a = svc("asin", "")
+    if (!hasBook || !st || !a || bookLeft <= 0) return ""
+    var by = st.finishHint(a, bookLeft * speed)
+    return "time left: " + Model.formatDuration(bookLeft, "hm") + (by ? " · " + by : "")
+  }
+
   function setSpeedFromSlider(v) {
     if (!service) return
     service.setSpeed(Model.stepSpeed(v, 0, speedOpts))
@@ -170,7 +187,11 @@ Panel {
 
     var handled = true
     if (k === Qt.Key_Space) togglePlay()
-    else if (k === Qt.Key_Return || k === Qt.Key_Enter) { if (!hasBook && lastBook) togglePlay(); else jumpCursor() }
+    else if (k === Qt.Key_Return || k === Qt.Key_Enter) {
+      if (phoneOffer) acceptOffer()   // HOOK(sync): Enter takes the phone offer first
+      else if (!hasBook && lastBook) togglePlay()
+      else jumpCursor()
+    }
     else if (k === Qt.Key_Down || t === "j") moveCursor(1)
     else if (k === Qt.Key_Up || t === "k") moveCursor(-1)
     else if (k === Qt.Key_Left || t === "h") seekBy(-root.skip)
@@ -185,6 +206,9 @@ Panel {
     else if (t === "0") stepVolume(1)
     else if (t === "m") toggleMute()
     else if (t === "o") openLibrary()
+    else if (t === "z") { if (root.service && root.service.listening) root.service.listening.cycleSleep() }  // HOOK(listen)
+    else if (t === "Z") { if (root.service && root.service.listening) root.service.listening.addRunningPreset() }  // HOOK(listen)
+    else if (t === "i") openStats()   // HOOK(stats)
     else handled = false
 
     if (handled) event.accepted = true
@@ -261,6 +285,23 @@ Panel {
                 NumberAnimation { from: Style.space(260); to: 0; duration: 900; easing.type: Easing.InOutQuad }
               }
             }
+          }
+        }
+
+        // -- phone offer: Audible has a further position than this computer --
+        Item {   // HOOK(sync)
+          width: parent.width
+          height: phoneOfferButton.height
+          visible: root.phoneOffer !== null
+
+          PanelActionButton {
+            id: phoneOfferButton
+            anchors.horizontalCenter: parent.horizontalCenter
+            iconText: root.phoneOffer ? "Resume from phone: " + root.phoneOffer.label + "  (Enter)" : ""
+            fontSize: Style.font.body
+            fontFamily: root.fontFamily
+            foreground: root.foreground
+            onClicked: root.acceptOffer()
           }
         }
 
@@ -456,6 +497,30 @@ Panel {
               font.family: root.fontFamily
               font.pixelSize: Style.font.caption
               font.bold: true
+            }
+          }
+          // time left and when the book finishes at your pace (HOOK(stats))
+          Text {
+            width: parent.width
+            visible: text !== ""
+            text: root.finishHint
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
+          }
+          Item {   // HOOK(stats): listening stats while a book is loaded (the empty state has its own)
+            width: parent.width
+            height: loadedStatsButton.height
+            PanelActionButton {
+              id: loadedStatsButton
+              anchors.horizontalCenter: parent.horizontalCenter
+              iconText: "Listening stats  (i)"
+              fontSize: Style.font.bodySmall
+              fontFamily: root.fontFamily
+              foreground: root.foreground
+              onClicked: root.openStats()
             }
           }
         }
@@ -898,6 +963,20 @@ Panel {
               onClicked: root.openLibrary()
             }
           }
+          Item {
+            width: parent.width
+            height: statsButton.height
+
+            PanelActionButton {   // HOOK(stats)
+              id: statsButton
+              anchors.horizontalCenter: parent.horizontalCenter
+              iconText: "Listening stats  (i)"
+              fontSize: Style.font.body
+              fontFamily: root.fontFamily
+              foreground: root.foreground
+              onClicked: root.openStats()
+            }
+          }
         }
 
         PanelSeparator {
@@ -905,12 +984,40 @@ Panel {
           foreground: root.foreground
         }
 
+        // -- sleep timer row (z or a click cycles it) -----------------------
+        Text {   // HOOK(listen)
+          width: parent.width
+          visible: root.hasBook
+          readonly property bool sleeping: root.service && root.service.listening && root.service.listening.sleepText !== ""
+          text: sleeping ? root.service.listening.sleepText + " · z change · Z add more" : "Sleep timer off · z to set"
+          textFormat: Text.PlainText
+          color: sleeping ? Color.accent : root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: { if (root.service && root.service.listening) root.service.listening.cycleSleep() }
+          }
+        }
+
+        // HOOK(discover): how many books are waiting in Up next
+        Text {
+          width: parent.width
+          visible: root.svc("queueCount", 0) > 0
+          text: "Up next: " + root.svc("queueCount", 0) + (root.svc("queueCount", 0) === 1 ? " book waits" : " books wait")
+          textFormat: Text.PlainText
+          color: root.foreground
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+        }
+
         // -- key legend -----------------------------------------------------
         Text {
           width: parent.width
           text: root.hasBook
-            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · o library · esc"
-            : "o library · esc close"
+            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · z sleep · o library · i stats · esc"
+            : "o library · i stats · esc close"
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap
           color: root.dim

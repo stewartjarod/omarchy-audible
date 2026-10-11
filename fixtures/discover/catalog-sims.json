@@ -1,0 +1,196 @@
+{
+  "error": null,
+  "result": {
+    "response_groups": [
+      "product_desc",
+      "always-returned",
+      "contributors",
+      "series",
+      "rating",
+      "media",
+      "product_attrs"
+    ],
+    "similar_products": [
+      {
+        "asin": "SIMSAMPLE1",
+        "authors": [
+          {
+            "asin": "SAMPLE0AU",
+            "name": "Sample Author"
+          }
+        ],
+        "narrators": [
+          {
+            "name": "Sample Narrator"
+          }
+        ],
+        "product_images": {
+          "500": "https://example.com/sample-sim.jpg"
+        },
+        "rating": {
+          "num_reviews": 506,
+          "overall_distribution": {
+            "average_rating": 4.330494037478705,
+            "display_average_rating": "4.3",
+            "display_stars": 4.5,
+            "num_five_star_ratings": 2687,
+            "num_four_star_ratings": 717,
+            "num_one_star_ratings": 252,
+            "num_ratings": 4109,
+            "num_three_star_ratings": 333,
+            "num_two_star_ratings": 120
+          },
+          "performance_distribution": {
+            "average_rating": 4.583512352309345,
+            "display_average_rating": "4.6",
+            "display_stars": 4.5,
+            "num_five_star_ratings": 2837,
+            "num_four_star_ratings": 527,
+            "num_one_star_ratings": 123,
+            "num_ratings": 3724,
+            "num_three_star_ratings": 179,
+            "num_two_star_ratings": 58
+          },
+          "story_distribution": {
+            "average_rating": 4.3529253891572735,
+            "display_average_rating": "4.4",
+            "display_stars": 4.5,
+            "num_five_star_ratings": 2511,
+            "num_four_star_ratings": 586,
+            "num_one_star_ratings": 224,
+            "num_ratings": 3726,
+            "num_three_star_ratings": 286,
+            "num_two_star_ratings": 119
+          }
+        },
+        "release_date": "2020-05-01",
+        "runtime_length_min": 8,
+        "short_description": "A synthetic short description for tests.",
+        "title": "Sample Similar Title 1",
+        "is_listenable": true,
+        "format_type": "unabridged",
+        "publisher_name": "Sample Publisher"
+      },
+      {
+        "asin": "SIMSAMPLE2",
+        "authors": [
+          {
+            "asin": "SAMPLE0AU",
+            "name": "Sample Author"
+          }
+        ],
+        "narrators": [
+          {
+            "name": "Sample Narrator"
+          }
+        ],
+        "product_images": {
+          "500": "https://example.com/sample-sim.jpg"
+        },
+        "rating": {
+          "num_reviews": 11228,
+          "overall_distribution": {
+            "average_rating": 4.841543916693529,
+            "display_average_rating": "4.8",
+            "display_stars": 5.0,
+            "num_five_star_ratings": 63671,
+            "num_four_star_ratings": 5595,
+            "num_one_star_ratings": 542,
+            "num_ratings": 71351,
+            "num_three_star_ratings": 1086,
+            "num_two_star_ratings": 457
+          },
+          "performance_distribution": {
+            "average_rating": 4.922929082481386,
+            "display_average_rating": "4.9",
+            "display_stars": 5.0,
+            "num_five_star_ratings": 58738,
+            "num_four_star_ratings": 2285,
+            "num_one_star_ratings": 265,
+            "num_ratings": 61917,
+            "num_three_star_ratings": 460,
+            "num_two_star_ratings": 169
+          },
+          "story_distribution": {
+            "average_rating": 4.8040790600707854,
+            "display_average_rating": "4.8",
+            "display_stars": 5.0,
+            "num_five_star_ratings": 53640,
+            "num_four_star_ratings": 5958,
+            "num_one_star_ratings": 581,
+            "num_ratings": 61877,
+            "num_three_star_ratings": 1253,
+            "num_two_star_ratings": 445
+          }
+        },
+        "release_date": "2020-05-01",
+        "runtime_length_min": 811,
+        "short_description": "A synthetic short description for tests.",
+        "title": "Sample Similar Title 2",
+        "is_listenable": true,
+        "format_type": "unabridged",
+        "publisher_name": "Sample Publisher"
+      },
+      {
+        "asin": "SIMSAMPLE3",
+        "authors": [
+          {
+            "asin": "SAMPLE0AU",
+            "name": "Sample Author"
+          }
+        ],
+        "narrators": [
+          {
+            "name": "Sample Narrator"
+          }
+        ],
+        "product_images": {
+          "500": "https://example.com/sample-sim.jpg"
+        },
+        "rating": {
+          "num_reviews": 82,
+          "overall_distribution": {
+            "average_rating": 4.2117263843648205,
+            "display_average_rating": "4.2",
+            "display_stars": 4.0,
+            "num_five_star_ratings": 171,
+            "num_four_star_ratings": 72,
+            "num_one_star_ratings": 12,
+            "num_ratings": 307,
+            "num_three_star_ratings": 34,
+            "num_two_star_ratings": 18
+          },
+          "performance_distribution": {
+            "average_rating": 4.08252427184466,
+            "display_average_rating": "4.1",
+            "display_stars": 4.0,
+            "num_five_star_ratings": 115,
+            "num_four_star_ratings": 34,
+            "num_one_star_ratings": 13,
+            "num_ratings": 206,
+            "num_three_star_ratings": 29,
+            "num_two_star_ratings": 15
+          },
+          "story_distribution": {
+            "average_rating": 4.427184466019417,
+            "display_average_rating": "4.4",
+            "display_stars": 4.5,
+            "num_five_star_ratings": 141,
+            "num_four_star_ratings": 36,
+            "num_one_star_ratings": 6,
+            "num_ratings": 206,
+            "num_three_star_ratings": 11,
+            "num_two_star_ratings": 12
+          }
+        },
+        "release_date": "2020-05-01",
+        "runtime_length_min": 153,
+        "short_description": "A synthetic short description for tests.",
+        "title": "Sample Similar Title 3",
+        "is_listenable": true,
+        "format_type": "unabridged",
+        "publisher_name": "Sample Publisher"
+      }
+    ]
+  }
+}

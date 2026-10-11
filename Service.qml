@@ -350,6 +350,7 @@ Item {
   function onMpvConnected() {
     var props = ["pause", "speed", "chapter-list", "duration", "path", "idle-active", "media-title", "volume", "mute", "eof-reached"]
     for (var i = 0; i < props.length; i++) mpvSend(["observe_property", i + 1, props[i]])
+    listening.applyFilters()  // HOOK(listen)
   }
 
   function onMpvGone() {
@@ -386,13 +387,14 @@ Item {
       case "path": path = m.data ? String(m.data) : ""; asin = asinFromPath(path); break
       case "idle-active": idle = m.data === true; break
       case "media-title": mediaTitle = m.data ? String(m.data) : ""; break
-      case "volume": if (typeof m.data === "number") { volume = m.data; saveSoon() } break
+      // While the sleep timer fades, mpv reports the faded level: keep the user's saved volume.
+      case "volume": if (typeof m.data === "number" && !listening.fading) { volume = m.data; saveSoon() } break  // HOOK(listen)
       case "mute": muted = m.data === true; break
       case "eof-reached":
         // The first report after (re)connecting is just the current state, not an event: ignore it, or a
         // Service restart while mpv sits at the end of a book would count another listen.
         if (!eofSeen) { eofSeen = true; break }
-        if (m.data === true && asin !== "") markFinished(asin)
+        if (m.data === true && asin !== "" && markFinished(asin) !== "Already marked.") listening.bookFinished(asin)  // HOOK(listen)
         break
       }
     } else if (m.event === "file-loaded") {
@@ -415,8 +417,13 @@ Item {
     onTriggered: {
       root.mpvSend(["get_property", "time-pos"], 100)
       if (root.playing && ++ticks % 15 === 0) root.rememberPosition()
+      statsLog.tick()  // HOOK(stats)
     }
   }
+
+  // ---- listening history (HOOK(stats)): ListeningLog.qml owns the file, StatsModel.js the maths
+  ListeningLog { id: statsLog; service: root }  // HOOK(stats)
+  property alias stats: statsLog                // HOOK(stats)
 
   // ---- player commands ----------------------------------------------------
   function pause() { mpvSend(["set_property", "pause", true]) }
@@ -473,6 +480,7 @@ Item {
     var p = 0
     if (r && typeof r.position === "number") p = r.position
     else if (b && !b.finished && b.percentComplete > 0 && b.runtimeSec > 0) p = b.runtimeSec * b.percentComplete / 100
+    p = phoneSync.startOverride(a, p)   // HOOK(sync)
     if (p <= 0 || (total > 0 && p > total - 60)) return 0
     return p
   }
@@ -551,6 +559,7 @@ Item {
   }
 
   function play(a) {
+    phoneSync.prefetch(a)   // HOOK(sync)
     var b = bookFor(a)
     if (b && b.listenable === false) {
       setupLog = "This title is not available to play with your current plan."
@@ -688,6 +697,17 @@ Item {
   function closeLibrary() { libraryOpen = false }
   function toggleLibrary() { libraryOpen ? closeLibrary() : openLibrary() }
 
+  // HOOK(discover): Up next (queue.json, local only) and catalog / wishlist access. See Queue.qml, Catalog.qml.
+  Queue { id: queueCtl; svc: root }
+  Catalog { id: catalogCtl; svc: root }
+  readonly property var queue: queueCtl
+  readonly property var catalog: catalogCtl
+  readonly property int queueCount: queueCtl.count
+  // The asin that should follow currentAsin, or "" (the LISTEN auto-advance reads queueProvider).
+  // With no argument it means "after the book that is playing now".
+  function queueNext(currentAsin) { return queueCtl.next(currentAsin || root.asin) }
+  readonly property var queueProvider: function (currentAsin) { return root.queueNext(currentAsin) }
+
   Loader {
     id: libraryLoader
     active: root.libraryEverOpened
@@ -695,10 +715,31 @@ Item {
     onLoaded: { if (item && "service" in item) item.service = root }
   }
 
+  // Listening stats window (HOOK(stats)): hosted lazily like the library, opened from the popup (i) or IPC.
+  property bool statsOpen: false                 // HOOK(stats)
+  property bool statsEverOpened: false           // HOOK(stats)
+  function openStats() { statsEverOpened = true; statsOpen = true }     // HOOK(stats)
+  function closeStats() { statsOpen = false }                           // HOOK(stats)
+  function toggleStats() { statsOpen ? closeStats() : openStats() }     // HOOK(stats)
+  Loader {                                       // HOOK(stats)
+    id: statsLoader
+    active: root.statsEverOpened
+    source: Qt.resolvedUrl("Stats.qml")
+    onLoaded: { if (item && "service" in item) item.service = root }
+  }
+
   // ======================================================================
   // setup probe and actions: see SetupController.qml
   // ======================================================================
   SetupController { id: setupCtl; svc: root }
+
+  // ======================================================================
+  // Audible position sync: see Sync.qml
+  // ======================================================================
+  Sync { id: phoneSync; service: root }   // HOOK(sync)
+  readonly property var phoneOffer: phoneSync.offer   // HOOK(sync)
+  function acceptPhonePosition(a) { phoneSync.accept(a) }   // HOOK(sync)
+  function prefetchCurrent() { phoneSync.prefetchCurrent() }   // HOOK(sync)
   readonly property var setup: setupCtl.setup
   readonly property bool ready: setupCtl.ready
   readonly property string setupBusyId: setupCtl.setupBusyId
@@ -711,6 +752,9 @@ Item {
   function previewSetup(name) { setupCtl.previewSetup(name) }
   function runSetupAction(id, payload) { setupCtl.runSetupAction(id, payload) }
   function accountName() { return setupCtl.accountName() }
+
+  // Sleep timer, rewind on resume, auto-advance, notifications, audio filters: see Listening.qml
+  readonly property var listening: Listening { service: root; nextProvider: root.queueProvider }  // HOOK(listen) + HOOK(discover)
 
   // ======================================================================
   // IPC: the only IPC target for this plugin (bar widgets exist once per monitor)
@@ -729,6 +773,7 @@ Item {
         timeLeftSec: root.timeLeftSec,
         books: root.books.length, local: Object.keys(root.localAsins).length,
         libraryOpen: root.libraryOpen, view: root.viewMode,
+        detailAsin: root.libraryOpen && libraryLoader.item && libraryLoader.item.detailAsin ? libraryLoader.item.detailAsin : "", // HOOK(ship): smoke.sh checks the details page (only while the library is open)
         busy: root.setupBusyId, log: root.setupLog,
         libraryLoading: root.libraryLoading, libraryError: root.libraryError
       })
@@ -736,6 +781,9 @@ Item {
     function toggleLibrary(): void { root.toggleLibrary() }
     function openLibrary(): void { root.openLibrary() }
     function closeLibrary(): void { root.closeLibrary() }
+    function toggleStats(): void { root.toggleStats() }    // HOOK(stats)
+    function openStats(): void { root.openStats() }        // HOOK(stats)
+    function closeStats(): void { root.closeStats() }      // HOOK(stats)
     function popup(): void { root.popupRequested() }
     function play(asin: string): void { root.play(asin) }
     function toggle(): void { root.togglePause() }
@@ -761,6 +809,9 @@ Item {
     function refresh(): void { root.refreshLibrary(); root.scanLocal() }
     function recheck(): void { setupCtl.previewing = false; root.recheck() }
     function previewSetup(name: string): void { root.previewSetup(name) }
+    function sleep(minutes: int): void { root.listening.sleep(minutes) }  // HOOK(listen)
+    function sleepChapter(): void { root.listening.sleepChapter() }  // HOOK(listen)
+    function sleepCancel(): void { root.listening.sleepCancel() }  // HOOK(listen)
   }
 
   Component.onCompleted: {

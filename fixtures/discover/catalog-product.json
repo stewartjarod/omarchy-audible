@@ -1,0 +1,82 @@
+{
+  "error": null,
+  "result": {
+    "product": {
+      "asin": "SAMPLE0001",
+      "asset_details": [],
+      "authors": [
+        {
+          "asin": "SAMPLE0AU",
+          "name": "Sample Author"
+        }
+      ],
+      "available_codecs": [],
+      "content_delivery_type": "SinglePartBook",
+      "content_type": "Product",
+      "format_type": "unabridged",
+      "is_listenable": true,
+      "issue_date": "2021-01-01",
+      "language": "english",
+      "narrators": [
+        {
+          "name": "Sample Narrator"
+        }
+      ],
+      "product_images": {
+        "500": "https://example.com/sample-cover-500.jpg"
+      },
+      "publication_name": "Sample Series",
+      "publisher_name": "Sample Publisher",
+      "publisher_summary": "<p><b>Sample summary.</b></p> <p>This is a synthetic summary for tests.</p>",
+      "rating": {
+        "num_reviews": 11228,
+        "overall_distribution": {
+          "average_rating": 4.841543916693529,
+          "display_average_rating": "4.8",
+          "display_stars": 5.0,
+          "num_five_star_ratings": 63671,
+          "num_four_star_ratings": 5595,
+          "num_one_star_ratings": 542,
+          "num_ratings": 71351,
+          "num_three_star_ratings": 1086,
+          "num_two_star_ratings": 457
+        },
+        "performance_distribution": {
+          "average_rating": 4.922929082481386,
+          "display_average_rating": "4.9",
+          "display_stars": 5.0,
+          "num_five_star_ratings": 58738,
+          "num_four_star_ratings": 2285,
+          "num_one_star_ratings": 265,
+          "num_ratings": 61917,
+          "num_three_star_ratings": 460,
+          "num_two_star_ratings": 169
+        },
+        "story_distribution": {
+          "average_rating": 4.8040790600707854,
+          "display_average_rating": "4.8",
+          "display_stars": 5.0,
+          "num_five_star_ratings": 53640,
+          "num_four_star_ratings": 5958,
+          "num_one_star_ratings": 581,
+          "num_ratings": 61877,
+          "num_three_star_ratings": 1253,
+          "num_two_star_ratings": 445
+        }
+      },
+      "release_date": "2021-01-01",
+      "runtime_length_min": 811,
+      "series": [
+        {
+          "asin": "SAMPLE0SE",
+          "sequence": "1",
+          "title": "Sample Series",
+          "url": "/pd/x"
+        }
+      ],
+      "subtitle": "Sample Series, Book 1",
+      "title": "Sample Audiobook One"
+    },
+    "response_groups": null
+  }
+}
