@@ -38,13 +38,30 @@ Item {
   readonly property real speed: service && Number(service.speed) > 0 ? Number(service.speed) : 1
   readonly property real mb: book ? Math.max(1, (Number(book.runtimeSec) || 0) * 16000 / 1048576) : 0
 
-  readonly property var acts: book
+  // HOOK(discover): Up next, wishlist and "More like this" (see Queue.qml, Catalog.qml)
+  readonly property var catalog: service && service.catalog ? service.catalog : null
+  readonly property var queueApi: service && service.queue ? service.queue : null
+  readonly property bool notOwned: !!book && book.inLibrary === false
+  readonly property bool inWish: !!catalog && notOwned && catalog.inWishlist(asin)
+  readonly property bool inQueue: !!queueApi && asin !== "" && queueApi.has(asin)
+  readonly property var similar: catalog && asin !== "" ? catalog.similarFor(asin) : []
+  readonly property bool similarBusy: !!catalog && asin !== "" && catalog.similarPending(asin)
+  property int stripFocus: -1          // -1: the buttons have focus; 0..n-1: a "More like this" book
+  property string localNote: ""        // feedback from Up next actions
+  readonly property string writeNote: catalog ? catalog.writeNote : ""
+
+  readonly property var acts: book && !notOwned
     ? Lib.detailActions(book, { local: isLocal, dl: dl, isCurrent: isCurrent, isPlaying: isCurrent && service.playing === true, resumeSec: resumeSec, mb: mb })
     : null
   readonly property var facts: book ? Lib.detailFacts(book) : []
   readonly property bool inSeries: !!book && !!book.series && !!book.series.title
 
   readonly property var buttons: {
+    if (notOwned) {
+      return [inWish
+        ? { id: "wish-remove", label: "Remove from wishlist", enabled: true, primary: true, key: "W" }
+        : { id: "wish-add", label: "Add to wishlist", enabled: true, primary: true, key: "W" }]
+    }
     if (!acts) return []
     var list = [
       { id: acts.primary.id, label: acts.primary.label, enabled: acts.primary.enabled, primary: true, key: "P" },
@@ -54,8 +71,17 @@ Item {
     if (inSeries) list.push({ id: "series", label: "More in " + book.series.title, enabled: true, primary: false, key: "S" })
     var off = service ? service.phoneOffer : null   // HOOK(sync): resume from the phone position
     if (off && off.asin === book.asin) list.splice(1, 0, { id: "phone", label: "Resume from phone: " + off.label, enabled: true, primary: false, key: "R" })
+    list.push({ id: inQueue ? "queue-remove" : "queue-add", label: inQueue ? "Remove from Up next" : "Add to Up next", enabled: true, primary: false, key: "U" })
+    list.push({ id: "queue-next", label: "Play next", enabled: !isCurrent && book.listenable !== false, primary: false, key: "N" })
     return list
   }
+
+  // The one line under the buttons: a write waiting for confirmation, Up next feedback, Library notes, or the hint.
+  readonly property bool hintIsNote: writeNote !== "" || localNote !== "" || note !== ""
+  readonly property string hintText: writeNote !== "" ? writeNote
+    : (localNote !== "" ? localNote
+      : (note !== "" ? note
+        : (acts ? acts.hint : (notOwned ? "Not in your library. Add it to your wishlist to keep track of it." : ""))))
 
   // "46% · 5h 28m left at 1.7x"
   readonly property string progressText: {
@@ -70,7 +96,16 @@ Item {
   }
   readonly property real progressFraction: book ? Lib.progressFraction({ percentComplete: book.finished ? 100 : book.percentComplete, resumeSec: resumeSec, runtimeSec: book.runtimeSec }) : 0
 
-  onAsinChanged: focusIndex = 0
+  onAsinChanged: {
+    focusIndex = 0
+    stripFocus = -1
+    localNote = ""
+    if (catalog) {
+      catalog.cancelWrite()
+      catalog.ensureDetail(asin)
+      catalog.ensureSims(asin)
+    }
+  }
   onButtonsChanged: if (focusIndex >= buttons.length) focusIndex = 0
 
   function move(dir) {
@@ -86,7 +121,31 @@ Item {
   function activate(i) {
     var b = buttons[i]
     if (b && b.id === "phone") { if (service && book) service.acceptPhonePosition(book.asin); return }   // HOOK(sync)
-    if (b && b.enabled && b.id !== "none") activated(b.id)
+    if (b && b.enabled && b.id !== "none") runButton(b.id)
+  }
+
+  function runButton(id) {
+    if (id === "wish-add" || id === "wish-remove") {
+      // Guarded: the first press explains, the second press on the same book does it (Catalog.requestWrite).
+      if (catalog) catalog.requestWrite(id === "wish-add" ? "add" : "remove", asin, book ? book.title : "")
+      return
+    }
+    if (id === "queue-add") { if (queueApi) localNote = queueApi.add(asin); return }
+    if (id === "queue-remove") { if (queueApi) localNote = queueApi.remove(asin); return }
+    if (id === "queue-next") { if (queueApi) localNote = queueApi.playNext(asin); return }
+    activated(id)
+  }
+
+  // Opens another book's details (the Library keeps a way back to this one).
+  function openSimilar(i) {
+    var s = similar[i]
+    if (s && s.asin) activated("open:" + s.asin)
+  }
+
+  function moveStrip(dir) {
+    var n = Math.min(similar.length, 6)
+    if (n === 0) return
+    stripFocus = Math.max(0, Math.min(n - 1, stripFocus + dir))
   }
 
   function fire(id) {
@@ -97,7 +156,21 @@ Item {
   function handleKey(event) {
     var k = event.key
     var t = (event.text || "").toLowerCase()
-    if (k === Qt.Key_Escape || k === Qt.Key_Backspace) { backRequested(); return true }
+    if (k === Qt.Key_Escape || k === Qt.Key_Backspace) {
+      if (catalog && catalog.writeAsin !== "") { catalog.cancelWrite(); return true }
+      if (stripFocus >= 0) { stripFocus = -1; return true }
+      backRequested()
+      return true
+    }
+    if (stripFocus >= 0) {
+      if (k === Qt.Key_Left) { moveStrip(-1); return true }
+      if (k === Qt.Key_Right) { moveStrip(1); return true }
+      if (k === Qt.Key_Up) { stripFocus = -1; return true }
+      if (k === Qt.Key_Return || k === Qt.Key_Enter) { openSimilar(stripFocus); return true }
+    } else if (k === Qt.Key_Down && similar.length > 0) {
+      stripFocus = 0
+      return true
+    }
     if (k === Qt.Key_Left || k === Qt.Key_Backtab) { move(-1); return true }
     if (k === Qt.Key_Right || k === Qt.Key_Tab) { move(1); return true }
     if (k === Qt.Key_Return || k === Qt.Key_Enter) { activate(focusIndex); return true }
@@ -108,6 +181,9 @@ Item {
     else if (t === "m") { fire("finish"); fire("unfinish") }
     else if (t === "s") fire("series")
     else if (t === "r") fire("phone")   // HOOK(sync)
+    else if (t === "u") fire(inQueue ? "queue-remove" : "queue-add")
+    else if (t === "n") fire("queue-next")
+    else if (t === "w" && notOwned) fire(inWish ? "wish-remove" : "wish-add")
     return true
   }
 
@@ -252,7 +328,7 @@ Item {
         // your progress, and whether it is on this computer
         Text {
           width: parent.width
-          text: root.progressText + "   ·   " + (root.isLocal ? "Downloaded" : (root.dl && root.dl.state === "downloading" ? "Downloading…" : "Not downloaded"))
+          text: root.notOwned ? "Not in your library" : root.progressText + "   ·   " + (root.isLocal ? "Downloaded" : (root.dl && root.dl.state === "downloading" ? "Downloading…" : "Not downloaded"))
           textFormat: Text.PlainText
           elide: Text.ElideRight
           color: root.accent
@@ -313,12 +389,97 @@ Item {
         Text {
           width: parent.width
           visible: text !== ""
-          text: root.note !== "" ? root.note : (root.acts ? root.acts.hint : "")
+          text: root.hintText
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap
-          color: root.note !== "" ? root.foreground : root.muted
+          color: root.hintIsNote ? root.foreground : root.muted
           font.family: root.fontFamily
           font.pixelSize: Style.font.body
+        }
+
+        // ---- more like this (catalog suggestions; Down enters the strip, Enter opens a book)
+        Column {
+          id: similarBox
+          width: parent.width
+          visible: root.similar.length > 0 || root.similarBusy
+          spacing: Style.space(6)
+
+          Text {
+            width: parent.width
+            text: root.similar.length > 0 ? "More like this" : "More like this: looking..."
+            textFormat: Text.PlainText
+            color: root.muted
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.body
+            font.bold: true
+          }
+
+          Row {
+            spacing: Style.space(10)
+            Repeater {
+              model: root.similar.slice(0, 6)
+
+              Item {
+                id: sim
+                required property int index
+                required property var modelData
+                readonly property bool focused: root.stripFocus === index
+
+                width: Style.space(96)
+                height: Style.space(146)
+
+                Rectangle {
+                  anchors.fill: parent
+                  color: sim.focused ? root.selectedBackground : "transparent"
+                  border.width: sim.focused ? Style.normalBorderWidth : 0
+                  border.color: root.accent
+                }
+
+                Rectangle {
+                  id: simCover
+                  x: Style.space(4)
+                  y: Style.space(4)
+                  width: parent.width - Style.space(8)
+                  height: width
+                  color: Util.alpha(root.foreground, 0.08)
+                  Image {
+                    anchors.fill: parent
+                    source: sim.modelData.coverUrl ? sim.modelData.coverUrl : ""
+                    asynchronous: true
+                    cache: true
+                    smooth: true
+                    fillMode: Image.PreserveAspectCrop
+                    sourceSize: Qt.size(Style.space(200), Style.space(200))
+                  }
+                }
+
+                Text {
+                  anchors.left: parent.left
+                  anchors.right: parent.right
+                  anchors.top: simCover.bottom
+                  anchors.topMargin: Style.space(4)
+                  anchors.leftMargin: Style.space(4)
+                  anchors.rightMargin: Style.space(4)
+                  text: sim.modelData.title
+                  textFormat: Text.PlainText
+                  wrapMode: Text.Wrap
+                  maximumLineCount: 2
+                  elide: Text.ElideRight
+                  color: sim.focused ? root.selectedText : root.foreground
+                  font.family: root.fontFamily
+                  font.pixelSize: Style.font.caption
+                }
+
+                MouseArea {
+                  anchors.fill: parent
+                  hoverEnabled: true
+                  cursorShape: Qt.PointingHandCursor
+                  onEntered: root.stripFocus = sim.index
+                  onClicked: root.openSimilar(sim.index)
+                }
+              }
+            }
+          }
         }
 
         // ---- summary
@@ -355,7 +516,9 @@ Item {
       anchors.bottom: parent.bottom
       textFormat: Text.PlainText
       elide: Text.ElideRight
-      text: "Enter do it  ·  ←/→ choose  ·  P play  ·  D download  ·  X delete  ·  M finished" + (root.inSeries ? "  ·  S series" : "") + "  ·  Esc back"
+      text: root.notOwned
+        ? "Enter do it  ·  W wishlist  ·  Down more like this  ·  Esc back"
+        : "Enter do it  ·  ←/→ choose  ·  P play  ·  D download  ·  X delete  ·  M finished" + (root.inSeries ? "  ·  S series" : "") + "  ·  U up next  ·  N play next  ·  Down more like this  ·  Esc back"
       color: root.muted
       font.family: root.fontFamily
       font.pixelSize: Style.font.bodySmall
