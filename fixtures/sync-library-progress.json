@@ -1,0 +1,38 @@
+{
+  "error": null,
+  "result": {
+    "items": [
+      {
+        "asin": "B0C7WJXBRL",
+        "runtime_length_min": 361,
+        "listening_status": {
+          "finished_at_timestamp": null,
+          "is_finished": false,
+          "percent_complete": 24.0,
+          "time_remaining_seconds": 16461
+        }
+      },
+      {
+        "asin": "B09BK57L5W",
+        "runtime_length_min": 229,
+        "listening_status": {
+          "finished_at_timestamp": "2023-08-23T20:58:46.000Z",
+          "is_finished": true,
+          "percent_complete": 100.0,
+          "time_remaining_seconds": 0
+        }
+      },
+      {
+        "asin": "B08F6D4ZPV",
+        "runtime_length_min": 458,
+        "listening_status": {
+          "finished_at_timestamp": "2023-04-30T14:07:53.000Z",
+          "is_finished": true,
+          "percent_complete": 100.0,
+          "time_remaining_seconds": 0
+        }
+      }
+    ]
+  },
+  "warnings": []
+}

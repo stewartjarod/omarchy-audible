@@ -52,6 +52,8 @@ Item {
       { id: acts.finish.id, label: acts.finish.label, enabled: acts.finish.enabled, primary: false, key: "M" }
     ]
     if (inSeries) list.push({ id: "series", label: "More in " + book.series.title, enabled: true, primary: false, key: "S" })
+    var off = service ? service.phoneOffer : null   // HOOK(sync): resume from the phone position
+    if (off && off.asin === book.asin) list.splice(1, 0, { id: "phone", label: "Resume from phone: " + off.label, enabled: true, primary: false, key: "R" })
     return list
   }
 
@@ -83,6 +85,7 @@ Item {
 
   function activate(i) {
     var b = buttons[i]
+    if (b && b.id === "phone") { if (service && book) service.acceptPhonePosition(book.asin); return }   // HOOK(sync)
     if (b && b.enabled && b.id !== "none") activated(b.id)
   }
 
@@ -104,6 +107,7 @@ Item {
     else if (t === "x") fire("remove")
     else if (t === "m") { fire("finish"); fire("unfinish") }
     else if (t === "s") fire("series")
+    else if (t === "r") fire("phone")   // HOOK(sync)
     return true
   }
 

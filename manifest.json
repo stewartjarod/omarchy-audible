@@ -33,7 +33,10 @@
       "rewindOnResume": true,
       "autoAdvance": "downloaded",
       "notifications": true,
-      "audioFilter": "off"
+      "audioFilter": "off",
+      "syncPullFromAudible": true,
+      "syncPositionToAudible": false,
+      "syncDryRun": true
     },
     "schema": [
       {
@@ -160,6 +163,27 @@
         ],
         "defaultValue": "off",
         "description": "normalize evens out loud and quiet parts. voice makes speech a little clearer and evens out the volume. Only affects the audiobook player."
+      },
+      {
+        "key": "syncPullFromAudible",
+        "type": "boolean",
+        "label": "Pick up where I stopped on my phone",
+        "description": "Reads the position you last reached in the Audible app or on another device, and offers it here as a 'Resume from phone' choice. Only reads from Audible. It never jumps to the phone position by itself.",
+        "defaultValue": true
+      },
+      {
+        "key": "syncPositionToAudible",
+        "type": "boolean",
+        "label": "Save my position to Audible",
+        "description": "Sends where you are in a book to Audible, so the Audible app and your other devices can pick it up. Only the book's ID and the position (in milliseconds) are sent. Nothing else. Off by default. Writing positions is not confirmed to work yet, so nothing is sent until that is checked.",
+        "defaultValue": false
+      },
+      {
+        "key": "syncDryRun",
+        "type": "boolean",
+        "label": "Dry run (log instead of sending)",
+        "description": "While on, the plugin only writes the position it would have sent to its log, and sends nothing to Audible. Turn it off only after you have checked the log.",
+        "defaultValue": true
       }
     ]
   }

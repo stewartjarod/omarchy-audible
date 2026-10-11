@@ -37,6 +37,8 @@ Panel {
 
   readonly property bool ready: svc("ready", false) === true
   readonly property bool hasBook: svc("hasBook", false) === true
+  readonly property var phoneOffer: svc("phoneOffer", null)   // HOOK(sync)
+  function acceptOffer() { if (service && phoneOffer) service.acceptPhonePosition(phoneOffer.asin) }   // HOOK(sync)
   readonly property bool paused: svc("paused", true) === true
   readonly property var chapters: svc("chapters", [])
   readonly property int chapterCount: chapters ? chapters.length : 0
@@ -104,6 +106,7 @@ Panel {
       cursor = currentChapter
       clampCursor()
       scrollToCursor()
+      if (service) service.prefetchCurrent()   // HOOK(sync): refresh the phone position in the background
     }
   }
 
@@ -170,7 +173,11 @@ Panel {
 
     var handled = true
     if (k === Qt.Key_Space) togglePlay()
-    else if (k === Qt.Key_Return || k === Qt.Key_Enter) { if (!hasBook && lastBook) togglePlay(); else jumpCursor() }
+    else if (k === Qt.Key_Return || k === Qt.Key_Enter) {
+      if (phoneOffer) acceptOffer()   // HOOK(sync): Enter takes the phone offer first
+      else if (!hasBook && lastBook) togglePlay()
+      else jumpCursor()
+    }
     else if (k === Qt.Key_Down || t === "j") moveCursor(1)
     else if (k === Qt.Key_Up || t === "k") moveCursor(-1)
     else if (k === Qt.Key_Left || t === "h") seekBy(-root.skip)
@@ -263,6 +270,23 @@ Panel {
                 NumberAnimation { from: Style.space(260); to: 0; duration: 900; easing.type: Easing.InOutQuad }
               }
             }
+          }
+        }
+
+        // -- phone offer: Audible has a further position than this computer --
+        Item {   // HOOK(sync)
+          width: parent.width
+          height: phoneOfferButton.height
+          visible: root.phoneOffer !== null
+
+          PanelActionButton {
+            id: phoneOfferButton
+            anchors.horizontalCenter: parent.horizontalCenter
+            iconText: root.phoneOffer ? "Resume from phone: " + root.phoneOffer.label + "  (Enter)" : ""
+            fontSize: Style.font.body
+            fontFamily: root.fontFamily
+            foreground: root.foreground
+            onClicked: root.acceptOffer()
           }
         }
 
