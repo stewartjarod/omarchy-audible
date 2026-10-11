@@ -14,6 +14,7 @@ Item {
   property var detailCache: ({})     // asin -> Book from the catalog (books you do not own)
   property var simsCache: ({})       // asin -> [asin] for "More like this"; null while loading
   property var wishEntries: []       // raw wishlist entries from `audible collections wishlist list`
+  property var wishCovers: ({})      // asin -> cover url (the wishlist list has no images; one catalog call per 50)
   property bool wishLoaded: false
   property bool wishLoading: false
   property string wishError: ""
@@ -23,7 +24,7 @@ Item {
   property string writeNote: ""      // one plain line of feedback for the details page
 
   // The wishlist as tiles, not counting anything you own.
-  readonly property var wishlistBooks: W.wishlistBooks(root.wishEntries, root.svc ? root.svc.books : [])
+  readonly property var wishlistBooks: W.wishlistBooks(root.wishEntries, root.svc ? root.svc.books : [], root.wishCovers)
 
   function withKey(obj, key, value) {
     var n = {}
@@ -139,6 +140,26 @@ Item {
       root.wishError = ""
       root.wishEntries = res.entries
       root.wishLoaded = true
+      root.fetchWishCovers()
+    })
+  }
+
+  // Covers for wishlist tiles, read-only, in batches of 50. Failures just leave letter placeholders.
+  function fetchWishCovers() {
+    var asins = root.wishEntries.map(function (e) { return e.asin })
+    var batches = W.coverBatches(asins, root.wishCovers)
+    batches.forEach(function (batch) {
+      var argv = W.coverArgs(batch)
+      if (!argv) return
+      root.svc.run(argv, function (code, out) {
+        var env = W.parseEnvelope(out)
+        if (code !== 0 || !env.ok) return
+        var found = W.parseCovers(env.result)
+        var merged = {}
+        for (var k in root.wishCovers) merged[k] = root.wishCovers[k]
+        for (var f in found) merged[f] = found[f]
+        root.wishCovers = merged
+      })
     })
   }
 

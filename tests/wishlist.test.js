@@ -110,3 +110,23 @@ test("write argv builders exist, are exact, and refuse invalid ASINs (never run 
   assert.equal(W.addArgs("bad asin"), null)
   assert.equal(W.removeArgs(null), null)
 })
+
+test("cover batches, args and parsing", () => {
+  const ids = Array.from({ length: 120 }, (_, i) => "B" + String(i).padStart(9, "0"))
+  const b = W.coverBatches(ids.concat(["bad id!", ids[0]]), { [ids[1]]: "x" })
+  assert.deepEqual(b.map((x) => x.length), [50, 50, 19])
+  assert.ok(!b[0].includes(ids[1]))
+  const argv = W.coverArgs(b[0])
+  assert.ok(argv.includes("asins=" + b[0].join(",")))
+  assert.ok(argv.includes("response_groups=media"))
+  assert.equal(W.coverArgs([]), null)
+  const m = W.parseCovers({ products: [
+    { asin: "AAAA1", product_images: { 500: "https://m.media-amazon.com/a.jpg" } },
+    { asin: "AAAA2", product_images: { 500: "javascript:x" } },
+    { asin: "AAAA3" }
+  ] })
+  assert.deepEqual(m, { AAAA1: "https://m.media-amazon.com/a.jpg" })
+  assert.deepEqual(W.parseCovers(null), {})
+  const books = W.wishlistBooks([{ asin: "AAAA1", title: "T", added: "2026-01-01" }], [], m)
+  assert.equal(books[0].coverUrl, "https://m.media-amazon.com/a.jpg")
+})

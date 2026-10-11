@@ -112,7 +112,7 @@ function wishlistBook(entry) {
 }
 
 // The wishlist as library tiles, newest added first, without anything you already own.
-function wishlistBooks(entries, ownedBooks) {
+function wishlistBooks(entries, ownedBooks, covers) {
   var owned = {}
   var list = Array.isArray(ownedBooks) ? ownedBooks : []
   for (var i = 0; i < list.length; i++) if (isObj(list[i]) && list[i].asin) owned[list[i].asin] = true
@@ -125,7 +125,12 @@ function wishlistBooks(entries, ownedBooks) {
       if (da !== db) return da < db ? 1 : -1
       return a.idx - b.idx
     })
-    .map(function (x) { return wishlistBook(x.e) })
+    .map(function (x) {
+      var b = wishlistBook(x.e)
+      var url = isObj(covers) ? str(covers[b.asin]) : ""
+      if (url) b.coverUrl = url
+      return b
+    })
 }
 
 function inWishlist(entries, asin) {
@@ -160,6 +165,48 @@ function productArgs(asin) {
   return ["audible", "api", "GET", "/1.0/catalog/products/" + a, "--query", "response_groups=" + GROUPS, "-o", "json"]
 }
 
+// One catalog call for up to 50 books' covers (the wishlist list has no images).
+var COVER_BATCH = 50
+
+function coverArgs(asins) {
+  var list = (Array.isArray(asins) ? asins : []).map(cleanAsin).filter(function (a) { return a }).slice(0, COVER_BATCH)
+  if (!list.length) return null
+  return ["audible", "api", "GET", "/1.0/catalog/products", "--query", "asins=" + list.join(","), "--query", "response_groups=media", "--query", "num_results=" + COVER_BATCH, "-o", "json"]
+}
+
+// Split asins into batches of COVER_BATCH, leaving out any that already have a cover.
+function coverBatches(asins, have) {
+  var out = []
+  var cur = []
+  var seen = {}
+  var list = Array.isArray(asins) ? asins : []
+  for (var i = 0; i < list.length; i++) {
+    var a = cleanAsin(list[i])
+    if (!a || seen[a] || (isObj(have) && have[a])) continue
+    seen[a] = true
+    cur.push(a)
+    if (cur.length === COVER_BATCH) { out.push(cur); cur = [] }
+  }
+  if (cur.length) out.push(cur)
+  return out
+}
+
+// Catalog products reply -> { asin: coverUrl } for the books that have one.
+function parseCovers(result) {
+  var map = {}
+  var list = isObj(result) && Array.isArray(result.products) ? result.products : []
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i]
+    if (!isObj(p) || !cleanAsin(p.asin) || !isObj(p.product_images)) continue
+    var keys = Object.keys(p.product_images).sort(function (a, b) { return parseInt(b, 10) - parseInt(a, 10) })
+    for (var k = 0; k < keys.length; k++) {
+      var u = str(p.product_images[keys[k]])
+      if (/^https:\/\//.test(u)) { map[p.asin] = u; break }
+    }
+  }
+  return map
+}
+
 function simsArgs(asin) {
   var a = cleanAsin(asin)
   if (!a) return null
@@ -180,4 +227,4 @@ function removeArgs(asin) {
   return ["audible", "collections", "wishlist", "remove", "--asin", a, "-o", "json"]
 }
 
-if (typeof module !== "undefined") module.exports = { GROUPS, parseLength, parseEnvelope, parseWishlist, wishlistBook, wishlistBooks, inWishlist, productOf, simsOf, listArgs, productArgs, simsArgs, addArgs, removeArgs }
+if (typeof module !== "undefined") module.exports = { GROUPS, parseLength, parseEnvelope, parseWishlist, wishlistBook, wishlistBooks, inWishlist, productOf, simsOf, listArgs, productArgs, coverArgs, coverBatches, parseCovers, simsArgs, addArgs, removeArgs }
