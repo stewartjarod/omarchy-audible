@@ -311,11 +311,15 @@ test("forecast: zero, negative, or missing pace gives no date", () => {
   }
 })
 
-test("forecast: no data at all falls back to the default pace", () => {
+test("forecast: no data at all gives no date (the default pace is only a guess)", () => {
   const bf = S.bookForecast({}, "B1", TODAY, 3600 * 4)
   assert.equal(bf.pace.source, "default")
-  assert.equal(bf.pace.secPerDay, S.DEFAULT_PACE_SEC)
-  assert.equal(bf.forecast.days, 8)     // 4 h at 30 min a day
+  assert.equal(bf.forecast.date, null)
+  assert.equal(bf.forecast.days, null)
+  assert.match(bf.forecast.text, /few days/)
+  assert.equal(S.finishBy(bf.forecast, TODAY), "")
+  // but a finished book is still finished
+  assert.equal(S.bookForecast({}, "B1", TODAY, 0).forecast.finished, true)
 })
 
 test("forecast: counts days and names the finish day", () => {
@@ -432,10 +436,10 @@ test("burnDown: a finished book has no projection", () => {
   assert.equal(bd.actual[bd.actual.length - 1].remainingSec, 0)
 })
 
-test("burnDown: no data still projects, using the default pace", () => {
+test("burnDown: no data still draws the actual line, with the default pace flagged", () => {
   const bd = S.burnDown({}, "B1", TODAY, 3600)
   assert.ok(bd.actual.length > 0)
-  assert.ok(bd.projection.length > 0)
+  assert.equal(bd.projection.length, 0)   // nothing to project from yet
   assert.equal(bd.pace.source, "default")
 })
 

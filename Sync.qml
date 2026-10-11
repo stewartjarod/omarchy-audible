@@ -38,6 +38,7 @@ Item {
 
   FileView {
     id: stateFile
+    printErrors: false
     path: root.stateFilePath
     onLoaded: root.loadState(String(stateFile.text()))
   }

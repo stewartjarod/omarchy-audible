@@ -343,7 +343,11 @@ function finishBy(f, todayKey) {
 // Everything the forecast needs for one book.
 function bookForecast(log, asin, todayKey, remainingSec) {
   var p = pace(log, asin, todayKey)
-  return { pace: p, forecast: forecast(remainingSec, p.secPerDay, todayKey) }
+  var f = forecast(remainingSec, p.secPerDay, todayKey)
+  // With no listening recorded yet the pace is only a guess: say so instead of showing a made-up date.
+  if (!f.finished && p.source === "default")
+    f = { finished: false, days: null, date: null, text: "Listen for a few days and I'll estimate your finish" }
+  return { pace: p, forecast: f }
 }
 
 // Burn-down for one book. `actual` is remaining content at the end of each of the last

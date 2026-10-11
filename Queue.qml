@@ -19,6 +19,7 @@ Item {
 
   FileView {
     id: file
+    printErrors: false
     path: root.svc ? root.svc.stateDir + "/queue.json" : ""
     onLoaded: {
       // Edits made before the file arrived are kept: merge them on top of what was saved.

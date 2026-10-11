@@ -80,6 +80,7 @@ Item {
 
   FileView {
     id: file
+    printErrors: false
     path: root.filePath
     onLoaded: root.adopt(String(file.text()))
     onLoadFailed: root.adopt("")

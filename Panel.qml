@@ -63,7 +63,8 @@ Panel {
 
   property int cursor: 0
   readonly property int rowH: Style.spacing.popupRowHeight + Style.space(4)
-  readonly property int listMaxH: Style.space(200)
+  // The chapter list gives way to the extra rows (phone offer, queue count, sleep, stats) so the popup stays within its height.
+  readonly property int listMaxH: Style.space(150 - (root.service && root.service.phoneOffer && root.service.phoneOffer.asin ? 24 : 0) - (root.svc("queueCount", 0) > 0 ? 14 : 0))
 
   function clampCursor() {
     if (chapterCount <= 0) cursor = 0
@@ -1016,7 +1017,7 @@ Panel {
         Text {
           width: parent.width
           text: root.hasBook
-            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · z sleep · o library · i stats · esc"
+            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · [ ] speed · 9 0 volume · z sleep · o library · i stats · esc"
             : "o library · i stats · esc close"
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap
