@@ -473,6 +473,7 @@ Item {
     var p = 0
     if (r && typeof r.position === "number") p = r.position
     else if (b && !b.finished && b.percentComplete > 0 && b.runtimeSec > 0) p = b.runtimeSec * b.percentComplete / 100
+    p = phoneSync.startOverride(a, p)   // HOOK(sync)
     if (p <= 0 || (total > 0 && p > total - 60)) return 0
     return p
   }
@@ -551,6 +552,7 @@ Item {
   }
 
   function play(a) {
+    phoneSync.prefetch(a)   // HOOK(sync)
     var b = bookFor(a)
     if (b && b.listenable === false) {
       setupLog = "This title is not available to play with your current plan."
@@ -699,6 +701,14 @@ Item {
   // setup probe and actions: see SetupController.qml
   // ======================================================================
   SetupController { id: setupCtl; svc: root }
+
+  // ======================================================================
+  // Audible position sync: see Sync.qml
+  // ======================================================================
+  Sync { id: phoneSync; service: root }   // HOOK(sync)
+  readonly property var phoneOffer: phoneSync.offer   // HOOK(sync)
+  function acceptPhonePosition(a) { phoneSync.accept(a) }   // HOOK(sync)
+  function prefetchCurrent() { phoneSync.prefetchCurrent() }   // HOOK(sync)
   readonly property var setup: setupCtl.setup
   readonly property bool ready: setupCtl.ready
   readonly property string setupBusyId: setupCtl.setupBusyId
