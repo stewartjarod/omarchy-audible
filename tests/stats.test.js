@@ -376,6 +376,7 @@ test("pace: the book's recent listening over the 14-day window", () => {
 test("pace: a neglected book falls back to its all-time pace, then general listening", () => {
   const log = { [S.addDays(TODAY, -40)]: day(600, 600, { B1: 600 }), [S.addDays(TODAY, -30)]: day(0, 0) }
   log[S.addDays(TODAY, -3)] = day(300, 300, { B2: 300 })   // recent, but another book
+  log[S.addDays(TODAY, -2)] = day(400, 400, { B3: 400 })   // a second recent day, so there is a real pace
   const p = S.pace(log, "B1", TODAY)
   assert.equal(p.source, "alltime")
   assert.ok(p.secPerDay > 0)
@@ -386,18 +387,18 @@ test("pace: a neglected book falls back to its all-time pace, then general liste
 })
 
 test("pace: huge listening is capped so the forecast stays sane", () => {
-  const log = { [TODAY]: day(3600, 1e9, { B1: 1e9 }) }
+  const log = { [TODAY]: day(3600, 1e9, { B1: 1e9 }), [S.addDays(TODAY, -1)]: day(1, 0) }
   const p = S.pace(log, "B1", TODAY)
   assert.equal(p.secPerDay, S.MAX_PACE_SEC)
   assert.equal(S.forecast(3600 * 5, p.secPerDay, TODAY).days, 1)
 })
 
 test("bookForecast ties pace and forecast together for a loaded book", () => {
-  const log = { [TODAY]: day(3600, 7200, { B1: 7200 }) }   // 2 h of book in one day
+  const log = { [TODAY]: day(3600, 7200, { B1: 7200 }), [S.addDays(TODAY, -1)]: day(1, 0) }   // 2 h of book, over a two-day window
   const bf = S.bookForecast(log, "B1", TODAY, 3600 * 6)
-  // the window is one day, so the pace is 7200 per day: 6 h takes 3 calendar days
-  assert.equal(bf.pace.secPerDay, 7200)
-  assert.equal(bf.forecast.days, 3)
+  // the window is two days, so the pace is 3600 per day: 6 h takes 6 calendar days
+  assert.equal(bf.pace.secPerDay, 3600)
+  assert.equal(bf.forecast.days, 6)
 })
 
 // ---------------------------------------------------------------- burn-down
@@ -419,7 +420,7 @@ test("burnDown: actual line ends at today's remaining and moves back in time", (
 })
 
 test("burnDown: projection starts at today and ends at zero on the forecast day", () => {
-  const log = { [TODAY]: day(1800, 1800, { B1: 1800 }) }   // pace: 1800 a day over 14 days
+  const log = { [TODAY]: day(1800, 1800, { B1: 1800 }), [S.addDays(TODAY, -1)]: day(1, 0) }
   const bd = S.burnDown(log, "B1", TODAY, 3600 * 2)
   assert.equal(bd.projection[0].day, TODAY)
   assert.equal(bd.projection[0].remainingSec, 7200)
@@ -445,7 +446,7 @@ test("burnDown: no data still draws the actual line, with the default pace flagg
 
 test("burnDown: a very slow pace draws at most 60 days ahead but keeps the date", () => {
   // 1 s of book a day: about 3600 days for an hour, so the date is far away but a real date
-  const log = { [TODAY]: day(1, 1, { B1: 1 }) }
+  const log = { [TODAY]: day(1, 1, { B1: 1 }), [S.addDays(TODAY, -1)]: day(700, 700, { B2: 700 }) }
   const bd = S.burnDown(log, "B1", TODAY, 3600)
   assert.equal(bd.truncated, true)
   assert.equal(bd.projection.length, S.PROJECTION_DRAW_DAYS + 1)
@@ -454,7 +455,7 @@ test("burnDown: a very slow pace draws at most 60 days ahead but keeps the date"
 })
 
 test("burnDown: a huge pace projects to the next day only", () => {
-  const log = { [TODAY]: day(1, 1e12, { B1: 1e12 }) }
+  const log = { [TODAY]: day(1, 1e12, { B1: 1e12 }), [S.addDays(TODAY, -1)]: day(1, 0) }
   const bd = S.burnDown(log, "B1", TODAY, 3600)
   assert.equal(bd.forecast.days, 1)
   assert.equal(bd.projection.length, 2)
@@ -540,4 +541,11 @@ test("a tick stream: a midnight crossing, a suspend gap, and a pause", () => {
   assert.ok(Math.abs(oct11.bookSec - oct11.wallSec * 1.5) < 1e-6)
   assert.ok(Math.abs(oct11.perBook.B1 - oct11.bookSec) < 1e-9)
   assert.ok(Math.abs(oct10.bookSec - 3.5 * 1.5) < 1e-9)
+})
+
+test("pace: one short session is not a pace (needs two listening days and ten minutes)", () => {
+  assert.equal(S.pace({ [TODAY]: day(100, 140, { B1: 140 }) }, "B1", TODAY).source, "default")
+  assert.equal(S.pace({ [TODAY]: day(2000, 2800, { B1: 2800 }) }, "B1", TODAY).source, "default")   // one day only
+  assert.equal(S.pace({ [TODAY]: day(60, 84, { B1: 84 }), [S.addDays(TODAY, -1)]: day(60, 84, { B1: 84 }) }, "B1", TODAY).source, "default")   // two days, too little
+  assert.equal(S.bookForecast({ [TODAY]: day(100, 140, { B1: 140 }) }, "B1", TODAY, 1740).forecast.date, null)
 })

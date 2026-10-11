@@ -15,6 +15,8 @@ var KEEP_DAYS = 730             // roughly two years of history
 var STREAK_MIN_SEC = 300        // a listening day for the streak: at least five minutes
 var PACE_DAYS = 14              // window used for "your pace"
 var AVG_DAYS = 30               // window for the daily average
+var MIN_PACE_DAYS = 2           // listening days needed before a forecast is shown
+var MIN_PACE_BOOK_SEC = 600     // and at least this much book listened in the window
 var DEFAULT_PACE_SEC = 1800     // nothing logged at all: assume 30 book-minutes a day
 var MAX_PACE_SEC = 86400 * 4    // sanity cap on book-seconds per calendar day (a fast, long listen)
 var MAX_FORECAST_DAYS = 3650    // beyond ten years the forecast is not shown as a date
@@ -272,6 +274,11 @@ function recentDays(log, todayKey, days) {
 function pace(log, asin, todayKey) {
   var first = earliestKey(log)
   var recentFrom = addDays(todayKey, 1 - PACE_DAYS)
+  // Less than two listening days (or ten minutes of book) is not a pace, it is a single session:
+  // a forecast from it would be silly ("finish in 3 weeks" after one test listen).
+  var gate = windowSums(log, recentFrom, todayKey)
+  if (gate.listenDays < MIN_PACE_DAYS || gate.bookSec < MIN_PACE_BOOK_SEC)
+    return { secPerDay: DEFAULT_PACE_SEC, perListeningDay: DEFAULT_PACE_SEC, source: "default" }
   var span = first && first <= todayKey ? Math.max(1, Math.min(PACE_DAYS, dayDiff(first, todayKey) + 1)) : PACE_DAYS
   var spanAll = first && first <= todayKey ? Math.max(1, dayDiff(first, todayKey) + 1) : 1
 
