@@ -155,8 +155,90 @@ player at a time, and it only sees players that report over MPRIS:
 - **Next / Previous** go to the first player that can skip. This audiobook has
   no next track in its queue, so those keys do not move it between chapters.
 
-Use the keys in the popup and library for chapters and playback. Binding the
-keys to this plugin directly is possible but is not set up by the plugin.
+Use the keys in the popup and library for chapters and playback. To make the
+keyboard's keys reach this player regardless of Spotify, bind dedicated keys to
+the plugin in `~/.config/hypr/bindings.lua`, for example:
+
+```lua
+o.bind("CTRL + XF86AudioPlay", "Audiobook play/pause", "omarchy-shell -q jarod.audible toggle", { locked = true })
+o.bind("CTRL + XF86AudioNext", "Audiobook next chapter", "omarchy-shell -q jarod.audible next", { locked = true })
+o.bind("CTRL + XF86AudioPrev", "Audiobook previous chapter", "omarchy-shell -q jarod.audible prev", { locked = true })
+```
+(This is a suggestion; the plugin does not change your keybindings.)
+
+## Listening features
+
+### Sleep timer
+
+Press `z` in the popup (or click the sleep line) to cycle 15, 30, 45 and 60
+minutes, then "end of this chapter", then off. `Z` adds the running preset's
+time again. The countdown only runs while the book is playing. For the last 30
+seconds the player's volume fades down, then playback **pauses** (it is not
+unloaded) and your volume is put back. A desktop notice says it paused. From a
+script: `jarod.audible sleep <minutes>`, `sleepChapter`, `sleepCancel`.
+
+### Rewind on resume
+
+After you pause, resuming steps back a little so you catch what you missed:
+nothing under 30 seconds, then 3 s, 8 s, 15 s and up to 30 s for long pauses.
+It does not apply on the first play of a book, after a seek, or at the end of a
+book. Setting: `rewindOnResume`.
+
+### Next book in a series
+
+When a book ends, the next book in its series starts after a 5 second "Up next"
+notice, but only if it is **already downloaded**: nothing big downloads by
+surprise. Your Up next queue wins over the series order. Setting: `autoAdvance`
+(`off` or `downloaded`).
+
+### Notifications
+
+Short desktop notices for a finished download, a finished book, the sleep timer
+and the next book. Setting: `notifications`.
+
+### Sound adjustment
+
+`audioFilter`: `normalize` evens out loud and quiet parts, `voice` makes speech
+a little clearer. It only affects this player. (Silence trimming is not offered:
+it breaks the position and chapter timing, so it was left out.)
+
+### Resume from your phone
+
+When the Audible app (or another device) is ahead of where you are here, the
+popup offers "Resume from phone: Chapter 12 · 2h 13m" (press Enter), and the
+details page shows a button (`R`). It only reads from Audible and never jumps
+by itself. Starting a book that is not loaded uses the phone position if it is
+newer. Setting: `syncPullFromAudible` (on by default).
+
+Sending **your** position back to Audible is switched off
+(`syncPositionToAudible`) and in dry-run mode (`syncDryRun`): audible-rs has no
+documented way to write a position, so the plugin only logs what it would send
+and sends nothing. It does not write to your account.
+
+### Listening stats
+
+Press `i` in the popup, or run `jarod.audible toggleStats`, for a window with
+your streak, this week, today against your average, time saved by listening
+faster, a 14-day chart, a **burn-down** for the loaded book (solid: where you
+were; dashed: where you will be at your pace), and a finish estimate for each
+book in progress. The estimate needs at least two days of listening and ten
+minutes of book; until then it says so instead of guessing. Daily totals are
+kept on this computer in `~/.local/state/jarod-audible/listening.json`. The
+"Audible says: N h this year" line comes from `audible stats`.
+
+### Up next, wishlist and suggestions
+
+- **Up next:** on a details page press `U` to add or remove a book and `N` to
+  play it next. In the library, `Ctrl+U` shows the queue and `Ctrl+Up/Down`
+  reorder it. A queued book leaves the queue when it starts.
+- **Suggested for you:** one row in the library: the next book in a series
+  you are part way through, books by authors and narrators of books you
+  finished, then shorter books first. Each tile says why.
+- **Wishlist:** `Ctrl+W` shows your Audible wishlist (books you do not own).
+  Open one to see its details and similar titles. Adding or removing a wishlist
+  item needs two presses of `W` on the details page; there is no buying.
+- **More like this:** a strip of similar books on the details page (`Down`
+  enters it).
 
 ## Settings
 
@@ -174,6 +256,13 @@ come from the schema in `manifest.json`.
 | `downloadQuality` | Download quality | high | `high` or `normal` | `high` is about 128 kbps. `normal` is about half the size, so a book is ready roughly twice as fast, with little difference for speech |
 | `libraryScrollRows` | Library scroll speed | 0.5 | 0.1 to 2, step 0.1 | Grid rows one mouse-wheel notch scrolls in the library |
 | `libraryTrackpadSpeed` | Library trackpad scroll speed | 2.5 | 0.5 to 10, step 0.5 | How far the library grid moves for a trackpad swipe. A quick swipe is boosted further |
+| `rewindOnResume` | Rewind a little when resuming | on | on / off | Go back a few seconds after a pause, more after a longer one |
+| `autoAdvance` | Continue to the next book in a series | `downloaded` | `off` or `downloaded` | Start the next downloaded book in a series when one ends |
+| `notifications` | Desktop notifications | on | on / off | Notices for downloads, finished books, the sleep timer, up next |
+| `audioFilter` | Sound adjustment | `off` | `off`, `normalize`, `voice` | Even out loudness or lift speech clarity (this player only) |
+| `syncPullFromAudible` | Pick up where I stopped on my phone | on | on / off | Offer the position from the Audible app. Reads only |
+| `syncPositionToAudible` | Save my position to Audible | off | on / off | Not working yet: nothing is sent while it is unconfirmed |
+| `syncDryRun` | Dry run | on | on / off | Log what would be sent instead of sending |
 
 ## Where things are stored
 
@@ -184,6 +273,9 @@ come from the schema in `manifest.json`.
 | Saved password (optional) | Your system keyring, under service `audible-rs` and your account name | Never written to a file, never on a command line, never logged |
 | Downloaded books | `~/.local/share/audible/books/` | Encrypted `.aaxc` audio plus a `.voucher` file for each book (see Privacy) |
 | Plugin state | `~/.local/state/jarod-audible/state.json` | View mode, sort and filter, volume, speed, last book, resume positions, finished marks |
+| Listening history | `~/.local/state/jarod-audible/listening.json` | Seconds listened per day (and per book), for stats and the finish estimate. Stays on this computer |
+| Up next queue | `~/.local/state/jarod-audible/queue.json` | The ordered list of queued books |
+| Phone sync notes | `~/.local/state/jarod-audible/sync.json` | Which phone positions you accepted (only if you use it) |
 | mpv control socket | `$XDG_RUNTIME_DIR/omarchy-audible-mpv.sock` (falls back to `/tmp`) | Exists only while the audiobook player runs |
 
 ## Privacy and DRM
@@ -295,13 +387,3 @@ drives a running shell over IPC and must be run by hand in the desktop session.
 ## License
 
 MIT. See [LICENSE](LICENSE).
-
-<!-- TODO(integrator): Sleep timer. Describe the feature, its keys, and its settings once it ships. -->
-
-<!-- TODO(integrator): Phone sync. Describe what syncs, where, and how it is paired once it ships. -->
-
-<!-- TODO(integrator): Listening stats. Describe the stats shown and where they are kept once they ship. -->
-
-<!-- TODO(integrator): Queue. Describe how books are queued and played in order once it ships. -->
-
-<!-- TODO(integrator): Wishlist. Describe how wishlist items are added and shown once it ships. -->

@@ -26,3 +26,8 @@ Scrubbing rules applied before this repo was made public:
 | version.txt | `audible --version` |
 | login-server-output.txt | stdout of `audible account login server` (token is a placeholder) |
 | mpv-chapter-list.json | mpv IPC reply to `get_property chapter-list` (12 chapters, "Managing Oneself") |
+| sync-lastpositions.json | `audible api GET /1.0/annotations/lastpositions?asins=...` (scrubbed: ASINs, timestamps, positions) |
+| sync-annotations-show.json | `audible annotations show -o json` for one book (scrubbed) |
+| sync-library-progress.json | library progress fields used to compare the phone position with percent complete |
+| stats-year.json / stats-since.json / stats-plain.txt | `audible stats` for a year, `--since`, and plain output (minutes only) |
+| discover/ | wishlist list, catalog product and sims captures (scrubbed or synthetic; see its README) |
