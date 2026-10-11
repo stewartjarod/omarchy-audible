@@ -116,12 +116,13 @@ function bookIndex(books) {
   return map
 }
 
-// A queued book that is still ahead of you: it is in the library and not finished.
+// A queued book that is still ahead of you: it is in the library. Finished books stay: queuing one
+// is a deliberate "listen again", and the entry is removed when the book starts.
 function isLive(book) {
-  return isObj(book) && book.finished !== true
+  return isObj(book)
 }
 
-// Drop queue entries that are unknown to the library or already finished. With no library list
+// Drop queue entries that are unknown to the library. With no library list
 // (null) nothing is dropped, so an unloaded library cannot empty the queue.
 function prune(list, books) {
   var map = bookIndex(books)
@@ -130,7 +131,7 @@ function prune(list, books) {
   return base.filter(function (a) { return isLive(map[a]) })
 }
 
-// The Book objects still to hear, in queue order (unknown and finished entries are skipped).
+// The Book objects still to hear, in queue order (unknown entries are skipped).
 function pending(list, books) {
   var map = bookIndex(books)
   if (!map) return []
@@ -138,7 +139,7 @@ function pending(list, books) {
 }
 
 // The ASIN that should follow currentAsin: the next queued book after it that can be played
-// (in the library, not finished, listenable). When currentAsin is not queued, the first playable
+// (in the library, listenable). When currentAsin is not queued, the first playable
 // book in the queue. Returns "" when nothing qualifies. Never mutates the list.
 function next(list, currentAsin, books) {
   var base = dedupe(list)

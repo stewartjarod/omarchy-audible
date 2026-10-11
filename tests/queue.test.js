@@ -69,23 +69,24 @@ test("moveUp and moveDown swap with the neighbour and stop at the ends", () => {
   assert.deepEqual(Q.moveUp([A, B], D), [A, B])
 })
 
-test("prune drops finished and unknown books, and keeps everything when the library is unknown", () => {
+test("prune drops unknown books but keeps finished ones (listen again), and keeps everything when the library is unknown", () => {
   const books = [book(A), book(B, { finished: true }), book(C)]
-  assert.deepEqual(Q.prune([A, B, C, D], books), [A, C])
+  assert.deepEqual(Q.prune([A, B, C, D], books), [A, B, C])
   assert.deepEqual(Q.prune([A, B], null), [A, B])
 })
 
 test("pending lists the live books in queue order", () => {
   const books = [book(A), book(B, { finished: true }), book(C)]
-  assert.deepEqual(Q.pending([C, B, A, D], books).map(b => b.asin), [C, A])
+  assert.deepEqual(Q.pending([C, B, A, D], books).map(b => b.asin), [C, B, A])
   assert.deepEqual(Q.pending([A], null), [])
 })
 
-test("next follows the queue, skipping unplayable and finished books", () => {
+test("next follows the queue, skipping unplayable books", () => {
   const books = [
     book(A), book(B, { finished: true }), book(C, { listenable: false }), book(D)
   ]
-  assert.equal(Q.next([A, B, C, D], A, books), D)
+  assert.equal(Q.next([A, B, C, D], A, books), B)   // finished is fine: queued on purpose
+  assert.equal(Q.next([A, C, D], A, books), D)
   assert.equal(Q.next([A, B, C, D], D, books), "")
 })
 

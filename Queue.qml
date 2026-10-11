@@ -73,7 +73,7 @@ Item {
   function moveDown(asin) { setList(Q.moveDown(root.asins, asin)) }
   function clear() { setList(Q.clear()) }
 
-  // Drops finished and unknown books. Skipped while the library is empty (not loaded yet).
+  // Drops unknown books (finished ones stay: queuing one is a deliberate listen-again). Skipped while the library is empty (not loaded yet).
   function prune() {
     if (!root.svc || !Array.isArray(root.svc.books) || root.svc.books.length === 0) return
     setList(Q.prune(root.asins, root.svc.books))
