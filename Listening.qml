@@ -52,6 +52,12 @@ Item {
     refreshText()
   }
 
+  // "Z" in the popup: add the running preset's time again (the same as tapping it twice).
+  function addRunningPreset() {
+    var m = Ls.sleepRunningPreset(sleepTimer)
+    if (m > 0) sleep(m)
+  }
+
   // A fresh preset from the cycle (replaces whatever was running).
   function setPreset(minutes) {
     if (fading) restoreVolume()
@@ -86,9 +92,10 @@ Item {
   function finishSleep() {
     var wasPlaying = service && service.playing
     sleptAsin = service ? service.asin : ""
+    // Pause first, then bring the volume back: otherwise the faded level jumps to full for a moment.
+    if (service && wasPlaying) service.pause()
     restoreVolume()
     sleepTimer = null
-    if (service && wasPlaying) service.pause()
     if (wasPlaying) notify("Sleep timer", "Playback paused. Your place is saved.")
     refreshText()
   }
@@ -97,6 +104,11 @@ Item {
   function tick() {
     if (!sleepTimer || !service) return
     sleepTimer = Ls.sleepTick(sleepTimer, service.playing, 1)
+    if (Ls.sleepChapterOvershot(sleepTimer, service.position, service.speed)) {
+      // The listener jumped past the chapter: stop at the end of the chapter they are in now.
+      sleepTimer = Ls.sleepChapterTimer(currentChapterEnd())
+      if (!sleepTimer) { restoreVolume(); refreshText(); return }
+    }
     var rem = Ls.sleepRemainingSec(sleepTimer, service.position, service.speed)
     if (Ls.isSleepDue(sleepTimer, rem)) { finishSleep(); return }
     if (rem <= fadeSec) {
@@ -126,6 +138,11 @@ Item {
   Connections {
     target: root.service
     function onPausedChanged() { root.onPauseChanged() }
+    // startPlayback sets loading before any mpv command: a (re)load must never be rewound on top
+    // of its own start-5-seconds offset.
+    function onLoadingChanged() {
+      if (root.service && root.service.loading) { root.pausedAtMs = 0; root.pausedAsin = "" }
+    }
   }
 
   function onPauseChanged() {
@@ -139,6 +156,7 @@ Item {
       }
       return
     }
+    root.sleptAsin = ""   // resumed after a sleep pause: the book's real end may auto-advance again
     var was = root.pausedAtMs
     var sameBook = root.pausedAsin !== "" && root.pausedAsin === s.asin
     root.pausedAtMs = 0
@@ -229,8 +247,8 @@ Item {
     for (var i = 0; i < cmds.length; i++) service.mpvSend(cmds[i])
   }
 
-  Connections {
-    target: root.service
-    function onSettingsChanged() { root.applyFilters() }
-  }
+  onFilterModeChanged: applyFilters()
+
+  // A volume ramp left behind by a shell restart must not be saved as the user's level.
+  Component.onDestruction: { if (fading) restoreVolume() }
 }

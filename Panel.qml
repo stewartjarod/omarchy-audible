@@ -186,6 +186,7 @@ Panel {
     else if (t === "m") toggleMute()
     else if (t === "o") openLibrary()
     else if (t === "z") { if (root.service && root.service.listening) root.service.listening.cycleSleep() }  // HOOK(listen)
+    else if (t === "Z") { if (root.service && root.service.listening) root.service.listening.addRunningPreset() }  // HOOK(listen)
     else handled = false
 
     if (handled) event.accepted = true
@@ -911,7 +912,7 @@ Panel {
           width: parent.width
           visible: root.hasBook
           readonly property bool sleeping: root.service && root.service.listening && root.service.listening.sleepText !== ""
-          text: sleeping ? root.service.listening.sleepText + " · z to change" : "Sleep timer off · z to set"
+          text: sleeping ? root.service.listening.sleepText + " · z change · Z add more" : "Sleep timer off · z to set"
           textFormat: Text.PlainText
           color: sleeping ? Color.accent : root.dim
           font.family: root.fontFamily
@@ -927,7 +928,7 @@ Panel {
         Text {
           width: parent.width
           text: root.hasBook
-            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · z sleep · o library · esc"
+            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · z sleep · Z add more sleep · o library · esc"
             : "o library · esc close"
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap

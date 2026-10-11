@@ -30,14 +30,28 @@ function rewindSeconds(pausedSec, enabled) {
 // A timer is null (off), {kind: "time", remaining: sec, preset: minutes} or {kind: "chapter", endPos: sec}.
 // "time" counts down only while audio plays, so a pause does not eat the sleep time.
 
-// Tapping a preset: a running time timer gets the minutes added, anything else starts fresh.
+// Tapping the preset that is already running adds its time again. Tapping a different preset,
+// or any preset when nothing (or an end-of-chapter timer) is running, starts fresh.
 function sleepAddMinutes(timer, minutes) {
   var m = num(minutes, 0)
   if (m <= 0) return timer || null
-  if (timer && timer.kind === "time") {
+  if (timer && timer.kind === "time" && timer.preset === m) {
     return { kind: "time", remaining: timer.remaining + m * 60, preset: m }
   }
   return { kind: "time", remaining: m * 60, preset: m }
+}
+
+// The minutes of a running time timer, or 0. Used by the "add again" key.
+function sleepRunningPreset(timer) {
+  return timer && timer.kind === "time" ? num(timer.preset, 0) : 0
+}
+
+// True when the book has moved well past a chapter-end timer's target (a user jump, not normal
+// 1 Hz polling overshoot), so the timer should retarget instead of pausing.
+function sleepChapterOvershot(timer, position, speed) {
+  if (!timer || timer.kind !== "chapter") return false
+  var sp = num(speed, 1) > 0 ? num(speed, 1) : 1
+  return num(position, 0) > num(timer.endPos, 0) + 2 * sp + 1
 }
 
 // "End of this chapter" replaces whatever was running. endPos is the chapter's end in book seconds.
@@ -185,6 +199,8 @@ if (typeof module !== "undefined") module.exports = {
   SLEEP_CYCLE: SLEEP_CYCLE,
   rewindSeconds: rewindSeconds,
   sleepAddMinutes: sleepAddMinutes,
+  sleepRunningPreset: sleepRunningPreset,
+  sleepChapterOvershot: sleepChapterOvershot,
   sleepChapterTimer: sleepChapterTimer,
   sleepTick: sleepTick,
   sleepRemainingSec: sleepRemainingSec,

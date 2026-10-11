@@ -47,14 +47,35 @@ test("sleepAddMinutes starts a fresh timer from nothing", () => {
   assert.deepEqual(t, { kind: "time", remaining: 900, preset: 15 })
 })
 
-test("sleepAddMinutes adds to a running time timer (tapping a preset again)", () => {
+test("sleepAddMinutes adds time when the running preset is tapped again", () => {
   let t = N.sleepAddMinutes(null, 15)
   t = N.sleepAddMinutes(t, 15)
   assert.equal(t.remaining, 1800)
   assert.equal(t.preset, 15)
+  t = N.sleepAddMinutes(t, 15)
+  assert.equal(t.remaining, 2700)
+})
+
+test("sleepAddMinutes switches to a different preset instead of stacking", () => {
+  let t = N.sleepAddMinutes(null, 15)
   t = N.sleepAddMinutes(t, 60)
-  assert.equal(t.remaining, 1800 + 3600)
-  assert.equal(t.preset, 60)
+  assert.deepEqual(t, { kind: "time", remaining: 3600, preset: 60 })
+})
+
+test("sleepRunningPreset reports the minutes of a running time timer", () => {
+  assert.equal(N.sleepRunningPreset(null), 0)
+  assert.equal(N.sleepRunningPreset(N.sleepChapterTimer(50)), 0)
+  assert.equal(N.sleepRunningPreset(N.sleepAddMinutes(null, 45)), 45)
+})
+
+test("sleepChapterOvershot ignores normal polling lag and flags a real jump past the target", () => {
+  const ch = N.sleepChapterTimer(1000)
+  assert.equal(N.sleepChapterOvershot(ch, 1000, 1), false)
+  assert.equal(N.sleepChapterOvershot(ch, 1003, 1), false)     // 3 s past at 1x: polling lag
+  assert.equal(N.sleepChapterOvershot(ch, 1006, 2), true)      // 6 s past at 2x: allowance is 2*2+1 = 5 s
+  assert.equal(N.sleepChapterOvershot(ch, 1020, 1), true)      // user jumped on
+  assert.equal(N.sleepChapterOvershot(N.sleepAddMinutes(null, 15), 5000, 1), false)
+  assert.equal(N.sleepChapterOvershot(null, 5000, 1), false)
 })
 
 test("sleepAddMinutes replaces an end-of-chapter timer and ignores zero minutes", () => {
