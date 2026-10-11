@@ -754,7 +754,7 @@ Item {
   function accountName() { return setupCtl.accountName() }
 
   // Sleep timer, rewind on resume, auto-advance, notifications, audio filters: see Listening.qml
-  readonly property var listening: Listening { service: root }  // HOOK(listen)
+  readonly property var listening: Listening { service: root; nextProvider: root.queueProvider }  // HOOK(listen) + HOOK(discover)
 
   // ======================================================================
   // IPC: the only IPC target for this plugin (bar widgets exist once per monitor)
