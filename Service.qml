@@ -415,8 +415,13 @@ Item {
     onTriggered: {
       root.mpvSend(["get_property", "time-pos"], 100)
       if (root.playing && ++ticks % 15 === 0) root.rememberPosition()
+      statsLog.tick()  // HOOK(stats)
     }
   }
+
+  // ---- listening history (HOOK(stats)): ListeningLog.qml owns the file, StatsModel.js the maths
+  ListeningLog { id: statsLog; service: root }  // HOOK(stats)
+  property alias stats: statsLog                // HOOK(stats)
 
   // ---- player commands ----------------------------------------------------
   function pause() { mpvSend(["set_property", "pause", true]) }
@@ -695,6 +700,19 @@ Item {
     onLoaded: { if (item && "service" in item) item.service = root }
   }
 
+  // Listening stats window (HOOK(stats)): hosted lazily like the library, opened from the popup (i) or IPC.
+  property bool statsOpen: false                 // HOOK(stats)
+  property bool statsEverOpened: false           // HOOK(stats)
+  function openStats() { statsEverOpened = true; statsOpen = true }     // HOOK(stats)
+  function closeStats() { statsOpen = false }                           // HOOK(stats)
+  function toggleStats() { statsOpen ? closeStats() : openStats() }     // HOOK(stats)
+  Loader {                                       // HOOK(stats)
+    id: statsLoader
+    active: root.statsEverOpened
+    source: Qt.resolvedUrl("Stats.qml")
+    onLoaded: { if (item && "service" in item) item.service = root }
+  }
+
   // ======================================================================
   // setup probe and actions: see SetupController.qml
   // ======================================================================
@@ -736,6 +754,9 @@ Item {
     function toggleLibrary(): void { root.toggleLibrary() }
     function openLibrary(): void { root.openLibrary() }
     function closeLibrary(): void { root.closeLibrary() }
+    function toggleStats(): void { root.toggleStats() }    // HOOK(stats)
+    function openStats(): void { root.openStats() }        // HOOK(stats)
+    function closeStats(): void { root.closeStats() }      // HOOK(stats)
     function popup(): void { root.popupRequested() }
     function play(asin: string): void { root.play(asin) }
     function toggle(): void { root.togglePause() }

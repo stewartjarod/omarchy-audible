@@ -154,6 +154,20 @@ Panel {
     if (service) service.openLibrary()
   }
 
+  function openStats() {   // HOOK(stats)
+    root.close()
+    if (service) service.openStats()
+  }
+
+  // "time left: 3h 12m · finish by Fri" under the progress bar, from the listening log (HOOK(stats)).
+  readonly property string finishHint: {
+    var st = service ? service.stats : null
+    var a = svc("asin", "")
+    if (!hasBook || !st || !a || bookLeft <= 0) return ""
+    var by = st.finishHint(a, bookLeft * speed)
+    return "time left: " + Model.formatDuration(bookLeft, "hm") + (by ? " · " + by : "")
+  }
+
   function setSpeedFromSlider(v) {
     if (!service) return
     service.setSpeed(Model.stepSpeed(v, 0, speedOpts))
@@ -185,6 +199,7 @@ Panel {
     else if (t === "0") stepVolume(1)
     else if (t === "m") toggleMute()
     else if (t === "o") openLibrary()
+    else if (t === "i") openStats()   // HOOK(stats)
     else handled = false
 
     if (handled) event.accepted = true
@@ -457,6 +472,17 @@ Panel {
               font.pixelSize: Style.font.caption
               font.bold: true
             }
+          }
+          // time left and when the book finishes at your pace (HOOK(stats))
+          Text {
+            width: parent.width
+            visible: text !== ""
+            text: root.finishHint
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            color: root.dim
+            font.family: root.fontFamily
+            font.pixelSize: Style.font.caption
           }
         }
 
@@ -898,6 +924,20 @@ Panel {
               onClicked: root.openLibrary()
             }
           }
+          Item {
+            width: parent.width
+            height: statsButton.height
+
+            PanelActionButton {   // HOOK(stats)
+              id: statsButton
+              anchors.horizontalCenter: parent.horizontalCenter
+              iconText: "Listening stats  (i)"
+              fontSize: Style.font.body
+              fontFamily: root.fontFamily
+              foreground: root.foreground
+              onClicked: root.openStats()
+            }
+          }
         }
 
         PanelSeparator {
@@ -909,8 +949,8 @@ Panel {
         Text {
           width: parent.width
           text: root.hasBook
-            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · o library · esc"
-            : "o library · esc close"
+            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · o library · i stats · esc"
+            : "o library · i stats · esc close"
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap
           color: root.dim
