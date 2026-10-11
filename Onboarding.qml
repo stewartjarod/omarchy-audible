@@ -151,6 +151,19 @@ Item {
           textFormat: Text.PlainText
         }
 
+        // Version notice (SetupModel.versionNotice): only when the installed audible CLI is not the pinned one.
+        Text {
+          width: parent.width
+          visible: !!(root.setup && root.setup.notice)
+          text: root.setup && root.setup.notice ? root.setup.notice : ""
+          color: root.urgent
+          font.family: Style.font.family
+          font.pixelSize: Style.font.bodySmall
+          wrapMode: Text.WordWrap
+          lineHeight: 1.2
+          textFormat: Text.PlainText
+        }
+
         // Checklist: done / current / todo.
         Column {
           width: parent.width

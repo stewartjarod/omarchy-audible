@@ -6,7 +6,7 @@
       "default": "*",
       "default_mp": "us",
       "marketplaces": "us",
-      "name": "jarod",
+      "name": "example",
       "password_source": "command"
     }
   ],

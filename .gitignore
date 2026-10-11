@@ -1,2 +1,13 @@
-*.log
+# Editor and OS junk
 .DS_Store
+*.swp
+
+# Logs and test output
+*.log
+coverage/
+
+# Node (tests are plain node --test, no dependencies)
+node_modules/
+
+# Local scratch: never commit captured personal output
+scratch/

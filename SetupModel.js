@@ -6,7 +6,7 @@
 var PINNED_TAG = "v0.1.0-alpha.8"
 var PINNED_ARCH = "x86_64"
 var RELEASE_BASE = "https://github.com/mkb79/audible-rs/releases/download/"
-var SUMS_NAME = "SHA256SUMS" // assumed release checksum file name; verify against the release page
+var SUMS_NAME = "SHA256SUMS" // checked against the v0.1.0-alpha.8 release: 5 assets, this exact name
 
 var ACCOUNT_RE = /^[A-Za-z0-9._@-]{1,64}$/
 var LOGIN_URL_RE = /http:\/\/127\.0\.0\.1:(\d{1,5})\/[A-Za-z0-9_-]+\/?/
@@ -214,6 +214,20 @@ function _steps(state) {
   })
 }
 
+// A plain sentence when the installed audible CLI is not the pinned release, else null.
+// installedVersionText is `audible --version` output ("audible 0.1.0-alpha.8"); pinnedTag is "v0.1.0-alpha.8".
+var VERSION_RE = /(\d+\.\d+\.\d+(?:-[0-9A-Za-z.]+)?)/
+
+function versionNotice(installedVersionText, pinnedTag) {
+  var installedText = _firstLine(installedVersionText)
+  var pinned = _str(pinnedTag).trim().replace(/^v/, "")
+  if (!installedText || !pinned) return null
+  var m = installedText.match(VERSION_RE)
+  var installed = m ? m[1] : "a version we could not read"
+  if (m && installed === pinned) return null
+  return "Built and tested with audible-rs " + pinned + "; you have " + installed + ", which may behave differently."
+}
+
 // Decides the single next step from a probe (see CONTRACT.md).
 function detect(probe) {
   var p = probe || {}
@@ -242,7 +256,9 @@ function detect(probe) {
     message: "",
     primary: null,
     secondary: [],
-    steps: _steps(state)
+    steps: _steps(state),
+    // non-null when the installed audible CLI is not the pinned release (see versionNotice)
+    notice: p.audible && p.audible.found ? versionNotice(p.audible.version, p.pinned) : null
   }
 
   if (state === "no-audible") {
@@ -299,6 +315,7 @@ if (typeof module !== "undefined") module.exports = {
   keyringStoreArgs: keyringStoreArgs,
   installPlan: installPlan,
   verifySums: verifySums,
+  versionNotice: versionNotice,
   PINNED_TAG: PINNED_TAG,
   STEPS: STEPS
 }
