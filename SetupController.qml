@@ -18,6 +18,8 @@ Item {
   property bool loginWaiting: false
   property var lastProbe: null
   property var loginProc: null
+  property string loginPassword: ""   // the generated login-file password; in memory only until the keyring has it
+  property bool loginSeen: false      // the account showed up; waiting for the sign-in command to finish
   property bool previewing: false
 
   function emptyProbe() {
@@ -40,7 +42,7 @@ Item {
     if (ready && !wasReady) { svc.refreshLibrary(); svc.scanLocal() }
   }
 
-  function recheck() {
+  function recheck(then) {
     var probe = emptyProbe()
     svc.run(["sh", "-c", "for c in audible mpv secret-tool uwsm-app; do command -v \"$c\" >/dev/null 2>&1 && echo \"$c\"; done; true"], function(code, out) {
       var have = {}
@@ -49,9 +51,9 @@ Item {
       probe.mpv.found = have["mpv"] === true
       svc.hasUwsm = have["uwsm-app"] === true
       probe.secretTool.found = have["secret-tool"] === true
-      if (!probe.audible.found) { lastProbe = probe; rerenderSetup(); return }
+      if (!probe.audible.found) { lastProbe = probe; rerenderSetup(); if (then) then(); return }
       var pending = 3
-      var finish = function() { if (--pending === 0) { lastProbe = probe; rerenderSetup() } }
+      var finish = function() { if (--pending === 0) { lastProbe = probe; rerenderSetup(); if (then) then() } }
       svc.run(["audible", "--version"], function(c, o) { probe.audible.version = String(o).trim(); finish() })
       svc.run(["audible", "account", "list", "-o", "json"], function(c, o, e) { probe.accounts = Setup.parseAccountList(o, e); finish() })
       svc.run(["audible", "library", "list", "-o", "json", "--limit", "1"], function(c, o, e) { probe.library = Setup.parseLibraryProbe(o, e, c); finish() })
@@ -140,22 +142,46 @@ Item {
     })
   }
 
+  // The sign-in command asks for a password for the new login file and cannot be answered from
+  // here. So make a random one, hand it over in the environment (never argv), and once the account
+  // exists put it in the keyring and point Audible at it. Without a keyring tool the file is saved
+  // unencrypted (--plain) and the setup log says so.
   function startLogin() {
     if (loginWaiting) return
     loginWaiting = true
+    loginSeen = false
     loginUrl = ""
-    var opened = false
     busyWith("", "Starting the sign-in page...")
-    loginProc = svc.run(["audible", "account", "login", "server", "-m", marketplaceGuess(), "--timeout", "900"],
+    var haveKeyring = !!(lastProbe && lastProbe.secretTool && lastProbe.secretTool.found)
+    if (!haveKeyring) { launchLogin("", false); return }
+    svc.run(["sh", "-c", "head -c 24 /dev/urandom | base64 | tr -d '=+/\\n'"], function(code, out) {
+      if (!loginWaiting) return   // cancelled meanwhile
+      var pw = String(out).trim()
+      if (code !== 0 || pw.length < 16) {
+        loginWaiting = false
+        svc.setupLog = "Could not prepare a password for your login."
+        rerenderSetup()
+        return
+      }
+      launchLogin(pw, true)
+    })
+  }
+
+  function launchLogin(pw, encrypted) {
+    var opened = false
+    loginPassword = pw
+    var argv = ["audible", "account", "login", "server", "-m", marketplaceGuess(), "--timeout", "900"]
+    if (!encrypted) argv.push("--plain")
+    loginProc = svc.run(argv,
       function(code, out, err) {
-        // the exit code is not a reliable success signal; recheck decides
+        // the exit code is not a reliable success signal; the account list decides
         loginWaiting = false
         loginProc = null
         loginUrl = ""
-        svc.setupLog = ""
-        recheck()
+        finishLogin()
       },
-      { line: function(l) {
+      { env: encrypted ? { AUDIBLE_NEW_AUTH_PASSWORD: pw } : null,
+        line: function(l) {
           var u = Setup.parseLoginUrl(l)
           if (u && !opened) {
             opened = true
@@ -169,29 +195,42 @@ Item {
     loginPoll.restart()
   }
 
+  // The sign-in command is over (or was stopped): check for the account, and store the generated
+  // password if there is one.
+  function finishLogin() {
+    var pw = loginPassword
+    loginPassword = ""
+    loginSeen = false
+    svc.setupLog = ""
+    recheck(function() {
+      if (pw !== "" && accountName() !== "") storePassword(pw)
+      else if (pw !== "") svc.setupLog = "Sign-in did not finish. Try again."
+    })
+  }
+
   function cancelLogin() {
+    loginPassword = ""
     if (loginProc) loginProc.signal(15)
     loginWaiting = false
+    loginSeen = false
     loginUrl = ""
     svc.setupLog = ""
     recheck()
   }
 
-  // while the sign-in page is open, notice a finished login by the account appearing
+  // While the sign-in page is open, notice the account appearing. The command is left to finish
+  // writing the login file on its own (it exits when done); only if it lingers is it stopped.
   Timer {
     id: loginPoll
     interval: 3000
     repeat: true
     running: ctl.loginWaiting
+    property int seenTicks: 0
     onTriggered: ctl.svc.run(["audible", "account", "list", "-o", "json"], function(c, o, e) {
       var acc = Setup.parseAccountList(o, e)
-      if (acc.ok && acc.accounts.length > 0 && ctl.loginWaiting) {
-        if (ctl.loginProc) ctl.loginProc.signal(15)
-        ctl.loginWaiting = false
-        ctl.loginUrl = ""
-        ctl.svc.setupLog = "Signed in."
-        ctl.recheck()
-      }
+      if (!(acc.ok && acc.accounts.length > 0 && ctl.loginWaiting)) { loginPoll.seenTicks = 0; return }
+      if (!ctl.loginSeen) { ctl.loginSeen = true; ctl.svc.setupLog = "Signed in. Saving your login..." }
+      if (++loginPoll.seenTicks >= 5 && ctl.loginProc) ctl.loginProc.signal(15)   // lingering: ~15 s
     })
   }
 

@@ -11,11 +11,14 @@ Process {
   property var done: null
   property var line: null
   property string input: ""
+  property var extraEnv: null   // {NAME: value} added to the environment (secrets go here, never in argv)
 
   property var _lines: []
   property var _errLines: []
 
   stdinEnabled: input.length > 0
+
+  Component.onCompleted: { if (proc.extraEnv) proc.environment = proc.extraEnv }
 
   stdout: SplitParser {
     splitMarker: "\n"

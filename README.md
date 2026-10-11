@@ -339,6 +339,13 @@ writes it back after your next change, so the file must be deleted before the
 restart. This clears resume positions, finished marks, and view settings. It does
 not touch your books, your account, or your saved password.
 
+**How sign-in handles the login-file password.** The Audible CLI encrypts its login file and
+asks for a password for it, which the plugin cannot type for you. So the plugin makes a random
+one, passes it to the CLI through the environment (never on a command line), and stores it in
+your keyring with `secret-tool`, then points Audible at it. You never see or type it. If your
+machine has no `secret-tool`, the login file is saved unencrypted instead, and the setup log
+says so; install `libsecret` to avoid that.
+
 **Sign out.** In the player popup press **x** twice (or click the "Signed in as ..."
 line, then click it again), or run `jarod.audible signOut` over IPC. Playback stops, the
 account is removed from the Audible CLI and its login file is deleted, and the setup

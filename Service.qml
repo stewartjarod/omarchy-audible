@@ -122,14 +122,14 @@ Item {
   Component { id: cmdComponent; Cmd {} }
   Component { id: cmdLinesComponent; CmdLines {} }
 
-  // run(argv, done(exitCode, stdout, stderr), {line, input}) -> Process
+  // run(argv, done(exitCode, stdout, stderr), {line, input, env}) -> Process (env only with line)
   // PATH always includes ~/.local/bin (the shell's own PATH may not).
   function run(argv, done, opts) {
     var o = opts || {}
     var wrapped = ["sh", "-c", "export PATH=\"$HOME/.local/bin:$PATH\"; exec \"$@\"", "sh"].concat(argv)
     // collector-based by default; the line-streaming runner only when a line callback is given
     var p = o.line
-      ? cmdLinesComponent.createObject(root, { command: wrapped, done: done || null, line: o.line, input: o.input || "" })
+      ? cmdLinesComponent.createObject(root, { command: wrapped, done: done || null, line: o.line, input: o.input || "", extraEnv: o.env || null })
       : cmdComponent.createObject(root, { command: wrapped, done: done || null, input: o.input || "" })
     if (!p) return null
     p.running = true

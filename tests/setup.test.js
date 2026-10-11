@@ -576,3 +576,12 @@ test("CmdLines reads stderr line by line (the sign-in URL arrives there)", () =>
   assert.match(src, /stderr:\s*SplitParser/)
   assert.doesNotMatch(src, /stderr:\s*StdioCollector/)
 })
+
+test("sign-in hands the login-file password over in the environment, never in argv", () => {
+  const src = fs.readFileSync(path.join(ROOT, "SetupController.qml"), "utf8")
+  assert.match(src, /env: encrypted \? \{ AUDIBLE_NEW_AUTH_PASSWORD: pw \} : null/)
+  assert.doesNotMatch(src, /"--password"|AUDIBLE_NEW_AUTH_PASSWORD=/)
+  assert.match(src, /argv\.push\("--plain"\)/)   // no keyring tool: unencrypted, never an unanswerable prompt
+  const cmd = fs.readFileSync(path.join(ROOT, "CmdLines.qml"), "utf8")
+  assert.match(cmd, /extraEnv/)
+})
