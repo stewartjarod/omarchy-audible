@@ -42,9 +42,13 @@ BarWidget {
     return service.pendingStatus ? String(service.pendingStatus) : ""
   }
 
+  // The sleep timer, when one is set, is appended to every playback tooltip.  // HOOK(listen)
+  readonly property string sleepTip: service && service.listening ? String(service.listening.sleepText || "") : ""
+  readonly property string tipWithSleep: root.label.tooltip + (root.sleepTip !== "" ? " · " + root.sleepTip : "")
+
   // Icon tooltip: the playback summary, or an offer to continue the last book when idle.
   readonly property string iconTip: {
-    if (hasBook) return root.label.tooltip
+    if (hasBook) return root.tipWithSleep
     var b = service ? service.lastBook : null
     return b && b.title ? "Continue: " + b.title : root.label.tooltip
   }
@@ -163,7 +167,7 @@ BarWidget {
     concealed: root.barText === ""   // WidgetButton fades to 0 over 140 ms when concealed
     horizontalMargin: 4
     dimmed: root.hasBook && root.paused
-    tooltipText: root.label.tooltip
+    tooltipText: root.tipWithSleep
     onPressed: function(buttonCode) {
       if (buttonCode === Qt.RightButton) root.openLibrary()
       else if (buttonCode === Qt.MiddleButton) root.togglePause()

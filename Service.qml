@@ -350,6 +350,7 @@ Item {
   function onMpvConnected() {
     var props = ["pause", "speed", "chapter-list", "duration", "path", "idle-active", "media-title", "volume", "mute", "eof-reached"]
     for (var i = 0; i < props.length; i++) mpvSend(["observe_property", i + 1, props[i]])
+    listening.applyFilters()  // HOOK(listen)
   }
 
   function onMpvGone() {
@@ -386,13 +387,14 @@ Item {
       case "path": path = m.data ? String(m.data) : ""; asin = asinFromPath(path); break
       case "idle-active": idle = m.data === true; break
       case "media-title": mediaTitle = m.data ? String(m.data) : ""; break
-      case "volume": if (typeof m.data === "number") { volume = m.data; saveSoon() } break
+      // While the sleep timer fades, mpv reports the faded level: keep the user's saved volume.
+      case "volume": if (typeof m.data === "number" && !listening.fading) { volume = m.data; saveSoon() } break  // HOOK(listen)
       case "mute": muted = m.data === true; break
       case "eof-reached":
         // The first report after (re)connecting is just the current state, not an event: ignore it, or a
         // Service restart while mpv sits at the end of a book would count another listen.
         if (!eofSeen) { eofSeen = true; break }
-        if (m.data === true && asin !== "") markFinished(asin)
+        if (m.data === true && asin !== "" && markFinished(asin) !== "Already marked.") listening.bookFinished(asin)  // HOOK(listen)
         break
       }
     } else if (m.event === "file-loaded") {
@@ -712,6 +714,9 @@ Item {
   function runSetupAction(id, payload) { setupCtl.runSetupAction(id, payload) }
   function accountName() { return setupCtl.accountName() }
 
+  // Sleep timer, rewind on resume, auto-advance, notifications, audio filters: see Listening.qml
+  readonly property var listening: Listening { service: root }  // HOOK(listen)
+
   // ======================================================================
   // IPC: the only IPC target for this plugin (bar widgets exist once per monitor)
   // ======================================================================
@@ -761,6 +766,9 @@ Item {
     function refresh(): void { root.refreshLibrary(); root.scanLocal() }
     function recheck(): void { setupCtl.previewing = false; root.recheck() }
     function previewSetup(name: string): void { root.previewSetup(name) }
+    function sleep(minutes: int): void { root.listening.sleep(minutes) }  // HOOK(listen)
+    function sleepChapter(): void { root.listening.sleepChapter() }  // HOOK(listen)
+    function sleepCancel(): void { root.listening.sleepCancel() }  // HOOK(listen)
   }
 
   Component.onCompleted: {

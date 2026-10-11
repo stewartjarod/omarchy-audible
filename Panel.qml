@@ -185,6 +185,7 @@ Panel {
     else if (t === "0") stepVolume(1)
     else if (t === "m") toggleMute()
     else if (t === "o") openLibrary()
+    else if (t === "z") { if (root.service && root.service.listening) root.service.listening.cycleSleep() }  // HOOK(listen)
     else handled = false
 
     if (handled) event.accepted = true
@@ -905,11 +906,28 @@ Panel {
           foreground: root.foreground
         }
 
+        // -- sleep timer row (z or a click cycles it) -----------------------
+        Text {   // HOOK(listen)
+          width: parent.width
+          visible: root.hasBook
+          readonly property bool sleeping: root.service && root.service.listening && root.service.listening.sleepText !== ""
+          text: sleeping ? root.service.listening.sleepText + " · z to change" : "Sleep timer off · z to set"
+          textFormat: Text.PlainText
+          color: sleeping ? Color.accent : root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: { if (root.service && root.service.listening) root.service.listening.cycleSleep() }
+          }
+        }
+
         // -- key legend -----------------------------------------------------
         Text {
           width: parent.width
           text: root.hasBook
-            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · o library · esc"
+            ? "space play · h/l ±" + root.skip + "s · j/k chapter · ⏎ jump · n/p chapter · [ ] speed · 9 0 volume · m mute · z sleep · o library · esc"
             : "o library · esc close"
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap
