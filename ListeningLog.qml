@@ -88,6 +88,7 @@ Item {
   // The file may load after ticks have already happened (a fresh start with playback resumed),
   // so the saved days and the in-memory days are added together.
   function adopt(text) {
+    if (root.loaded) return   // a second `loaded` must not add the file onto memory again
     var parsed = Stats.parseLog(text)
     if (!parsed.ok && service) {
       // Keep the unreadable file beside the new one instead of silently overwriting it.
@@ -99,5 +100,6 @@ Item {
     if (dirty && !saveTimer.running) saveTimer.start()
   }
 
+  Component.onCompleted: file.reload()   // as Service does: do not rely on the FileView preloading
   Component.onDestruction: flush()
 }

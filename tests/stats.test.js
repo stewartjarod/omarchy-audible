@@ -432,12 +432,21 @@ test("burnDown: a finished book has no projection", () => {
   assert.equal(bd.actual[bd.actual.length - 1].remainingSec, 0)
 })
 
-test("burnDown: zero pace gives an actual line and no projection", () => {
+test("burnDown: no data still projects, using the default pace", () => {
   const bd = S.burnDown({}, "B1", TODAY, 3600)
-  // default pace applies with no data, so there is a projection: check the empty-log path still returns
   assert.ok(bd.actual.length > 0)
   assert.ok(bd.projection.length > 0)
   assert.equal(bd.pace.source, "default")
+})
+
+test("burnDown: a very slow pace draws at most 60 days ahead but keeps the date", () => {
+  // 1 s of book a day: about 3600 days for an hour, so the date is far away but a real date
+  const log = { [TODAY]: day(1, 1, { B1: 1 }) }
+  const bd = S.burnDown(log, "B1", TODAY, 3600)
+  assert.equal(bd.truncated, true)
+  assert.equal(bd.projection.length, S.PROJECTION_DRAW_DAYS + 1)
+  assert.ok(bd.projection[bd.projection.length - 1].remainingSec > 0)
+  assert.ok(bd.forecast.date > S.addDays(TODAY, 60))
 })
 
 test("burnDown: a huge pace projects to the next day only", () => {

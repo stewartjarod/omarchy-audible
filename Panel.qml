@@ -484,6 +484,19 @@ Panel {
             font.family: root.fontFamily
             font.pixelSize: Style.font.caption
           }
+          Item {   // HOOK(stats): listening stats while a book is loaded (the empty state has its own)
+            width: parent.width
+            height: loadedStatsButton.height
+            PanelActionButton {
+              id: loadedStatsButton
+              anchors.horizontalCenter: parent.horizontalCenter
+              iconText: "Listening stats  (i)"
+              fontSize: Style.font.bodySmall
+              fontFamily: root.fontFamily
+              foreground: root.foreground
+              onClicked: root.openStats()
+            }
+          }
         }
 
         // -- transport ------------------------------------------------------

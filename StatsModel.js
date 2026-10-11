@@ -18,6 +18,7 @@ var AVG_DAYS = 30               // window for the daily average
 var DEFAULT_PACE_SEC = 1800     // nothing logged at all: assume 30 book-minutes a day
 var MAX_PACE_SEC = 86400 * 4    // sanity cap on book-seconds per calendar day (a fast, long listen)
 var MAX_FORECAST_DAYS = 3650    // beyond ten years the forecast is not shown as a date
+var PROJECTION_DRAW_DAYS = 60   // the burn-down draws at most this far ahead
 var MIN_SPEED = 0.1
 var MAX_SPEED = 10
 
@@ -364,14 +365,18 @@ function burnDown(log, asin, todayKey, remainingNowSec) {
 
   var bf = bookForecast(log, asin, todayKey, rem)
   var projection = []
+  var truncated = false
   if (rem > 0 && bf.forecast.days !== null) {
     var p = bf.pace.secPerDay
+    // Draw at most PROJECTION_DRAW_DAYS ahead, so a slow pace does not squash the chart; the date is still in `forecast`.
+    var steps = Math.min(bf.forecast.days, PROJECTION_DRAW_DAYS)
+    truncated = bf.forecast.days > steps
     projection.push({ day: todayKey, remainingSec: rem })
-    for (var j = 0; j < bf.forecast.days; j++) {
+    for (var j = 0; j < steps; j++) {
       projection.push({ day: addDays(todayKey, j), remainingSec: Math.max(0, rem - (j + 1) * p) })
     }
   }
-  return { asin: asin, actual: actual, projection: projection, forecast: bf.forecast, pace: bf.pace }
+  return { asin: asin, actual: actual, projection: projection, truncated: truncated, forecast: bf.forecast, pace: bf.pace }
 }
 
 // Headline numbers for the window: today, this week, the 30-day average, streak, longest day, time saved.
@@ -464,7 +469,7 @@ function audibleSays(minutes, year, currentYear) {
 
 if (typeof module !== "undefined") module.exports = {
   DAY_MS, MAX_TICK_MS, NOMINAL_TICK_MS, KEEP_DAYS, STREAK_MIN_SEC, PACE_DAYS, AVG_DAYS,
-  DEFAULT_PACE_SEC, MAX_PACE_SEC, MAX_FORECAST_DAYS,
+  DEFAULT_PACE_SEC, MAX_PACE_SEC, MAX_FORECAST_DAYS, PROJECTION_DRAW_DAYS,
   dayKey, addDays, dayDiff, weekdayShort, weekdayLong, shortDate, splitByDay,
   addInterval, parseLog, serialize, mergeLogs, prune, earliestKey, windowSums, perBookSums,
   streak, longestDay, average, timeSaved, recentDays, pace, forecast, dayLabel,

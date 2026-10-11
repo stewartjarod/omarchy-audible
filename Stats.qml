@@ -59,6 +59,8 @@ Item {
       return Math.max(0, service.duration - service.position)
     var b = service.bookFor(asin)
     if (!b || b.finished) return 0
+    // Audible's remainingSec can lag behind our own resume position, so prefer the local position.
+    if (b.runtimeSec > 0 && b.resumeSec > 0) return Math.max(0, b.runtimeSec - b.resumeSec)
     return b.remainingSec > 0 ? b.remainingSec : (b.runtimeSec || 0)
   }
 
@@ -109,6 +111,10 @@ Item {
 
   function refreshAudible() {
     if (!service) return
+    if (!service.ready) {
+      root.audibleLine = "Set up Audible to see your yearly total."
+      return
+    }
     root.audibleLine = "Checking Audible..."
     service.run(["audible", "stats", "-o", "json"], function (code, out) {
       if (code !== 0) {
