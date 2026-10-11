@@ -138,6 +138,8 @@ Item {
   Connections {
     target: root.service
     function onPausedChanged() { root.onPauseChanged() }
+    // Seeing the book play at all is what makes the next pause count (the first pause of a session too).
+    function onPlayingChanged() { if (root.service && root.service.playing) root.sawPlaying = true }
     // startPlayback sets loading before any mpv command: a (re)load must never be rewound on top
     // of its own start-5-seconds offset.
     function onLoadingChanged() {
