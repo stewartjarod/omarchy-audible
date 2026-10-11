@@ -3,13 +3,15 @@
 Omarchy shell plugin: listen to Audible books from the bar. Dev dir: `~/Projects/jarod-audible`
 (moved to `~/.config/omarchy/plugins/jarod.audible` at integration time).
 
-**Hard rule for everyone building here:** work ONLY inside `~/Projects/jarod-audible`. Never write
-under `~/.config/omarchy/plugins/`, never run `omarchy-shell`/`omarchy plugin`/`rescanPlugins`,
-never touch `shell.json` or the live shell. Each plugin reload leaks ~127 MB in the user's live
-shell. Verify with `node --test tests/` and `/usr/lib/qt6/bin/qmllint <file>` only
-(qmllint will complain about unresolved `qs.*` imports; syntax errors are what matter).
-Do not run `audible` commands that change anything. Do not print or log the voucher key/iv,
-or any password.
+**Hard rule for everyone building here:** work ONLY in the clone you are given (a scratchpad
+`git clone` of the plugin repo). `~/Projects/jarod-audible` and `~/.config/omarchy/plugins/jarod.audible`
+are the LIVE plugin: never write there, never run `omarchy-shell`/`omarchy plugin`/`rescanPlugins`/
+`omarchy restart`, never touch `shell.json` or the live shell. Each plugin reload leaks ~127 MB in
+the user's live shell. Verify with `node --test tests/` and `/usr/lib/qt6/bin/qmllint <file>`
+only (qmllint complains about unresolved `qs.*` imports and unqualified access; real syntax and
+type errors are what matter). Commit in your clone; the integrator pulls it into the live repo.
+Do not run `audible` commands that change anything. Do not print or log the voucher key/iv, or any
+password.
 
 ## Files and owners
 

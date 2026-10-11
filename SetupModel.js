@@ -16,7 +16,6 @@ var LOGIN_URL_RE = /http:\/\/127\.0\.0\.1:(\d{1,5})\/[A-Za-z0-9_-]+\/?/
 var STEPS = [
   { id: "audible", label: "Audible CLI" },
   { id: "player", label: "Audio player (mpv)" },
-  { id: "helper", label: "Playback helper" },
   { id: "account", label: "Sign in to Audible" },
   { id: "password", label: "Unlock the saved login" },
   { id: "library", label: "Sync your library" }
@@ -25,11 +24,10 @@ var STEPS = [
 var STATE_STEP = {
   "no-audible": 0,
   "no-player": 1,
-  "no-helper": 2,
-  "no-account": 3,
-  "locked": 4,
-  "unsynced": 5,
-  "ready": 6
+  "no-account": 2,
+  "locked": 3,
+  "unsynced": 4,
+  "ready": 5
 }
 
 var BUSY_LABELS = {
@@ -232,7 +230,6 @@ function detect(probe) {
   var state
   if (!(p.audible && p.audible.found)) state = "no-audible"
   else if (!(p.mpv && p.mpv.found)) state = "no-player"
-  else if (!(p.helper && p.helper.found)) state = "no-helper"
   else if (locked) state = "locked"
   else if (!hasAccount) state = "no-account"
   else if (lib.ok !== true || lib.count === 0) state = "unsynced"
@@ -257,9 +254,6 @@ function detect(probe) {
   } else if (state === "no-player") {
     out.title = "One more piece: mpv"
     out.message = "mpv plays the audio, and it isn't installed yet. Run `omarchy pkg add mpv` in a terminal, then press r to check again."
-  } else if (state === "no-helper") {
-    out.title = "Playback helper not found"
-    out.message = "The audible-play helper that starts playback isn't on your PATH. Put audible-play somewhere on your PATH (for example ~/.local/bin), then press r to check again."
   } else if (state === "no-account") {
     if (loginWaiting) {
       out.title = "Finish signing in in your browser"

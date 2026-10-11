@@ -18,7 +18,7 @@ const ROOT = path.join(__dirname, "..")
 const M = loadModel(path.join(ROOT, "SetupModel.js"))
 const fx = (name) => fs.readFileSync(path.join(ROOT, "fixtures", name), "utf8")
 
-const STATE_ORDER = ["no-audible", "no-player", "no-helper", "no-account", "locked", "unsynced", "ready"]
+const STATE_ORDER = ["no-audible", "no-player", "no-account", "locked", "unsynced", "ready"]
 
 // Real-fixture-based probes. Each test tweaks one thing.
 function accountsOk() { return M.parseAccountList(fx("account-list.json"), "") }
@@ -31,7 +31,6 @@ function probe(over = {}) {
   return Object.assign({
     audible: { found: true, version: fx("version.txt").trim() },
     mpv: { found: true },
-    helper: { found: true },
     secretTool: { found: true },
     accounts: accountsOk(),
     library: libOk(),
@@ -60,7 +59,7 @@ test("state no-audible: CLI missing -> install primary, first step current", () 
   assert.equal(r.primary.id, "install-audible")
   assert.equal(r.primary.busy, undefined)
   assert.deepEqual(r.secondary, [])
-  assert.deepEqual(statuses(r), ["current", "todo", "todo", "todo", "todo", "todo"])
+  assert.deepEqual(statuses(r), ["current", "todo", "todo", "todo", "todo"])
   assert.match(r.message, /GitHub|checksum/)
 })
 
@@ -75,17 +74,8 @@ test("state no-player: mpv missing -> no primary, names omarchy pkg add mpv", ()
   const r = M.detect(probe({ mpv: { found: false } }))
   assert.equal(r.state, "no-player")
   assert.equal(r.primary, null)
-  assert.deepEqual(statuses(r), ["done", "current", "todo", "todo", "todo", "todo"])
+  assert.deepEqual(statuses(r), ["done", "current", "todo", "todo", "todo"])
   assert.match(r.message, /omarchy pkg add mpv/)
-})
-
-test("state no-helper: helper missing -> no primary, names audible-play and PATH", () => {
-  const r = M.detect(probe({ helper: { found: false } }))
-  assert.equal(r.state, "no-helper")
-  assert.equal(r.primary, null)
-  assert.deepEqual(statuses(r), ["done", "done", "current", "todo", "todo", "todo"])
-  assert.match(r.message, /audible-play/)
-  assert.match(r.message, /PATH/)
 })
 
 test("state no-account: empty account list -> primary login", () => {
@@ -94,7 +84,7 @@ test("state no-account: empty account list -> primary login", () => {
   assert.equal(r.primary.id, "login")
   assert.equal(r.primary.label, "Sign in to Audible")
   assert.deepEqual(r.secondary, [])
-  assert.deepEqual(statuses(r), ["done", "done", "done", "current", "todo", "todo"])
+  assert.deepEqual(statuses(r), ["done", "done", "current", "todo", "todo"])
 })
 
 test("state no-account while login waiting: no primary, cancel secondary, reassuring copy", () => {
@@ -119,7 +109,7 @@ test("state locked with secret-tool: store-password with password input, remove 
   assert.equal(r.primary.id, "store-password")
   assert.equal(r.primary.input, "password")
   assert.deepEqual(r.secondary, [{ id: "remove-password", label: "Remove saved password" }])
-  assert.deepEqual(statuses(r), ["done", "done", "done", "done", "current", "todo"])
+  assert.deepEqual(statuses(r), ["done", "done", "done", "current", "todo"])
   assert.match(r.message, /keyring/)
   assert.doesNotMatch(r.message, /fail/i)
 })
@@ -157,7 +147,7 @@ test("state unsynced: empty library -> sync primary", () => {
   assert.equal(r.state, "unsynced")
   assert.equal(r.primary.id, "sync")
   assert.equal(r.primary.label, "Sync library")
-  assert.deepEqual(statuses(r), ["done", "done", "done", "done", "done", "current"])
+  assert.deepEqual(statuses(r), ["done", "done", "done", "done", "current"])
 })
 
 test("state unsynced: busy sync shows Syncing... and no error suffix", () => {
@@ -182,7 +172,7 @@ test("state ready: no primary, all steps done", () => {
   assert.equal(r.ready, true)
   assert.equal(r.primary, null)
   assert.deepEqual(r.secondary, [])
-  assert.deepEqual(statuses(r), ["done", "done", "done", "done", "done", "done"])
+  assert.deepEqual(statuses(r), ["done", "done", "done", "done", "done"])
 })
 
 test("priority: missing CLI beats everything else", () => {
@@ -190,14 +180,9 @@ test("priority: missing CLI beats everything else", () => {
   assert.equal(r.state, "no-audible")
 })
 
-test("priority: missing mpv beats missing helper, locked, no account", () => {
-  const r = M.detect(probe({ mpv: { found: false }, helper: { found: false }, library: libLocked() }))
+test("priority: missing mpv beats locked and no account", () => {
+  const r = M.detect(probe({ mpv: { found: false }, library: libLocked() }))
   assert.equal(r.state, "no-player")
-})
-
-test("priority: missing helper beats locked and no account", () => {
-  const r = M.detect(probe({ helper: { found: false }, library: libLocked(), accounts: accountsEmpty() }))
-  assert.equal(r.state, "no-helper")
 })
 
 test("priority: no account beats unsynced", () => {
@@ -214,16 +199,15 @@ test("robust to empty or missing probe fields without throwing", () => {
   assert.equal(M.detect().state, "no-audible")
   assert.equal(M.detect(null).state, "no-audible")
   assert.equal(M.detect({}).state, "no-audible")
-  const r = M.detect({ audible: { found: true }, mpv: { found: true }, helper: { found: true } })
+  const r = M.detect({ audible: { found: true }, mpv: { found: true } })
   assert.equal(r.state, "no-account")
-  assert.equal(M.detect({ audible: { found: true }, mpv: { found: true }, helper: { found: true }, accounts: { ok: true, accounts: [{ name: "x" }] } }).state, "unsynced")
+  assert.equal(M.detect({ audible: { found: true }, mpv: { found: true }, accounts: { ok: true, accounts: [{ name: "x" }] } }).state, "unsynced")
 })
 
 test("every state returns the full result shape with a fixed step order", () => {
   const probes = [
     probe({ audible: { found: false } }),
     probe({ mpv: { found: false } }),
-    probe({ helper: { found: false } }),
     probe({ accounts: accountsEmpty() }),
     probe({ library: libLocked() }),
     probe({ library: libUnsynced() }),
@@ -234,8 +218,8 @@ test("every state returns the full result shape with a fixed step order", () => 
     const r = M.detect(p)
     assert.equal(r.state, expectedStates[i])
     assert.deepEqual(Object.keys(r).sort(), ["message", "primary", "ready", "secondary", "state", "steps", "title"])
-    assert.deepEqual(r.steps.map((s) => s.id), ["audible", "player", "helper", "account", "password", "library"])
-    assert.deepEqual(r.steps.map((s) => s.label), ["Audible CLI", "Audio player (mpv)", "Playback helper", "Sign in to Audible", "Unlock the saved login", "Sync your library"])
+    assert.deepEqual(r.steps.map((s) => s.id), ["audible", "player", "account", "password", "library"])
+    assert.deepEqual(r.steps.map((s) => s.label), ["Audible CLI", "Audio player (mpv)", "Sign in to Audible", "Unlock the saved login", "Sync your library"])
     const cur = r.steps.filter((s) => s.status === "current").length
     assert.equal(cur, r.ready ? 0 : 1, `exactly one current step for ${r.state}`)
     // done steps come before the current one, todo after
@@ -249,7 +233,7 @@ test("every state returns the full result shape with a fixed step order", () => 
 
 test("copy never suggests audible setup, mentions the resident agent, or calls the login failed", () => {
   const probes = [
-    probe({ audible: { found: false } }), probe({ mpv: { found: false } }), probe({ helper: { found: false } }),
+    probe({ audible: { found: false } }), probe({ mpv: { found: false } }),
     probe({ accounts: accountsEmpty() }), probe({ accounts: accountsEmpty(), login: { url: "", waiting: true } }),
     probe({ library: libLocked() }), probe({ library: libLocked(), secretTool: { found: false } }),
     probe({ library: libUnsynced() }), probe(),

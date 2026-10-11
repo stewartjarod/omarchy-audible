@@ -666,3 +666,34 @@ test("formatVolume shows a percent, or muted", () => {
   assert.equal(P.formatVolume(75, true), "muted")
   assert.equal(P.formatVolume(100.4, false), "100%")
 })
+
+// ---- loadCommands / mpvLaunchArgs ------------------------------------------
+test("loadCommands: loadfile with key/iv options, then unpause, volume, speed", () => {
+  const c = P.loadCommands("/b/A/A.aaxc", { key: "ab12", iv: "cd34" }, { start: 125, speed: 1.4, volume: 80 })
+  assert.deepEqual(c[0], ["loadfile", "/b/A/A.aaxc", "replace", -1, { "demuxer-lavf-o": "audible_key=ab12,audible_iv=cd34", start: "125" }])
+  assert.deepEqual(c[1], ["set_property", "pause", false])
+  assert.deepEqual(c[2], ["set_property", "volume", 80])
+  assert.deepEqual(c[3], ["set_property", "speed", 1.4])
+})
+
+test("loadCommands: no start option when starting from 0; volume/speed optional", () => {
+  const c = P.loadCommands("/f", { key: "ab", iv: "cd" }, {})
+  assert.equal(c.length, 2)
+  assert.equal(c[0][4].start, undefined)
+})
+
+test("loadCommands: unusable voucher or non-hex key gives no commands", () => {
+  assert.deepEqual(P.loadCommands("/f", null, {}), [])
+  assert.deepEqual(P.loadCommands("/f", { key: "zz", iv: "cd" }, {}), [])
+  assert.deepEqual(P.loadCommands("/f", { key: "ab" }, {}), [])
+  assert.deepEqual(P.loadCommands("", { key: "ab", iv: "cd" }, {}), [])
+})
+
+test("mpvLaunchArgs: detached, idle, socket path, optional uwsm and volume", () => {
+  const a = P.mpvLaunchArgs("/run/s.sock", { uwsm: true, volume: 70 })
+  assert.deepEqual(a.slice(0, 5), ["setsid", "-f", "uwsm-app", "--", "mpv"])
+  assert.ok(a.includes("--idle=yes") && a.includes("--volume=70") && a.includes("--input-ipc-server=/run/s.sock"))
+  const b = P.mpvLaunchArgs("/s", {})
+  assert.deepEqual(b.slice(0, 3), ["setsid", "-f", "mpv"])
+  assert.ok(!b.some((x) => x.startsWith("--volume")))
+})

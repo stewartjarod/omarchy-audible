@@ -260,7 +260,42 @@ function barLabel(state, opts) {
   return { text: parts.join(" · "), tooltip: tip.join(" · ") }
 }
 
+// The mpv IPC commands that start a downloaded AAXC book. Mirrors what the old audible-play helper
+// sent: loadfile (key/iv go in as demuxer options so they never reach a command line), then
+// unpause (mpv sits paused after a previous book ends), then volume and speed.
+// voucher is the parsed <asin>.voucher JSON ({key, iv}); returns [] if it is unusable.
+function loadCommands(file, voucher, opts) {
+  var o = opts || {}
+  var key = voucher && typeof voucher.key === "string" ? voucher.key : ""
+  var iv = voucher && typeof voucher.iv === "string" ? voucher.iv : ""
+  if (!file || !/^[0-9a-fA-F]+$/.test(key) || !/^[0-9a-fA-F]+$/.test(iv)) return []
+  var fileOpts = { "demuxer-lavf-o": "audible_key=" + key + ",audible_iv=" + iv }
+  var start = num(o.start, 0)
+  if (start > 0) fileOpts.start = String(start)
+  var cmds = [
+    ["loadfile", String(file), "replace", -1, fileOpts],
+    ["set_property", "pause", false]
+  ]
+  if (num(o.volume, -1) >= 0) cmds.push(["set_property", "volume", o.volume])
+  if (num(o.speed, 0) > 0) cmds.push(["set_property", "speed", o.speed])
+  return cmds
+}
+
+// argv for a fresh, idle mpv with the IPC socket. Own systemd scope via uwsm-app when present so it
+// survives a shell restart; volume is set at launch so the first sound is never louder than intended.
+function mpvLaunchArgs(sock, opts) {
+  var o = opts || {}
+  var a = []
+  if (o.uwsm) a.push("uwsm-app", "--")
+  a.push("mpv", "--idle=yes", "--force-window=no", "--no-video", "--no-terminal", "--audio-display=no", "--keep-open=yes")
+  if (num(o.volume, -1) >= 0) a.push("--volume=" + o.volume)
+  a.push("--input-ipc-server=" + sock)
+  return ["setsid", "-f"].concat(a)
+}
+
 if (typeof module !== "undefined") module.exports = {
+  loadCommands: loadCommands,
+  mpvLaunchArgs: mpvLaunchArgs,
   formatDuration: formatDuration,
   timeLeft: timeLeft,
   normalizeChapters: normalizeChapters,
