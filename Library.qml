@@ -834,6 +834,7 @@ Item {
                       readonly property bool busy: !!dl && (dl.state === "queued" || dl.state === "downloading")
                       // Pointing at a tile reveals what its badge does when clicked.
                       readonly property string badge: book.isSeries === true ? book.seriesCount + " books"
+                        : book.inLibrary === false ? ""   // wishlist: nothing to download or remove
                         : !listenable ? "Unavailable"
                         : (dl && dl.state === "failed") ? "Failed"
                         : (dl && dl.state === "queued") ? "Queued"
