@@ -48,7 +48,6 @@ Panel {
     signOutReset.restart()
   }
   Timer { id: signOutReset; interval: 6000; onTriggered: root.signOutArmed = false }
-  onOpenedChanged: if (!opened) signOutArmed = false
 
   function acceptOffer() { if (service && phoneOffer) service.acceptPhonePosition(phoneOffer.asin) }   // HOOK(sync)
   readonly property bool paused: svc("paused", true) === true
@@ -115,6 +114,7 @@ Panel {
   onChapterCountChanged: clampCursor()
 
   onOpenedChanged: {
+    if (!opened) signOutArmed = false
     if (opened) {
       cursor = currentChapter
       clampCursor()

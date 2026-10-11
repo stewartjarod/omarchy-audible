@@ -22,6 +22,13 @@ trap cleanup EXIT
 
 status=0
 
+# ------------------------------------------------------------------ duplicate handlers
+# A second `onXChanged` on the same root item breaks the whole file at load time ("Property value set
+# multiple times"); qmllint does not catch it, and the popup then refuses to open.
+echo "== duplicate root signal handlers"
+dups=$(for f in *.qml; do grep -o -E '^  on[A-Z][A-Za-z]*(Changed)?:|^  on[A-Z][A-Za-z]*(Changed)?\b' "$f" | sed 's/:$//' | sort | uniq -d | sed "s|^|$f: |"; done)
+if [ -n "$dups" ]; then echo "$dups"; status=1; else echo "none"; fi
+
 # ------------------------------------------------------------------ node
 echo "== node --test tests/"
 if node --test tests/ > "$TMP/node.out" 2>&1; then
