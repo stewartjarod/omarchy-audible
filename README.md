@@ -339,6 +339,13 @@ writes it back after your next change, so the file must be deleted before the
 restart. This clears resume positions, finished marks, and view settings. It does
 not touch your books, your account, or your saved password.
 
+**Sign out.** In the player popup press **X** twice (or click the "Signed in as ..."
+line, then click it again), or run `jarod.audible signOut` over IPC. Playback stops, the
+account is removed from the Audible CLI and its login file is deleted, and the setup
+screen comes back so you can sign in again (or as someone else). Your downloaded books
+stay on disk. Amazon is not told: the device stays registered on your Amazon account
+until you remove it there, or run `audible account logout` yourself instead.
+
 **Remove the saved password.** Use "Remove saved password" on the setup screen, or
 delete the keyring entry with `secret-tool clear service audible-rs account <name>`.
 

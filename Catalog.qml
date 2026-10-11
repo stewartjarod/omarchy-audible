@@ -33,6 +33,16 @@ Item {
     return n
   }
 
+  // Signed out: forget everything read for the old account.
+  function reset() {
+    root.wishEntries = []
+    root.wishCovers = ({})
+    root.wishLoaded = false
+    root.detailCache = ({})
+    root.simsCache = ({})
+    root.cancelWrite()
+  }
+
   function ownedBook(asin) {
     var list = root.svc && Array.isArray(root.svc.books) ? root.svc.books : []
     for (var i = 0; i < list.length; i++) if (list[i].asin === asin) return list[i]

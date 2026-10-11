@@ -551,3 +551,9 @@ test("detect: passes the version notice through when the probe carries the pin",
   assert.equal(noPin.notice, null)
   assert.equal(M.detect(probe({ audible: { found: false, version: "" }, pinned: "v0.1.0-alpha.8" })).notice, null)
 })
+
+test("signOutArgs removes the account and its auth file, never deregisters the device", () => {
+  assert.deepEqual(M.signOutArgs("jarod"), ["account", "remove", "jarod", "--yes", "--delete-auth-file"])
+  assert.throws(() => M.signOutArgs("x; rm -rf ~"))
+  assert.ok(!M.signOutArgs("jarod").includes("logout"))
+})

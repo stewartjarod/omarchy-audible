@@ -165,6 +165,14 @@ function keyringStoreArgs(accountName) {
   return ["store", "--label=audible-rs " + n, "service", "audible-rs", "account", n]
 }
 
+// Argv (without the program name) to sign out: drops the account from the CLI's config and deletes
+// its auth file, so the next sign-in starts clean (no name clash). It does not deregister the device
+// with Amazon; downloaded books are untouched.
+function signOutArgs(accountName) {
+  var n = _checkAccount(accountName)
+  return ["account", "remove", n, "--yes", "--delete-auth-file"]
+}
+
 function installPlan(tag, arch) {
   if (arch !== PINNED_ARCH) return { error: "Only " + PINNED_ARCH + " is supported right now." }
   var t = tag || PINNED_TAG
@@ -313,6 +321,7 @@ if (typeof module !== "undefined") module.exports = {
   parseLoginUrl: parseLoginUrl,
   passwordSourceArgs: passwordSourceArgs,
   keyringStoreArgs: keyringStoreArgs,
+  signOutArgs: signOutArgs,
   installPlan: installPlan,
   verifySums: verifySums,
   versionNotice: versionNotice,

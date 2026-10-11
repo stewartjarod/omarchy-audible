@@ -38,6 +38,18 @@ Panel {
   readonly property bool ready: svc("ready", false) === true
   readonly property bool hasBook: svc("hasBook", false) === true
   readonly property var phoneOffer: svc("phoneOffer", null)   // HOOK(sync)
+  // Sign out takes two presses (X, or a click on the row): the first arms it, the second does it.
+  property bool signOutArmed: false
+  readonly property string accountLabel: service && service.accountName ? String(service.accountName()) : ""
+  function requestSignOut() {
+    if (!service || accountLabel === "") return
+    if (signOutArmed) { signOutArmed = false; service.signOut(); return }
+    signOutArmed = true
+    signOutReset.restart()
+  }
+  Timer { id: signOutReset; interval: 6000; onTriggered: root.signOutArmed = false }
+  onOpenedChanged: if (!opened) signOutArmed = false
+
   function acceptOffer() { if (service && phoneOffer) service.acceptPhonePosition(phoneOffer.asin) }   // HOOK(sync)
   readonly property bool paused: svc("paused", true) === true
   readonly property var chapters: svc("chapters", [])
@@ -64,7 +76,7 @@ Panel {
   property int cursor: 0
   readonly property int rowH: Style.spacing.popupRowHeight + Style.space(4)
   // The chapter list gives way to the extra rows (phone offer, queue count, sleep, stats) so the popup stays within its height.
-  readonly property int listMaxH: Style.space(150 - (root.service && root.service.phoneOffer && root.service.phoneOffer.asin ? 24 : 0) - (root.svc("queueCount", 0) > 0 ? 14 : 0))
+  readonly property int listMaxH: Style.space(150 - (root.service && root.service.phoneOffer && root.service.phoneOffer.asin ? 24 : 0) - (root.svc("queueCount", 0) > 0 ? 14 : 0) - (root.accountLabel !== "" ? 12 : 0))
 
   function clampCursor() {
     if (chapterCount <= 0) cursor = 0
@@ -186,6 +198,8 @@ Panel {
     if (!root.ready) return
     if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
 
+    if (root.signOutArmed && t !== "X" && k !== Qt.Key_Shift) signOutArmed = false   // any other key cancels
+
     var handled = true
     if (k === Qt.Key_Space) togglePlay()
     else if (k === Qt.Key_Return || k === Qt.Key_Enter) {
@@ -210,6 +224,7 @@ Panel {
     else if (t === "z") { if (root.service && root.service.listening) root.service.listening.cycleSleep() }  // HOOK(listen)
     else if (t === "Z") { if (root.service && root.service.listening) root.service.listening.addRunningPreset() }  // HOOK(listen)
     else if (t === "i") openStats()   // HOOK(stats)
+    else if (t === "X") requestSignOut()
     else handled = false
 
     if (handled) event.accepted = true
@@ -1024,6 +1039,25 @@ Panel {
           color: root.dim
           font.family: root.fontFamily
           font.pixelSize: Style.font.caption
+        }
+
+        // -- account: sign out (X, press twice) ---------------------------------
+        Text {
+          width: parent.width
+          visible: root.accountLabel !== ""
+          text: root.signOutArmed
+            ? "Press X again to sign out of " + root.accountLabel + " (downloads stay, sign in again afterwards) · any other key cancels"
+            : "Signed in as " + root.accountLabel + " · X sign out"
+          textFormat: Text.PlainText
+          wrapMode: Text.WordWrap
+          color: root.signOutArmed ? Color.accent : root.dim
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: root.requestSignOut()
+          }
         }
       }
     }

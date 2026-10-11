@@ -123,6 +123,7 @@ Item {
       svc.setupLog = "Finish in the terminal that just opened, then press r to re-check."
       break
     case "sync": syncLibrary(); break
+    case "sign-out": signOut(); break
     }
   }
 
@@ -212,6 +213,23 @@ Item {
         doneBusy(c2 === 0 ? "Saved. Your login unlocks automatically now." : "Saved to the keyring, but could not point Audible at it: " + String(e2).split("\n")[0])
       })
     }, { input: password })
+  }
+
+  // Sign out: stop playback, drop the account from the CLI's config and forget its library.
+  // Downloaded books and the saved auth file stay on disk. The setup screen takes over, so the next
+  // sign-in is the normal first-run flow.
+  function signOut() {
+    var name = accountName()
+    if (name === "") { svc.setupLog = "You are not signed in."; return }
+    var argv
+    try { argv = argvFor(Setup.signOutArgs(name), "audible") } catch (e) { svc.setupLog = "That account name cannot be signed out from here."; return }
+    if (svc.hasBook) svc.stop()
+    busyWith("sign-out", "Signing out...")
+    svc.run(argv, function(code, out, err) {
+      if (code !== 0) { doneBusy("Could not sign out: " + String(err || out).split("\n")[0]); return }
+      svc.clearAccountData()
+      doneBusy("Signed out of " + name + ".")
+    })
   }
 
   function syncLibrary() {

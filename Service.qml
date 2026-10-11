@@ -752,6 +752,13 @@ Item {
   function previewSetup(name) { setupCtl.previewSetup(name) }
   function runSetupAction(id, payload) { setupCtl.runSetupAction(id, payload) }
   function accountName() { return setupCtl.accountName() }
+  function signOut() { setupCtl.signOut() }
+  // After a sign-out nothing of the old account stays on screen (downloaded files are left alone).
+  function clearAccountData() {
+    books = []
+    libraryError = ""
+    if (catalogCtl) catalogCtl.reset()
+  }
 
   // Sleep timer, rewind on resume, auto-advance, notifications, audio filters: see Listening.qml
   readonly property var listening: Listening { service: root; nextProvider: root.queueProvider }  // HOOK(listen) + HOOK(discover)
@@ -809,6 +816,7 @@ Item {
     function prev(): void { root.prevChapter() }
     function refresh(): void { root.refreshLibrary(); root.scanLocal() }
     function recheck(): void { setupCtl.previewing = false; root.recheck() }
+    function signOut(): void { root.signOut() }
     function previewSetup(name: string): void { root.previewSetup(name) }
     function sleep(minutes: int): void { root.listening.sleep(minutes) }  // HOOK(listen)
     function sleepChapter(): void { root.listening.sleepChapter() }  // HOOK(listen)
