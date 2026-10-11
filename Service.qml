@@ -688,6 +688,16 @@ Item {
   function closeLibrary() { libraryOpen = false }
   function toggleLibrary() { libraryOpen ? closeLibrary() : openLibrary() }
 
+  // HOOK(discover): Up next (queue.json, local only) and catalog / wishlist access. See Queue.qml, Catalog.qml.
+  Queue { id: queueCtl; svc: root }
+  Catalog { id: catalogCtl; svc: root }
+  readonly property var queue: queueCtl
+  readonly property var catalog: catalogCtl
+  readonly property int queueCount: queueCtl.count
+  // The asin that should follow currentAsin, or "" (the LISTEN auto-advance reads queueProvider).
+  function queueNext(currentAsin) { return queueCtl.next(currentAsin) }
+  readonly property var queueProvider: function (currentAsin) { return root.queueNext(currentAsin) }
+
   Loader {
     id: libraryLoader
     active: root.libraryEverOpened

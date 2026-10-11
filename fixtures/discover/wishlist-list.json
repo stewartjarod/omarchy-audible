@@ -1,0 +1,59 @@
+{
+  "error": null,
+  "result": [
+    {
+      "added": "2026-01-01",
+      "asin": "WISH0001",
+      "authors": "Sample Author",
+      "length": "13h 31m",
+      "mp": "us",
+      "publication": "Sample Series",
+      "title": "Sample Wishlist Book 1"
+    },
+    {
+      "added": "2026-02-01",
+      "asin": "WISH0002",
+      "authors": "Sample Author",
+      "length": "5h 26m",
+      "mp": "us",
+      "publication": "-",
+      "title": "Sample Wishlist Book 2"
+    },
+    {
+      "added": "2026-03-01",
+      "asin": "WISH0003",
+      "authors": "Sample Author",
+      "length": "11h 45m",
+      "mp": "us",
+      "publication": "-",
+      "title": "Sample Wishlist Book 3"
+    },
+    {
+      "added": "2026-04-01",
+      "asin": "WISH0004",
+      "authors": "Sample Author",
+      "length": "5h 26m",
+      "mp": "us",
+      "publication": "-",
+      "title": "Sample Wishlist Book 4"
+    },
+    {
+      "added": "2026-05-01",
+      "asin": "WISH0005",
+      "authors": "Sample Author",
+      "length": "5h 21m",
+      "mp": "us",
+      "publication": "-",
+      "title": "Sample Wishlist Book 5"
+    },
+    {
+      "added": "2026-06-01",
+      "asin": "WISH0006",
+      "authors": "Sample Author",
+      "length": "4h 31m",
+      "mp": "us",
+      "publication": "-",
+      "title": "Sample Wishlist Book 6"
+    }
+  ]
+}

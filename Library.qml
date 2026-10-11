@@ -3,6 +3,8 @@ import QtQuick
 import qs.Commons
 import qs.Ui
 import "LibraryModel.js" as Lib
+import "SuggestModel.js" as Sug   // HOOK(discover)
+import "DiscoverModel.js" as Disc   // HOOK(discover)
 
 // Fullscreen library overlay: pick the audiobook to play.
 // Layout: search line, status line, sectioned body (cover grid or dense list), key legend.
@@ -24,7 +26,11 @@ Item {
 
   // The details page for one book (opened by a click or Enter; Play is on that page).
   property string detailAsin: ""
-  readonly property var detailBook: root.detailAsin !== "" ? (root.bookByAsin[root.detailAsin] || null) : null
+  // HOOK(discover): a book you do not own (wishlist, "More like this") shows its catalog copy.
+  readonly property var detailBook: root.detailAsin !== ""
+    ? (root.service && root.service.catalog ? root.service.catalog.detailFor(root.detailAsin, root.bookByAsin[root.detailAsin] || null) : (root.bookByAsin[root.detailAsin] || null))
+    : null
+  property string detailReturnAsin: ""   // HOOK(discover): the book a "More like this" pick came from
 
   function openDetail(book) {
     if (!book) return
@@ -34,12 +40,23 @@ Item {
   }
 
   function closeDetail() {
-    root.detailAsin = ""
+    var back = root.detailReturnAsin   // HOOK(discover)
+    root.detailReturnAsin = ""
+    root.detailAsin = back
     root.statusText = ""
-    keyCatcher.forceActiveFocus()
+    if (back === "") keyCatcher.forceActiveFocus()
+  }
+
+  // HOOK(discover): "More like this" opens another book's details; Back goes to this one.
+  function openCatalogBook(asin) {
+    if (!asin) return
+    root.detailReturnAsin = root.detailAsin
+    root.statusText = ""
+    root.detailAsin = asin
   }
 
   function detailAction(id) {
+    if (id.indexOf("open:") === 0) { root.openCatalogBook(id.substr(5)); return }   // HOOK(discover)
     var book = root.detailBook
     if (!book) return
     root.statusText = ""
@@ -83,6 +100,13 @@ Item {
     root.rebuild()
   }
 
+  // HOOK(discover): the "Show more" link of a header row. Suggested has its own state.
+  property bool suggestExpanded: false
+  function toggleSection(id) {
+    if (id === "suggested") root.suggestExpanded = !root.suggestExpanded
+    else root.toggleContinue()
+  }
+
   function toggleContinue() {
     if (root.service && typeof root.service.setContinueExpanded === "function") root.service.setContinueExpanded(!root.continueExpanded)
   }
@@ -115,7 +139,15 @@ Item {
       + " MB. Your place and listen count are kept, and you can download it again any time."
     : ""
 
+  // HOOK(discover): wishlist books are not in the library: no playing, downloading, deleting or marking.
+  function notOwnedBook(book) {
+    if (!book || book.inLibrary !== false) return false
+    root.statusText = "Not in your library. Open it to see more, or add it to your wishlist."
+    return true
+  }
+
   function askRemove(book) {
+    if (root.notOwnedBook(book)) return
     if (!book || !root.service) return
     if (book.isSeries) { root.statusText = "Open the series (Enter) to delete a book from it."; return }
     if (!root.isLocal(book.asin)) { root.statusText = "That book is not downloaded."; return }
@@ -138,6 +170,7 @@ Item {
 
   function markFinishedBook(book, undo) {
     if (!book || !root.service) return
+    if (root.notOwnedBook(book)) return
     if (book.isSeries) { root.statusText = "Open the series (Enter) to mark a book finished."; return }
     root.statusText = (undo ? root.service.unmarkFinished(book.asin) : root.service.markFinished(book.asin))
   }
@@ -254,12 +287,50 @@ Item {
   }
 
   // ------------------------------------------------------------ rows and cursor
+  // HOOK(discover): Up next from the library. Ctrl+U toggles, Ctrl+Up / Ctrl+Down reorder.
+  function isQueued(asin) {
+    return !!asin && !!root.service && !!root.service.queue && root.service.queue.has(asin)
+  }
+  function toggleUpNext(book) {
+    if (!book || book.isSeries || !root.service || !root.service.queue) return
+    if (root.notOwnedBook(book)) return
+    root.statusText = root.isQueued(book.asin) ? root.service.queue.remove(book.asin) : root.service.queue.add(book.asin)
+  }
+  function moveUpNext(asin, dir) {
+    if (!root.service || !root.service.queue) return
+    if (dir < 0) root.service.queue.moveUp(asin)
+    else root.service.queue.moveDown(asin)
+  }
+
+  // HOOK(discover): the Wishlist view (Ctrl+W): books on your Audible wishlist that are not in your library.
+  property bool wishlistView: false
+  onWishlistViewChanged: {
+    if (root.wishlistView && root.service && root.service.catalog) root.service.catalog.ensureWishlist()
+    root.statusText = root.wishlistView ? "Your Audible wishlist. These books are not in your library." : ""
+    root.rebuild()
+  }
+  function toggleWishlist() { root.wishlistView = !root.wishlistView }
+
+  // Suggested (one row, up to 24 ranked books) and Up next, on the main view only.
+  function discoverContext() {
+    var q = root.service && root.service.queue ? root.service.queue : null
+    var queued = q && Array.isArray(q.asins) ? q.asins : []
+    return {
+      suggested: Sug.suggest(root.books, { exclude: queued, limit: 24, pace: null }),
+      upNext: q && Array.isArray(q.pendingBooks) ? q.pendingBooks : []
+    }
+  }
+
   function rebuild() {
     var map = {}
     for (var i = 0; i < root.books.length; i++) map[root.books[i].asin] = root.books[i]
     var secs = root.openSeries !== ""
       ? Lib.seriesSections(root.books, root.openSeries, { query: root.query, status: root.statusFilter })
       : Lib.sections(root.books, { query: root.query, sort: root.sortMode, status: root.statusFilter, group: root.groupSeries })
+    // HOOK(discover): the wishlist view replaces the sections; the main view gets Suggested and Up next.
+    if (root.wishlistView) secs = root.service && root.service.catalog && root.service.catalog.wishlistBooks.length
+      ? [{ id: "wishlist", title: "Wishlist (not in your library)", books: root.service.catalog.wishlistBooks }] : []
+    else if (root.openSeries === "" && root.query === "") secs = Disc.compose(secs, root.discoverContext())
     // Series tiles are not in root.books: register them so selection and activation can find them.
     for (var s = 0; s < secs.length; s++)
       for (var t = 0; t < secs[s].books.length; t++) if (secs[s].books[t].isSeries) map[secs[s].books[t].asin] = secs[s].books[t]
@@ -267,7 +338,8 @@ Item {
     // "Continue listening" is one row until expanded (the main view only, and not while searching).
     var limits = {}
     if (root.openSeries === "" && root.query === "") limits["continue"] = root.isGrid ? root.columns : 5
-    var built = Lib.buildRows(secs, root.columns, { limits: limits, expanded: { "continue": root.continueExpanded } })
+    limits["suggested"] = root.isGrid ? root.columns : 5   // HOOK(discover): Suggested is one row until expanded
+    var built = Lib.buildRows(secs, root.columns, { limits: limits, expanded: { "continue": root.continueExpanded, "suggested": root.suggestExpanded } })
     root.rows = built
     root.cursor = root.selectedAsin ? Lib.cursorOf(built, root.selectedAsin) : Lib.firstCursor(built)
     root.selectedAsin = Lib.asinAt(built, root.cursor)
@@ -316,6 +388,7 @@ Item {
 
   function playBook(book) {
     if (!book) return
+    if (root.notOwnedBook(book)) return
     if (book.isSeries) { root.openSeriesView(book); return }
     if (book.listenable === false) {
       root.statusText = "“" + book.title + "” isn’t available on this account (borrowed or lapsed subscription)."
@@ -328,6 +401,7 @@ Item {
 
   function downloadBook(book) {
     if (!book) return
+    if (root.notOwnedBook(book)) return
     if (book.isSeries) { root.statusText = "Open the series (Enter) to download a book from it."; return }
     if (book.listenable === false) {
       root.statusText = "Not available on this account, so it can't be downloaded."
@@ -378,6 +452,18 @@ Item {
     function onLocalAsinsChanged() {
       root.rebuild()
     }
+  }
+
+  // HOOK(discover): Up next and the wishlist change while the library is open.
+  Connections {
+    target: root.service && root.service.queue ? root.service.queue : null
+    ignoreUnknownSignals: true
+    function onAsinsChanged() { root.rebuild() }
+  }
+  Connections {
+    target: root.service && root.service.catalog ? root.service.catalog : null
+    ignoreUnknownSignals: true
+    function onWishEntriesChanged() { if (root.wishlistView) root.rebuild() }
   }
 
   // ------------------------------------------------------------ window
@@ -463,6 +549,8 @@ Item {
               root.searching = false
             } else if (root.searching) {
               root.searching = false
+            } else if (root.wishlistView) {
+              root.wishlistView = false   // HOOK(discover)
             } else if (root.openSeries !== "") {
               root.closeSeriesView()
             } else {
@@ -474,6 +562,8 @@ Item {
           } else if (Util.editsFilter(event, root.query)) {
             root.setQuery(Util.editedFilter(event, root.query))
             event.accepted = true
+          } else if (ctrl && (event.key === Qt.Key_Up || event.key === Qt.Key_Down) && root.isQueued(root.selectedAsin)) {
+            root.moveUpNext(root.selectedAsin, event.key === Qt.Key_Up ? -1 : 1); event.accepted = true   // HOOK(discover)
           } else if (event.key === Qt.Key_Left) {
             root.moveCursor(-1, 0); event.accepted = true
           } else if (event.key === Qt.Key_Right) {
@@ -492,6 +582,10 @@ Item {
             if (event.modifiers & Qt.ShiftModifier) root.playBook(root.selectedBook())
             else root.openDetail(root.selectedBook())
             event.accepted = true
+          } else if (ctrl && event.key === Qt.Key_U) {
+            root.toggleUpNext(root.selectedBook()); event.accepted = true   // HOOK(discover)
+          } else if (ctrl && event.key === Qt.Key_W) {
+            root.toggleWishlist(); event.accepted = true   // HOOK(discover)
           } else if (ctrl && event.key === Qt.Key_F) {
             root.cycleFilter(); event.accepted = true
           } else if (ctrl && event.key === Qt.Key_G) {
@@ -683,7 +777,7 @@ Item {
                     anchors.fill: parent
                     anchors.margins: -Style.space(6)
                     cursorShape: Qt.PointingHandCursor
-                    onClicked: root.toggleContinue()
+                    onClicked: root.toggleSection(rowItem.modelData.id)   // HOOK(discover)
                   }
                 }
 
@@ -904,7 +998,7 @@ Item {
                           anchors.right: coverBox.right
                           anchors.top: gridTitle.bottom
                           textFormat: Text.PlainText
-                          text: tile.book.author
+                          text: tile.book.reason ? tile.book.reason : tile.book.author   // HOOK(discover)
                           elide: Text.ElideRight
                           color: root.muted
                           font.family: root.fontFamily

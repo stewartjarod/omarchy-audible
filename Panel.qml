@@ -905,6 +905,17 @@ Panel {
           foreground: root.foreground
         }
 
+        // HOOK(discover): how many books are waiting in Up next
+        Text {
+          width: parent.width
+          visible: root.svc("queueCount", 0) > 0
+          text: "Up next: " + root.svc("queueCount", 0) + (root.svc("queueCount", 0) === 1 ? " book waits" : " books wait")
+          textFormat: Text.PlainText
+          color: root.foreground
+          font.family: root.fontFamily
+          font.pixelSize: Style.font.caption
+        }
+
         // -- key legend -----------------------------------------------------
         Text {
           width: parent.width
