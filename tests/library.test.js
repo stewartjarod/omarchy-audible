@@ -1,4 +1,4 @@
-// Run: node --test tests/library.test.js   (from ~/Projects/jarod-audible)
+// Run: node --test tests/library.test.js   (from the repo root)
 "use strict"
 
 const test = require("node:test")

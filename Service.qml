@@ -729,6 +729,7 @@ Item {
         timeLeftSec: root.timeLeftSec,
         books: root.books.length, local: Object.keys(root.localAsins).length,
         libraryOpen: root.libraryOpen, view: root.viewMode,
+        detailAsin: libraryLoader.item && libraryLoader.item.detailAsin ? libraryLoader.item.detailAsin : "", // HOOK(ship): smoke.sh checks the details page
         busy: root.setupBusyId, log: root.setupLog,
         libraryLoading: root.libraryLoading, libraryError: root.libraryError
       })

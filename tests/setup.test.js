@@ -217,7 +217,7 @@ test("every state returns the full result shape with a fixed step order", () => 
   probes.forEach((p, i) => {
     const r = M.detect(p)
     assert.equal(r.state, expectedStates[i])
-    assert.deepEqual(Object.keys(r).sort(), ["message", "primary", "ready", "secondary", "state", "steps", "title"])
+    assert.deepEqual(Object.keys(r).sort(), ["message", "notice", "primary", "ready", "secondary", "state", "steps", "title"])
     assert.deepEqual(r.steps.map((s) => s.id), ["audible", "player", "account", "password", "library"])
     assert.deepEqual(r.steps.map((s) => s.label), ["Audible CLI", "Audio player (mpv)", "Sign in to Audible", "Unlock the saved login", "Sync your library"])
     const cur = r.steps.filter((s) => s.status === "current").length
@@ -268,7 +268,7 @@ test("parseAccountList: real account list fixture", () => {
   assert.equal(r.locked, false)
   assert.equal(r.error, "")
   assert.deepEqual(r.accounts, [{
-    name: "jarod", authFile: "encrypted", passwordSource: "command",
+    name: "example", authFile: "encrypted", passwordSource: "command",
     marketplaces: "us", defaultMp: "us", isDefault: true
   }])
 })
@@ -384,17 +384,17 @@ test("parseLoginUrl: adds a trailing slash when missing and rejects other lines"
 // ---------------------------------------------------------- password args
 
 test("passwordSourceArgs: points audible at secret-tool for the account, no secret in args", () => {
-  const args = M.passwordSourceArgs("jarod")
+  const args = M.passwordSourceArgs("example")
   assert.deepEqual(args, [
     "account", "password", "source", "command",
-    "-a", "jarod",
-    "--command", "secret-tool lookup service audible-rs account jarod"
+    "-a", "example",
+    "--command", "secret-tool lookup service audible-rs account example"
   ])
 })
 
 test("keyringStoreArgs: secret-tool store for the account, password never in args", () => {
-  const args = M.keyringStoreArgs("jarod")
-  assert.deepEqual(args, ["store", "--label=audible-rs jarod", "service", "audible-rs", "account", "jarod"])
+  const args = M.keyringStoreArgs("example")
+  assert.deepEqual(args, ["store", "--label=audible-rs example", "service", "audible-rs", "account", "example"])
   assert.ok(args.every((a) => typeof a === "string"))
 })
 
@@ -462,4 +462,87 @@ test("module exports the contract functions", () => {
   for (const name of ["detect", "parseAccountList", "parseLibraryProbe", "parseLoginUrl", "passwordSourceArgs", "keyringStoreArgs", "installPlan", "verifySums"]) {
     assert.equal(typeof M[name], "function", name)
   }
+})
+
+// ------------------------------------------- no account (captured on a clean HOME, audible-rs alpha.8)
+
+const noAccountAccounts = () => M.parseAccountList(fx("no-account-list.json"), fx("no-account-list.err"))
+const noAccountLibrary = () => M.parseLibraryProbe(fx("no-account-library.json"), fx("no-account-library.err"), 1)
+
+test("no account: account list is ok with zero accounts (not locked, not an error)", () => {
+  const r = noAccountAccounts()
+  assert.equal(r.ok, true)
+  assert.deepEqual(r.accounts, [])
+  assert.equal(r.locked, false)
+  assert.equal(r.error, "")
+})
+
+test("no account: library list exits 1 with an error envelope that is NOT the locked signal", () => {
+  const r = noAccountLibrary()
+  assert.equal(r.ok, false)
+  assert.equal(r.count, 0)
+  assert.equal(r.locked, false)
+  assert.match(r.error, /^no account configured: register one with `audible account login`/)
+})
+
+test("no account: library sync stderr (no JSON on stdout) is a plain error, not locked", () => {
+  const r = M.parseLibraryProbe("", fx("no-account-sync.err"), 1)
+  assert.equal(r.ok, false)
+  assert.equal(r.locked, false)
+  assert.equal(r.error, "Error: no account configured: register one with `audible account login` (or import with `audible account import`)")
+})
+
+test("no account: detect() sends a clean install to the sign-in step, not to locked or unsynced", () => {
+  const r = M.detect(probe({ accounts: noAccountAccounts(), library: noAccountLibrary() }))
+  assert.equal(r.state, "no-account")
+  assert.equal(r.primary.id, "login")
+  assert.equal(r.primary.label, "Sign in to Audible")
+  assert.deepEqual(statuses(r), ["done", "done", "current", "todo", "todo"])
+  assert.doesNotMatch(allText(r), /locked|failed|error/i)
+})
+
+// -------------------------------------------------------- versionNotice()
+
+test("versionNotice: null when the installed CLI is the pinned release", () => {
+  assert.equal(M.versionNotice("audible 0.1.0-alpha.8", "v0.1.0-alpha.8"), null)
+  assert.equal(M.versionNotice(fx("version.txt"), M.PINNED_TAG), null)
+})
+
+test("versionNotice: a plain sentence naming both versions when they differ", () => {
+  assert.equal(
+    M.versionNotice("audible 0.1.0-alpha.7", "v0.1.0-alpha.8"),
+    "Built and tested with audible-rs 0.1.0-alpha.8; you have 0.1.0-alpha.7, which may behave differently."
+  )
+  assert.equal(
+    M.versionNotice("audible 0.2.0", "v0.1.0-alpha.8"),
+    "Built and tested with audible-rs 0.1.0-alpha.8; you have 0.2.0, which may behave differently."
+  )
+})
+
+test("versionNotice: null when there is no installed version or no pin (nothing to compare)", () => {
+  assert.equal(M.versionNotice("", "v0.1.0-alpha.8"), null)
+  assert.equal(M.versionNotice(undefined, "v0.1.0-alpha.8"), null)
+  assert.equal(M.versionNotice("audible 0.1.0-alpha.7", ""), null)
+  assert.equal(M.versionNotice("audible 0.1.0-alpha.7", undefined), null)
+})
+
+test("versionNotice: unreadable version text still warns, without echoing arbitrary output", () => {
+  const s = M.versionNotice("something odd\nsecond line", "v0.1.0-alpha.8")
+  assert.equal(s, "Built and tested with audible-rs 0.1.0-alpha.8; you have a version we could not read, which may behave differently.")
+  assert.doesNotMatch(s, /odd|second/)
+})
+
+test("versionNotice: the pin may be given with or without the leading v", () => {
+  assert.equal(M.versionNotice("audible 0.1.0-alpha.8", "0.1.0-alpha.8"), null)
+  assert.match(M.versionNotice("audible 0.1.0-alpha.7", "0.1.0-alpha.8"), /^Built and tested with audible-rs 0\.1\.0-alpha\.8;/)
+})
+
+test("detect: passes the version notice through when the probe carries the pin", () => {
+  const off = M.detect(probe({ audible: { found: true, version: "audible 0.1.0-alpha.7" }, pinned: "v0.1.0-alpha.8" }))
+  assert.equal(off.notice, "Built and tested with audible-rs 0.1.0-alpha.8; you have 0.1.0-alpha.7, which may behave differently.")
+  const on = M.detect(probe({ pinned: "v0.1.0-alpha.8" }))
+  assert.equal(on.notice, null)
+  const noPin = M.detect(probe({ audible: { found: true, version: "audible 0.1.0-alpha.7" } }))
+  assert.equal(noPin.notice, null)
+  assert.equal(M.detect(probe({ audible: { found: false, version: "" }, pinned: "v0.1.0-alpha.8" })).notice, null)
 })
