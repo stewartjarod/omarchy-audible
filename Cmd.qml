@@ -12,8 +12,11 @@ Process {
 
   property var done: null
   property string input: ""
+  property var extraEnv: null   // {NAME: value} added to the environment (secrets go here, never in argv)
 
   stdinEnabled: input.length > 0
+
+  Component.onCompleted: { if (proc.extraEnv) proc.environment = proc.extraEnv }
 
   stdout: StdioCollector { id: out; waitForEnd: true }
   stderr: StdioCollector { id: err; waitForEnd: true }

@@ -577,11 +577,16 @@ test("CmdLines reads stderr line by line (the sign-in URL arrives there)", () =>
   assert.doesNotMatch(src, /stderr:\s*StdioCollector/)
 })
 
-test("sign-in hands the login-file password over in the environment, never in argv", () => {
+test("sign-in writes a plain login file, then encrypts it with an env password (never argv)", () => {
   const src = fs.readFileSync(path.join(ROOT, "SetupController.qml"), "utf8")
-  assert.match(src, /env: encrypted \? \{ AUDIBLE_NEW_AUTH_PASSWORD: pw \} : null/)
+  assert.match(src, /"--timeout", "900", "--plain"\]/)       // the CLI's own prompt cannot be answered
+  assert.match(src, /\["account", "password", "set", "-a", name\]/)
+  assert.match(src, /env: \{ AUDIBLE_NEW_AUTH_PASSWORD: pw \}/)
   assert.doesNotMatch(src, /"--password"|AUDIBLE_NEW_AUTH_PASSWORD=/)
-  assert.match(src, /argv\.push\("--plain"\)/)   // no keyring tool: unencrypted, never an unanswerable prompt
-  const cmd = fs.readFileSync(path.join(ROOT, "CmdLines.qml"), "utf8")
-  assert.match(cmd, /extraEnv/)
+  assert.match(src, /Password must not be empty/)             // the runaway-prompt guard
+  for (const f of ["Cmd.qml", "CmdLines.qml"]) {
+    const c = fs.readFileSync(path.join(ROOT, f), "utf8")
+    assert.match(c, /extraEnv/)
+  }
+  assert.match(fs.readFileSync(path.join(ROOT, "CmdLines.qml"), "utf8"), /_errLines\.length > 400/)   // output kept bounded
 })

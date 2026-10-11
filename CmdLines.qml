@@ -23,14 +23,14 @@ Process {
   stdout: SplitParser {
     splitMarker: "\n"
     onRead: function(data) {
-      proc._lines.push(String(data))
+      proc._lines.push(String(data)); if (proc._lines.length > 400) proc._lines.shift()
       if (typeof proc.line === "function") proc.line(String(data))
     }
   }
   stderr: SplitParser {
     splitMarker: "\n"
     onRead: function(data) {
-      proc._errLines.push(String(data))
+      proc._errLines.push(String(data)); if (proc._errLines.length > 400) proc._errLines.shift()
       if (typeof proc.line === "function") proc.line(String(data))
     }
   }

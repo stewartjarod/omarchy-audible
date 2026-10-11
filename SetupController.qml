@@ -18,7 +18,6 @@ Item {
   property bool loginWaiting: false
   property var lastProbe: null
   property var loginProc: null
-  property string loginPassword: ""   // the generated login-file password; in memory only until the keyring has it
   property bool loginSeen: false      // the account showed up; waiting for the sign-in command to finish
   property bool previewing: false
 
@@ -142,36 +141,20 @@ Item {
     })
   }
 
-  // The sign-in command asks for a password for the new login file and cannot be answered from
-  // here. So make a random one, hand it over in the environment (never argv), and once the account
-  // exists put it in the keyring and point Audible at it. Without a keyring tool the file is saved
-  // unencrypted (--plain) and the setup log says so.
+  // Sign in with the CLI writing an UNENCRYPTED login file (--plain): its own password prompt reads
+  // the terminal, which the shell does not have, and would loop forever. As soon as the account
+  // exists, finishLogin() encrypts the file with a random password (given in the environment, never
+  // argv) and stores that password in the keyring. Without a keyring tool the file stays unencrypted
+  // and the setup log says so.
   function startLogin() {
     if (loginWaiting) return
     loginWaiting = true
     loginSeen = false
     loginUrl = ""
     busyWith("", "Starting the sign-in page...")
-    var haveKeyring = !!(lastProbe && lastProbe.secretTool && lastProbe.secretTool.found)
-    if (!haveKeyring) { launchLogin("", false); return }
-    svc.run(["sh", "-c", "head -c 24 /dev/urandom | base64 | tr -d '=+/\\n'"], function(code, out) {
-      if (!loginWaiting) return   // cancelled meanwhile
-      var pw = String(out).trim()
-      if (code !== 0 || pw.length < 16) {
-        loginWaiting = false
-        svc.setupLog = "Could not prepare a password for your login."
-        rerenderSetup()
-        return
-      }
-      launchLogin(pw, true)
-    })
-  }
-
-  function launchLogin(pw, encrypted) {
     var opened = false
-    loginPassword = pw
-    var argv = ["audible", "account", "login", "server", "-m", marketplaceGuess(), "--timeout", "900"]
-    if (!encrypted) argv.push("--plain")
+    var refusals = 0
+    var argv = ["audible", "account", "login", "server", "-m", marketplaceGuess(), "--timeout", "900", "--plain"]
     loginProc = svc.run(argv,
       function(code, out, err) {
         // the exit code is not a reliable success signal; the account list decides
@@ -180,8 +163,12 @@ Item {
         loginUrl = ""
         finishLogin()
       },
-      { env: encrypted ? { AUDIBLE_NEW_AUTH_PASSWORD: pw } : null,
-        line: function(l) {
+      { line: function(l) {
+          // Safety net: if the CLI ever re-asks for a password forever, stop it.
+          if (l.indexOf("Password must not be empty") >= 0 && ++refusals >= 3) {
+            if (loginProc) loginProc.signal(15)
+            return
+          }
           var u = Setup.parseLoginUrl(l)
           if (u && !opened) {
             opened = true
@@ -195,21 +182,32 @@ Item {
     loginPoll.restart()
   }
 
-  // The sign-in command is over (or was stopped): check for the account, and store the generated
-  // password if there is one.
+  // The sign-in command is over (or was stopped): check for the account, then lock its login file.
   function finishLogin() {
-    var pw = loginPassword
-    loginPassword = ""
     loginSeen = false
     svc.setupLog = ""
     recheck(function() {
-      if (pw !== "" && accountName() !== "") storePassword(pw)
-      else if (pw !== "") svc.setupLog = "Sign-in did not finish. Try again."
+      var name = accountName()
+      var haveKeyring = !!(lastProbe && lastProbe.secretTool && lastProbe.secretTool.found)
+      if (name !== "" && haveKeyring) encryptLogin(name)
+      else if (name !== "") svc.setupLog = "Signed in. This machine has no keyring tool (libsecret), so your login file is not password protected."
+    })
+  }
+
+  // Encrypt the plain login file with a random password, then keep that password in the keyring.
+  function encryptLogin(name) {
+    busyWith("store-password", "Securing your login...")
+    svc.run(["sh", "-c", "head -c 24 /dev/urandom | base64 | tr -d '=+/\\n'"], function(code, out) {
+      var pw = String(out).trim()
+      if (code !== 0 || pw.length < 16) { doneBusy("Signed in, but could not prepare a password to protect your login file."); return }
+      svc.run(argvFor(["account", "password", "set", "-a", name], "audible"), function(c2, o2, e2) {
+        if (c2 !== 0) { doneBusy("Signed in, but could not password-protect your login file: " + String(e2 || o2).split("\n")[0]); return }
+        storePassword(pw)
+      }, { env: { AUDIBLE_NEW_AUTH_PASSWORD: pw } })
     })
   }
 
   function cancelLogin() {
-    loginPassword = ""
     if (loginProc) loginProc.signal(15)
     loginWaiting = false
     loginSeen = false

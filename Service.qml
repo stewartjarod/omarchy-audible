@@ -122,7 +122,7 @@ Item {
   Component { id: cmdComponent; Cmd {} }
   Component { id: cmdLinesComponent; CmdLines {} }
 
-  // run(argv, done(exitCode, stdout, stderr), {line, input, env}) -> Process (env only with line)
+  // run(argv, done(exitCode, stdout, stderr), {line, input, env}) -> Process
   // PATH always includes ~/.local/bin (the shell's own PATH may not).
   function run(argv, done, opts) {
     var o = opts || {}
@@ -130,7 +130,7 @@ Item {
     // collector-based by default; the line-streaming runner only when a line callback is given
     var p = o.line
       ? cmdLinesComponent.createObject(root, { command: wrapped, done: done || null, line: o.line, input: o.input || "", extraEnv: o.env || null })
-      : cmdComponent.createObject(root, { command: wrapped, done: done || null, input: o.input || "" })
+      : cmdComponent.createObject(root, { command: wrapped, done: done || null, input: o.input || "", extraEnv: o.env || null })
     if (!p) return null
     p.running = true
     return p
