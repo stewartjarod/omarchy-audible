@@ -38,7 +38,7 @@ Panel {
   readonly property bool ready: svc("ready", false) === true
   readonly property bool hasBook: svc("hasBook", false) === true
   readonly property var phoneOffer: svc("phoneOffer", null)   // HOOK(sync)
-  // Sign out takes two presses (X, or a click on the row): the first arms it, the second does it.
+  // Sign out takes two presses (x, or a click on the row): the first arms it, the second does it.
   property bool signOutArmed: false
   readonly property string accountLabel: service && service.accountName ? String(service.accountName()) : ""
   function requestSignOut() {
@@ -198,7 +198,7 @@ Panel {
     if (!root.ready) return
     if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
 
-    if (root.signOutArmed && t !== "X" && k !== Qt.Key_Shift) signOutArmed = false   // any other key cancels
+    if (root.signOutArmed && t !== "X" && t !== "x" && k !== Qt.Key_Shift) signOutArmed = false   // any other key cancels
 
     var handled = true
     if (k === Qt.Key_Space) togglePlay()
@@ -224,7 +224,7 @@ Panel {
     else if (t === "z") { if (root.service && root.service.listening) root.service.listening.cycleSleep() }  // HOOK(listen)
     else if (t === "Z") { if (root.service && root.service.listening) root.service.listening.addRunningPreset() }  // HOOK(listen)
     else if (t === "i") openStats()   // HOOK(stats)
-    else if (t === "X") requestSignOut()
+    else if (t === "x" || t === "X") requestSignOut()
     else handled = false
 
     if (handled) event.accepted = true
@@ -1046,8 +1046,8 @@ Panel {
           width: parent.width
           visible: root.accountLabel !== ""
           text: root.signOutArmed
-            ? "Press X again to sign out of " + root.accountLabel + " (downloads stay, sign in again afterwards) · any other key cancels"
-            : "Signed in as " + root.accountLabel + " · X sign out"
+            ? "Press x again to sign out of " + root.accountLabel + " (downloads stay, sign in again afterwards) · any other key cancels"
+            : "Signed in as " + root.accountLabel + " · x sign out"
           textFormat: Text.PlainText
           wrapMode: Text.WordWrap
           color: root.signOutArmed ? Color.accent : root.dim
