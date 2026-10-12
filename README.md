@@ -17,7 +17,7 @@ Not affiliated with Audible or Amazon.
 
 **The player popup.** Progress with chapter ticks, speed and volume, the chapter list, a sleep timer, and a key legend.
 
-<p><img src="preview.png" alt="The player popup: book title, time left, progress with chapter ticks, speed and volume sliders, and the chapter list" width="360"></p>
+<p><img src="preview.png" alt="The player popup while Phreaks plays: title, time left, progress with chapter ticks, speed and volume sliders, and the chapter list" width="360"></p>
 
 **The library.** (The library and details screens below show a sample library of hacker-culture books, not a real account.) Search at the top, then Continue listening, Suggested for you, and the rest of your books. Press `Tab` to switch between the cover grid and a list.
 
