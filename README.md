@@ -11,22 +11,32 @@ Not affiliated with Audible or Amazon.
 
 ## Screenshots
 
-<!-- TODO(screenshots): take these and replace the placeholders. Nothing has been captured yet.
-  1. docs/screenshots/bar-playing.png    Bar with a book playing: title, time left, speed.
-  2. (done: preview.png)                 Bar popup: chapter list, progress bar, key legend.
-  3. docs/screenshots/library-grid.png   Library window, grid view with covers and the search line.
-  4. docs/screenshots/library-list.png   Library window, list view (press Tab).
-  5. docs/screenshots/book-details.png   Details page with Play, Download, Mark finished.
-  6. docs/screenshots/setup-install.png  First-run screen: "Let's install the Audible CLI".
-  7. docs/screenshots/setup-sign-in.png  First-run screen: "Sign in to Audible".
-  8. docs/screenshots/setup-locked.png   First-run screen: "Unlock your saved login" (password field).
--->
+**In the bar.** The title, time left in the book, and your listening speed. Click it for the player.
 
-The player popup, opened from the bar:
+<p><img src="docs/screenshots/bar-playing.png" alt="The bar while a book plays: title, time left and speed" width="600"></p>
 
-<p align="center"><img src="preview.png" alt="The Audible player popup: book title, time left, progress with chapter ticks, speed and volume sliders, and the chapter list" width="360"></p>
+**The player popup.** Progress with chapter ticks, speed and volume, the chapter list, a sleep timer, and a key legend.
 
-_The library, details and setup screens are not captured yet._
+<p><img src="preview.png" alt="The player popup: book title, time left, progress with chapter ticks, speed and volume sliders, and the chapter list" width="360"></p>
+
+**The library.** Search at the top, then Continue listening, Suggested for you, and Downloaded. Press `Tab` to switch between the cover grid and a list.
+
+<p><img src="docs/screenshots/library-grid.png" alt="The library as a cover grid with a search line and rows for continue listening, suggestions and downloads" width="760"></p>
+<p><img src="docs/screenshots/library-list.png" alt="The library as a list with progress bars" width="760"></p>
+
+**Book details.** Play, download, delete, mark finished, add to Up next, and similar books.
+
+<p><img src="docs/screenshots/book-details.png" alt="A book's details page with Resume, Delete download, Count another listen, Add to Up next and Play next buttons" width="760"></p>
+
+**First run.** The popup walks through setup one step at a time:
+
+| Install the CLI | Sign in | Waiting for the browser |
+|---|---|---|
+| <img src="docs/screenshots/setup-install.png" alt="Let's install the Audible CLI" width="260"> | <img src="docs/screenshots/setup-sign-in.png" alt="Sign in to Audible, with a terminal option" width="260"> | <img src="docs/screenshots/setup-browser.png" alt="Finish signing in in your browser" width="260"> |
+
+| Unlock | Sync |
+|---|---|
+| <img src="docs/screenshots/setup-locked.png" alt="Unlock your saved login" width="260"> | <img src="docs/screenshots/setup-sync.png" alt="Sync your library" width="260"> |
 
 ## Requirements
 
