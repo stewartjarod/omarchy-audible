@@ -49,6 +49,29 @@ omarchy plugin add https://github.com/stewartjarod/omarchy-audible.git --enable
 (the folder name matches the plugin id in `manifest.json`) and enables it. If the
 bar widget does not appear, restart the shell with `omarchy restart`.
 
+## Remove
+
+1. **Sign out (optional).** Open the popup and press `x` twice on the "Signed in as ..." row.
+   This forgets the login on this computer but leaves the device registered with
+   Amazon. To deregister it as well, run `audible account logout` in a terminal
+   instead.
+2. **Remove the plugin:**
+
+   ```sh
+   omarchy plugin remove jarod.audible --yes
+   ```
+
+   This also takes it out of the bar. Delete any key binds you added for it
+   (for example the media-key binds suggested below, if you copied them into `~/.config/hypr/bindings.lua`).
+3. **Delete what it left behind (optional).** The plugin never removes these itself:
+
+   | What | Where |
+   |---|---|
+   | Plugin state, listening history, queue | `~/.local/state/jarod-audible/` |
+   | Downloaded books | `~/.local/share/audible/` |
+   | The Audible CLI it installed | `~/.local/bin/audible` and `~/.config/audible/` |
+   | The keyring entry holding the login-file password | `secret-tool clear service audible-rs account <name>` (`audible account list` shows `<name>`) |
+
 ## First run
 
 The popup walks you through setup one step at a time. A checklist shows what is
