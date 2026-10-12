@@ -1,4 +1,4 @@
-# Marketplace listing for jarod.audible (omarket)
+# Marketplace listing for stewartjarod.audible (omarket)
 
 This note is for whoever submits the plugin to plugins.omarchy.org. The draft
 entry is `dist/catalog-entry.draft.json`. Nothing here has been submitted or
@@ -23,7 +23,7 @@ published.
 1. The repo is public on GitHub, and the commit to verify is pushed. Right now the
    work exists only as local commits in the scratch clone, so nothing can be
    verified yet.
-2. `manifest.json` `id` is `jarod.audible` and matches the folder name that
+2. `manifest.json` `id` is `stewartjarod.audible` and matches the folder name that
    `omarchy plugin add` creates. Checked: schemaVersion 1, entryPoints `Service.qml`
    and `BarWidget.qml` exist at the repo root, license `MIT` with a `LICENSE` file.
 3. `README.md` is at the repo root (done). It documents the install command, the

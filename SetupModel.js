@@ -1,6 +1,6 @@
 .pragma library
 
-// Pure setup logic for jarod.audible: decides what the user needs to do next,
+// Pure setup logic for stewartjarod.audible: decides what the user needs to do next,
 // parses the audible CLI's output, and plans the CLI install. No QML, no I/O.
 
 var PINNED_TAG = "v0.1.0-alpha.8"

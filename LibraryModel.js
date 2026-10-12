@@ -1,6 +1,6 @@
 .pragma library
 
-// Pure helpers for the jarod.audible library screen. No QML, no I/O, no Qt.
+// Pure helpers for the stewartjarod.audible library screen. No QML, no I/O, no Qt.
 // Every function tolerates malformed input: it never throws.
 
 var FOLD_MAP = { "ø": "o", "ß": "ss", "æ": "ae", "œ": "oe", "ł": "l", "đ": "d", "ð": "d", "þ": "th", "ı": "i" }

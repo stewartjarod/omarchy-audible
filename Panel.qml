@@ -9,8 +9,8 @@ import "PlayerModel.js" as Model
 // chapter list. Keyboard-first; every surface shows a key legend.
 Panel {
   id: root
-  moduleName: "jarod.audible"
-  ipcTarget: "jarod.audible"
+  moduleName: "stewartjarod.audible"
+  ipcTarget: "stewartjarod.audible"
   manageIpc: false // BarWidget.qml owns the IPC surface for this plugin
 
   property var service: null

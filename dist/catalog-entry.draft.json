@@ -1,6 +1,6 @@
 {
   "_note": "DRAFT for the plugins.omarchy.org listing. Placeholders in <angle brackets> must be filled before submission. Verification fields (verificationStatus, listingValidatedCommit, verificationSnapshotStatus, upstreamObservedCommit, addedAt, repositoryUpdatedAt) are set by the marketplace and must not be written by hand.",
-  "id": "jarod.audible",
+  "id": "stewartjarod.audible",
   "name": "Audible",
   "description": "Listen to your Audible books from the Omarchy bar: guided setup, a searchable library, chapters, progress, time left, and playback speed up to 3x and beyond.",
   "author": "stewartjarod",

@@ -1,4 +1,4 @@
-# Audible for Omarchy (`jarod.audible`)
+# Audible for Omarchy (`stewartjarod.audible`)
 
 Listen to your Audible audiobooks from the Omarchy top bar. The bar shows the
 book, time left, and playback speed. Click it for chapters and progress. A
@@ -45,7 +45,7 @@ The pinned audible-rs version lives in `Service.qml` as `pinnedTag`
 omarchy plugin add https://github.com/stewartjarod/omarchy-audible.git --enable
 ```
 
-`omarchy plugin add` clones the plugin into `~/.config/omarchy/plugins/jarod.audible`
+`omarchy plugin add` clones the plugin into `~/.config/omarchy/plugins/stewartjarod.audible`
 (the folder name matches the plugin id in `manifest.json`) and enables it. If the
 bar widget does not appear, restart the shell with `omarchy restart`.
 
@@ -58,7 +58,7 @@ bar widget does not appear, restart the shell with `omarchy restart`.
 2. **Remove the plugin:**
 
    ```sh
-   omarchy plugin remove jarod.audible --yes
+   omarchy plugin remove stewartjarod.audible --yes
    ```
 
    This also takes it out of the bar. Delete any key binds you added for it
@@ -183,9 +183,9 @@ keyboard's keys reach this player regardless of Spotify, bind dedicated keys to
 the plugin in `~/.config/hypr/bindings.lua`, for example:
 
 ```lua
-o.bind("CTRL + XF86AudioPlay", "Audiobook play/pause", "omarchy-shell -q jarod.audible toggle", { locked = true })
-o.bind("CTRL + XF86AudioNext", "Audiobook next chapter", "omarchy-shell -q jarod.audible next", { locked = true })
-o.bind("CTRL + XF86AudioPrev", "Audiobook previous chapter", "omarchy-shell -q jarod.audible prev", { locked = true })
+o.bind("CTRL + XF86AudioPlay", "Audiobook play/pause", "omarchy-shell -q stewartjarod.audible toggle", { locked = true })
+o.bind("CTRL + XF86AudioNext", "Audiobook next chapter", "omarchy-shell -q stewartjarod.audible next", { locked = true })
+o.bind("CTRL + XF86AudioPrev", "Audiobook previous chapter", "omarchy-shell -q stewartjarod.audible prev", { locked = true })
 ```
 (This is a suggestion; the plugin does not change your keybindings.)
 
@@ -198,7 +198,7 @@ minutes, then "end of this chapter", then off. `Z` adds the running preset's
 time again. The countdown only runs while the book is playing. For the last 30
 seconds the player's volume fades down, then playback **pauses** (it is not
 unloaded) and your volume is put back. A desktop notice says it paused. From a
-script: `jarod.audible sleep <minutes>`, `sleepChapter`, `sleepCancel`.
+script: `stewartjarod.audible sleep <minutes>`, `sleepChapter`, `sleepCancel`.
 
 ### Rewind on resume
 
@@ -240,7 +240,7 @@ and sends nothing. It does not write to your account.
 
 ### Listening stats
 
-Press `i` in the popup, or run `jarod.audible toggleStats`, for a window with
+Press `i` in the popup, or run `stewartjarod.audible toggleStats`, for a window with
 your streak, this week, today against your average, time saved by listening
 faster, a 14-day chart, a **burn-down** for the loaded book (solid: where you
 were; dashed: where you will be at your pace), and a finish estimate for each
@@ -379,7 +379,7 @@ with `secret-tool`. You never see or type it. If your machine has no `secret-too
 file stays unencrypted and the setup log says so; install `libsecret` to avoid that.
 
 **Sign out.** In the player popup press **x** twice (or click the "Signed in as ..."
-line, then click it again), or run `jarod.audible signOut` over IPC. Playback stops, the
+line, then click it again), or run `stewartjarod.audible signOut` over IPC. Playback stops, the
 account is removed from the Audible CLI and its login file is deleted, and the setup
 screen comes back so you can sign in again (or as someone else). Your downloaded books
 stay on disk. Amazon is not told: the device stays registered on your Amazon account
@@ -389,7 +389,7 @@ until you remove it there, or run `audible account logout` yourself instead.
 delete the keyring entry with `secret-tool clear service audible-rs account <name>`.
 
 **Read the shell log.** Run `qs log` and look for lines that mention
-`jarod.audible`.
+`stewartjarod.audible`.
 
 ## Known limits
 

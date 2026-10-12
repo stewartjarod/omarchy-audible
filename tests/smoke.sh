@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Live smoke test for jarod.audible.
+# Live smoke test for stewartjarod.audible.
 #
 # Run by hand in the desktop session, AFTER the shell has reloaded the plugin (a shell restart).
 # It asks the running shell over IPC, opens and closes the library and a book's details page, and
@@ -45,7 +45,7 @@ trap cleanup EXIT
 
 # IPC into the running shell, same form omarchy-shell uses: qs ipc -p <shell dir> call -- <target> <fn> [args]
 ipc() {
-  timeout --kill-after=1s 5s qs ipc -n -p "$SHELL_DIR" call -- jarod.audible "$@" 2>&1
+  timeout --kill-after=1s 5s qs ipc -n -p "$SHELL_DIR" call -- stewartjarod.audible "$@" 2>&1
 }
 status_field() {
   printf '%s' "$1" | jq -r "$2" 2>/dev/null
@@ -121,9 +121,9 @@ if qs log -p "$SHELL_DIR" > "$TMP/log" 2>/dev/null && [ -s "$TMP/log" ]; then
   problems=$(grep -iE 'warn|error|typeerror|referenceerror|cannot assign|is not a function' "$TMP/log" \
     | grep -E "$PLUGIN_RE" || true)
   if [ -z "$problems" ]; then
-    pass "shell log has no QML warnings or errors from jarod.audible"
+    pass "shell log has no QML warnings or errors from stewartjarod.audible"
   else
-    fail "shell log has QML warnings or errors from jarod.audible:"
+    fail "shell log has QML warnings or errors from stewartjarod.audible:"
     printf '%s\n' "$problems" | head -n 20 | sed 's/^/        /'
   fi
 else

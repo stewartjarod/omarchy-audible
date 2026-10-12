@@ -1,6 +1,6 @@
 .pragma library
 
-// Pure listening helpers for jarod.audible: sleep timer, rewind on resume, auto-advance choice,
+// Pure listening helpers for stewartjarod.audible: sleep timer, rewind on resume, auto-advance choice,
 // audio filter chains and notification argv. No QML imports, no I/O, no Qt.*.
 // Times are seconds (real) unless a name says Ms. Volumes are mpv's scale (100 = unchanged).
 

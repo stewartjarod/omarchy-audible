@@ -2,7 +2,7 @@ import QtQuick
 import qs.Commons
 import qs.Ui
 
-// First-run setup for jarod.audible. Shows service.setup (see SetupModel.js):
+// First-run setup for stewartjarod.audible. Shows service.setup (see SetupModel.js):
 // one friendly title and message, a checklist of steps, ONE primary action
 // (Enter), optional secondary actions (Tab to highlight, Enter to run), a
 // masked password field when the primary action needs one, and the sign-in

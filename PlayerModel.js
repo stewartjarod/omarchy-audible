@@ -1,6 +1,6 @@
 .pragma library
 
-// Pure player helpers for jarod.audible. No QML imports, no I/O, no Qt.*.
+// Pure player helpers for stewartjarod.audible. No QML imports, no I/O, no Qt.*.
 // Times are seconds (real). Speeds are real multipliers (1 = normal).
 
 // Finite number or fallback. Guards every numeric input so NaN/Infinity/strings

@@ -4,7 +4,7 @@ import Quickshell.Io
 import "LibraryModel.js" as Lib
 import "PlayerModel.js" as Player
 
-// jarod.audible service: the single owner of playback (mpv over IPC), the
+// stewartjarod.audible service: the single owner of playback (mpv over IPC), the
 // Audible CLI, local state and the library overlay. Bar widgets are instantiated
 // once per monitor, so everything stateful lives here and the widgets stay thin.
 Item {
@@ -767,7 +767,7 @@ Item {
   // IPC: the only IPC target for this plugin (bar widgets exist once per monitor)
   // ======================================================================
   IpcHandler {
-    target: "jarod.audible"
+    target: "stewartjarod.audible"
 
     function status(): string {
       return JSON.stringify({

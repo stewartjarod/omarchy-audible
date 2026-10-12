@@ -1,9 +1,9 @@
-# jarod.audible: contract
+# stewartjarod.audible: contract
 
-Omarchy shell plugin: listen to Audible books from the bar. Lives in `~/.config/omarchy/plugins/jarod.audible`.
+Omarchy shell plugin: listen to Audible books from the bar. Lives in `~/.config/omarchy/plugins/stewartjarod.audible`.
 
 **Hard rule for everyone building here:** work ONLY in the clone you are given (a scratchpad
-`git clone` of the plugin repo). `~/Projects/jarod-audible` and `~/.config/omarchy/plugins/jarod.audible`
+`git clone` of the plugin repo). `~/Projects/jarod-audible` and `~/.config/omarchy/plugins/stewartjarod.audible`
 are the LIVE plugin: never write there, never run `omarchy-shell`/`omarchy plugin`/`rescanPlugins`/
 `omarchy restart`, never touch `shell.json` or the live shell. Each plugin reload leaks ~127 MB in
 the user's live shell. Verify with `node --test tests/` and `/usr/lib/qt6/bin/qmllint <file>`
@@ -227,8 +227,8 @@ Key legend row at the bottom.
 ## BarWidget.qml (agent C)
 
 `BarWidget` from `qs.Ui` (see `plugins/services/media/BarWidget.qml` and protonvpn `BarWidget.qml`).
-`moduleName: "jarod.audible"`. Get the service with
-`readonly property var service: bar?.shell?.serviceFor("jarod.audible") ?? null` (be null-safe: the
+`moduleName: "stewartjarod.audible"`. Get the service with
+`readonly property var service: bar?.shell?.serviceFor("stewartjarod.audible") ?? null` (be null-safe: the
 service may be null for a moment). Shows a book glyph (use an `OpticalGlyph`/`Text` with the nerd-font
 book icon `󰂺` in `bar.fontFamily`, `Style.font.body`, colour `bar.barForeground`), and, when a book is
 loaded, the `PlayerModel.barLabel` text (use it for the tooltip too). Click toggles the popup; scroll

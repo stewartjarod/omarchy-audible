@@ -8,9 +8,9 @@ import "PlayerModel.js" as Model
 // adds no IPC target; the Service owns that.
 BarWidget {
   id: root
-  moduleName: "jarod.audible"
+  moduleName: "stewartjarod.audible"
 
-  readonly property var service: bar?.shell?.serviceFor("jarod.audible") ?? null
+  readonly property var service: bar?.shell?.serviceFor("stewartjarod.audible") ?? null
   readonly property bool ready: service ? service.ready === true : false
   readonly property bool hasBook: service ? service.hasBook === true : false
   readonly property bool paused: service ? service.paused === true : true

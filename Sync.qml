@@ -214,7 +214,7 @@ Item {
       lastSent = ls
       saveSoon()
       status = SyncModel.describeWouldSend(a, pos, service.chapters)
-      console.log("jarod.audible sync: " + status)
+      console.log("stewartjarod.audible sync: " + status)
     } else {
       status = "Position sync is on, but this plugin cannot write to Audible yet, so nothing was sent."
     }
@@ -235,7 +235,7 @@ Item {
       lastSent = ls
       saveSoon()
       status = SyncModel.describeWouldSend(a, pos, [])
-      console.log("jarod.audible sync: " + status)
+      console.log("stewartjarod.audible sync: " + status)
     }
   }
 
