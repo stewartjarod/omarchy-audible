@@ -64,7 +64,7 @@ Item {
     Stats.prune(logData, Stats.dayKey(Date.now()))
     var body = Stats.serialize(logData)
     dirty = false
-    service.run(["mkdir", "-p", service.stateDir], function() { file.setText(body) })
+    service.ensureStateDir(function() { file.setText(body) })
   }
 
   // Shown on the window and in the popup: how many days (and which day) the book is at this pace.

@@ -193,13 +193,16 @@ Item {
   readonly property var lastBook: lastAsin !== "" ? bookFor(lastAsin) : null
   function continueLast() { if (lastAsin !== "") play(lastAsin) }
 
+  // Every state file lives in stateDir; keep that directory private to this user.
+  function ensureStateDir(done) { run(Player.privateDirArgs(stateDir), done) }
+
   function saveSoon() { saveTimer.restart() }
   Timer {
     id: saveTimer
     interval: 1500
     onTriggered: {
       var body = JSON.stringify({ version: 1, viewMode: root.viewMode, sort: root.sortMode, filter: root.filterMode, group: root.groupSeries, expandContinue: root.continueExpanded, plays: root.plays, volume: root.volume, speed: root.speed, resume: root.resume, last: root.lastAsin })
-      root.run(["mkdir", "-p", root.stateDir], function() { stateFile.setText(body) })
+      root.ensureStateDir(function() { stateFile.setText(body) })
     }
   }
 

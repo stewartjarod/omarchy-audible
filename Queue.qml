@@ -37,7 +37,7 @@ Item {
     onTriggered: {
       if (!root.svc) return
       var body = Q.serialize(root.asins)
-      root.svc.run(["mkdir", "-p", root.svc.stateDir], function() { file.setText(body) })
+      root.svc.ensureStateDir(function() { file.setText(body) })
     }
   }
 

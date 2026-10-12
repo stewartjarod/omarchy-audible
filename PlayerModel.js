@@ -293,7 +293,18 @@ function mpvLaunchArgs(sock, opts) {
   return ["setsid", "-f"].concat(a)
 }
 
+// Argv for making the plugin's state directory private (owner only). The state files hold listening
+// history and playback positions, so other local users must not be able to read them: the directory
+// is created 0700, an older 0755 one is tightened, and any state file already there becomes 0600.
+// The directory is passed as a positional argument, never interpolated into the script.
+function privateDirArgs(dir) {
+  return ["sh", "-c",
+    "mkdir -p -m 700 -- \"$1\" && chmod 700 -- \"$1\" && { chmod 600 -- \"$1\"/*.json 2>/dev/null; true; }",
+    "sh", String(dir)]
+}
+
 if (typeof module !== "undefined") module.exports = {
+  privateDirArgs: privateDirArgs,
   loadCommands: loadCommands,
   mpvLaunchArgs: mpvLaunchArgs,
   formatDuration: formatDuration,

@@ -58,7 +58,7 @@ Item {
     onTriggered: {
       if (!root.service) return
       var body = JSON.stringify({ version: 1, accepted: root.accepted, lastSent: root.lastSent })
-      root.service.run(["mkdir", "-p", root.service.stateDir], function() { stateFile.setText(body) })
+      root.service.ensureStateDir(function() { stateFile.setText(body) })
     }
   }
 

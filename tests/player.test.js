@@ -697,3 +697,43 @@ test("mpvLaunchArgs: detached, idle, socket path, optional uwsm and volume", () 
   assert.deepEqual(b.slice(0, 3), ["setsid", "-f", "mpv"])
   assert.ok(!b.some((x) => x.startsWith("--volume")))
 })
+
+// ---- private state directory ----
+{
+  const os = require("node:os")
+  const { spawnSync } = require("node:child_process")
+  const mode = (p) => (fs.statSync(p).mode & 0o777).toString(8)
+  const run = (dir) => { const a = P.privateDirArgs(dir); return spawnSync(a[0], a.slice(1), { encoding: "utf8" }) }
+
+  test("privateDirArgs: dir is a positional argument, never part of the script", () => {
+    const a = P.privateDirArgs("/x/jarod-audible; rm -rf ~")
+    assert.deepEqual(a.slice(0, 2), ["sh", "-c"])
+    assert.deepEqual(a.slice(3), ["sh", "/x/jarod-audible; rm -rf ~"])
+    assert.ok(!a[2].includes("rm -rf"))
+  })
+
+  test("privateDirArgs: a new state dir (and its parents) is created owner-only", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "pd-"))
+    const dir = path.join(root, "a b", "state")
+    const r = run(dir)
+    assert.equal(r.status, 0, r.stderr)
+    assert.equal(mode(dir), "700")
+    fs.rmSync(root, { recursive: true, force: true })
+  })
+
+  test("privateDirArgs: an older world-readable dir and its state files are tightened", () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "pd-"))
+    const dir = path.join(root, "state")
+    fs.mkdirSync(dir, { mode: 0o755 })
+    fs.chmodSync(dir, 0o755)
+    for (const f of ["state.json", "listening.json"]) { fs.writeFileSync(path.join(dir, f), "{}"); fs.chmodSync(path.join(dir, f), 0o644) }
+    const r = run(dir)
+    assert.equal(r.status, 0, r.stderr)
+    assert.equal(mode(dir), "700")
+    assert.equal(mode(path.join(dir, "state.json")), "600")
+    assert.equal(mode(path.join(dir, "listening.json")), "600")
+    // idempotent, and fine with no json files present
+    assert.equal(run(dir).status, 0)
+    fs.rmSync(root, { recursive: true, force: true })
+  })
+}
