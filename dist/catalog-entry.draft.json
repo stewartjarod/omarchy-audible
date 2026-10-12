@@ -3,7 +3,7 @@
   "id": "jarod.audible",
   "name": "Audible",
   "description": "Listen to your Audible books from the Omarchy bar: guided setup, a searchable library, chapters, progress, time left, and playback speed up to 3x and beyond.",
-  "author": "<GitHub handle of the repo owner>",
+  "author": "stewartjarod",
   "category": "Media",
   "kind": "service, bar-widget",
   "tags": [
@@ -15,7 +15,7 @@
     "library"
   ],
   "license": "MIT",
-  "repo": "https://github.com/<owner>/jarod-audible",
+  "repo": "https://github.com/stewartjarod/omarchy-audible",
   "repositoryLayout": "<root or subdirectory as the marketplace names it; this repo keeps Service.qml at the root>",
   "installAvailable": true,
   "installNote": "",

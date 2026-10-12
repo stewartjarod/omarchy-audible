@@ -42,7 +42,7 @@ The pinned audible-rs version lives in `Service.qml` as `pinnedTag`
 ## Install
 
 ```sh
-omarchy plugin add <this repository's GitHub URL>
+omarchy plugin add https://github.com/stewartjarod/omarchy-audible.git --enable
 ```
 
 `omarchy plugin add` clones the plugin into `~/.config/omarchy/plugins/jarod.audible`
