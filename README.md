@@ -19,7 +19,7 @@ Not affiliated with Audible or Amazon.
 
 <p><img src="preview.png" alt="The player popup: book title, time left, progress with chapter ticks, speed and volume sliders, and the chapter list" width="360"></p>
 
-**The library.** Search at the top, then Continue listening, Suggested for you, and Downloaded. Press `Tab` to switch between the cover grid and a list.
+**The library.** (The library and details screens below show a sample library of hacker-culture books, not a real account.) Search at the top, then Continue listening, Suggested for you, and the rest of your books. Press `Tab` to switch between the cover grid and a list.
 
 <p><img src="docs/screenshots/library-grid.png" alt="The library as a cover grid with a search line and rows for continue listening, suggestions and downloads" width="760"></p>
 <p><img src="docs/screenshots/library-list.png" alt="The library as a list with progress bars" width="760"></p>
