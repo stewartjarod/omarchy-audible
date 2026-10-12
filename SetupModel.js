@@ -174,6 +174,40 @@ function signOutArgs(accountName) {
   return ["account", "remove", n, "--yes", "--delete-auth-file"]
 }
 
+// Where the player looks for books: <booksDir>/<ASIN>/<ASIN>.*. The CLI only puts files there when
+// its download settings say so, and a fresh CLI install defaults to <Title> files in a "downloads"
+// folder, which the player never finds. This is the layout the plugin needs.
+var DOWNLOAD_FILENAME_MODE = "custom"
+var DOWNLOAD_FILENAME_TEMPLATE = "%asin%/%asin%"
+
+// Argv (with the program name) for a script that makes the CLI's download settings match that layout.
+// Idempotent: a setting that already has the right value is not written. The directory is a
+// positional argument, never part of the script text. Exit status is non-zero if a write fails.
+function downloadSettingsArgs(booksDir) {
+  var d = _str(booksDir)
+  if (d === "" || d.charAt(0) !== "/") throw new Error("the books directory must be an absolute path")
+  var script =
+    'dir="$1"; rc=0\n' +
+    'want() { [ "$(audible config get "$1" 2>/dev/null)" = "$2" ] || audible config set "$1" "$2" >/dev/null 2>&1 || rc=1; }\n' +
+    'want settings.default.download_dir "$dir"\n' +
+    'want settings.default.filename_mode "$2"\n' +
+    'want settings.default.filename_template "$3"\n' +
+    'exit $rc'
+  return ["sh", "-c", script, "sh", d, DOWNLOAD_FILENAME_MODE, DOWNLOAD_FILENAME_TEMPLATE]
+}
+
+// Argv (without the program name) to download one book. force re-fetches even when the CLI's database
+// says the book is already downloaded (used when that record points at files that are gone).
+function downloadArgs(asin, quality, force) {
+  var a = _str(asin)
+  if (!/^[A-Za-z0-9]{10}$/.test(a)) throw new Error("not a valid ASIN")
+  var q = quality === "normal" ? "normal" : "high"
+  var out = ["download", "--asin", a, "--kind", "audio,chapter,cover", "--quality", q]
+  if (force) out.push("--force")
+  out.push("-o", "json")
+  return out
+}
+
 // A name for a new account: the login name, cleaned to what the CLI accepts.
 function accountNameFor(user) {
   var n = _str(user).replace(/[^A-Za-z0-9._@-]/g, "").slice(0, 64)
@@ -363,6 +397,10 @@ if (typeof module !== "undefined") module.exports = {
   passwordSourceArgs: passwordSourceArgs,
   keyringStoreArgs: keyringStoreArgs,
   signOutArgs: signOutArgs,
+  downloadSettingsArgs: downloadSettingsArgs,
+  downloadArgs: downloadArgs,
+  DOWNLOAD_FILENAME_MODE: DOWNLOAD_FILENAME_MODE,
+  DOWNLOAD_FILENAME_TEMPLATE: DOWNLOAD_FILENAME_TEMPLATE,
   accountNameFor: accountNameFor,
   terminalLoginArgs: terminalLoginArgs,
   installPlan: installPlan,

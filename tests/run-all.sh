@@ -29,6 +29,17 @@ echo "== duplicate root signal handlers"
 dups=$(for f in *.qml; do grep -o -E '^  on[A-Z][A-Za-z]*(Changed)?:|^  on[A-Z][A-Za-z]*(Changed)?\b' "$f" | sed 's/:$//' | sort | uniq -d | sed "s|^|$f: |"; done)
 if [ -n "$dups" ]; then echo "$dups"; status=1; else echo "none"; fi
 
+# ------------------------------------------------------------------ downloads go through the check
+# A download started anywhere else would skip the download-settings check and could save files where
+# the player never finds them (the "I can't play it" bug). Only Service.qml's runDownload may build it,
+# and it must use Setup.downloadArgs.
+echo "== downloads only via Setup.downloadArgs"
+bad=$(grep -n -E '"download",[[:space:]]*"--asin"' *.qml || true)
+if [ -n "$bad" ]; then echo "$bad"; status=1; else echo "none"; fi
+if ! grep -q 'Setup.downloadArgs' Service.qml || ! grep -q 'ensureDownloadSettings(function' Service.qml; then
+  echo "Service.qml no longer checks the download settings before downloading"; status=1
+fi
+
 # ------------------------------------------------------------------ node
 echo "== node --test tests/"
 if node --test tests/ > "$TMP/node.out" 2>&1; then

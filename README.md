@@ -309,6 +309,7 @@ come from the schema in `manifest.json`.
 | Your Audible account | Managed by audible-rs, in its own config directory | The plugin reads the account list but does not write it |
 | Saved password (optional) | Your system keyring, under service `audible-rs` and your account name | Never written to a file, never on a command line, never logged |
 | Downloaded books | `~/.local/share/audible/books/` | Encrypted `.aaxc` audio plus a `.voucher` file for each book (see Privacy) |
+| Audible CLI download settings | `settings.default.download_dir`, `filename_mode` and `filename_template` in the CLI's config (see them with `audible config list`) | The plugin sets these once, right before its first download, so every book lands in `~/.local/share/audible/books/<ASIN>/`, where the player looks. It changes nothing else in that config |
 | Plugin state | `~/.local/state/jarod-audible/state.json` | View mode, sort and filter, volume, speed, last book, resume positions, finished marks |
 | Listening history | `~/.local/state/jarod-audible/listening.json` | Seconds listened per day (and per book), for stats and the finish estimate. Stays on this computer |
 | Up next queue | `~/.local/state/jarod-audible/queue.json` | The ordered list of queued books |
@@ -339,6 +340,17 @@ come from the schema in `manifest.json`.
 **Nothing shows after a shell restart.** Reopen the bar popup. mpv runs in its
 own session, so a book that was playing keeps playing through the restart. If the
 popup still shows nothing, play the book again.
+
+**A book downloads, or seems to, but never plays.** The player looks for each
+book in `~/.local/share/audible/books/<ASIN>/`. The plugin sets the CLI's
+download settings so books go there, and if the CLI's records say a book is
+already downloaded but the files are gone, it retries once with `--force`. If you
+changed those settings yourself, or the books are somewhere else, run this once.
+It restores the settings and moves the files already downloaded:
+
+```sh
+audible download reorganize --filename-template '%asin%/%asin%' --download-dir ~/.local/share/audible/books --yes
+```
 
 **The player says mpv did not start.** Install mpv (`omarchy pkg add mpv`).
 

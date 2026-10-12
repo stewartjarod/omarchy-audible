@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import "LibraryModel.js" as Lib
 import "PlayerModel.js" as Player
+import "SetupModel.js" as Setup
 
 // stewartjarod.audible service: the single owner of playback (mpv over IPC), the
 // Audible CLI, local state and the library overlay. Bar widgets are instantiated
@@ -644,6 +645,28 @@ Item {
     rebuildBooks()
   }
 
+  // The CLI's download settings must put files in <booksDir>/<ASIN>/ (see Setup.downloadSettingsArgs).
+  // Checked once per session, right before the first download; a fresh CLI install has other defaults.
+  property bool downloadSettingsOk: false
+  function ensureDownloadSettings(then) {
+    if (downloadSettingsOk) { then(true, ""); return }
+    var argv
+    try { argv = Setup.downloadSettingsArgs(booksDir) } catch (e) { then(false, String(e.message || e)); return }
+    run(argv, function(code, out, err) {
+      if (code === 0) { downloadSettingsOk = true; then(true, "") }
+      else then(false, "Could not set up where the Audible CLI saves books. Run: audible config list")
+    })
+  }
+
+  function failDownload(a, msg) {
+    activeDownload = ""
+    downloads = withKey(downloads, a, { state: "failed", fraction: 0, error: msg })
+    if (pendingPlay === a) pendingPlay = ""
+    setupLog = msg
+    rebuildBooks()
+    pumpDownloads()
+  }
+
   function pumpDownloads() {
     if (activeDownload !== "" || downloadQueue.length === 0) return
     var a = downloadQueue[0]
@@ -651,22 +674,31 @@ Item {
     activeDownload = a
     downloads = withKey(downloads, a, { state: "downloading", fraction: 0, error: "" })
     rebuildBooks()
-    run(["audible", "download", "--asin", a, "--kind", "audio,chapter,cover", "--quality", downloadQuality, "-o", "json"], function(code, out, err) {
-      activeDownload = ""
-      if (code === 0) {
+    ensureDownloadSettings(function(ok, msg) {
+      if (!ok) failDownload(a, msg)
+      else runDownload(a, false)
+    })
+  }
+
+  // One download. When the CLI exits cleanly but the book is not where the player looks, its database
+  // may still list files that are gone ("already recorded"): try once more with --force. If the file is
+  // still missing, say so instead of waiting for it forever.
+  function runDownload(a, force) {
+    var argv = ["audible"].concat(Setup.downloadArgs(a, downloadQuality, force))
+    run(argv, function(code, out, err) {
+      if (code !== 0) { failDownload(a, String(err || out).split("\n")[0] || "Download failed"); return }
+      scanLocal(function() {
+        if (!localAsins[a]) {
+          if (!force) { runDownload(a, true); return }
+          failDownload(a, "Downloaded, but the book was not found in " + booksDir + ". Run: audible config list")
+          return
+        }
+        activeDownload = ""
         downloads = withKey(downloads, a, { state: "done", fraction: 1, error: "" })
-        scanLocal(function() {
-          if (pendingPlay === a) { pendingPlay = ""; startPlayback(a) }
-          pumpDownloads()
-        })
-      } else {
-        var msg = String(err || out).split("\n")[0] || "Download failed"
-        downloads = withKey(downloads, a, { state: "failed", fraction: 0, error: msg })
-        if (pendingPlay === a) pendingPlay = ""
-        setupLog = msg
         rebuildBooks()
+        if (pendingPlay === a) { pendingPlay = ""; startPlayback(a) }
         pumpDownloads()
-      }
+      })
     })
   }
 
