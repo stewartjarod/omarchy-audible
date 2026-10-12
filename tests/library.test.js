@@ -83,31 +83,31 @@ test("parseApiPage: accepts bare {items} and bare array shapes", () => {
 })
 
 test("parseApiPage: skips junk items and duplicate asins", () => {
-  const items = [null, 7, "x", { title: "no asin" }, rawItem("B0DTRR458T"), rawItem("B0DTRR458T")]
+  const items = [null, 7, "x", { title: "no asin" }, rawItem("B0SMPL0084"), rawItem("B0SMPL0084")]
   const r = L.parseApiPage({ result: { items } })
   assert.equal(r.books.length, 1)
-  assert.equal(r.books[0].asin, "B0DTRR458T")
+  assert.equal(r.books[0].asin, "B0SMPL0084")
 })
 
 // ---------------------------------------------------------------- normalize
 
 test("normalize maps the first fixture item exactly", () => {
-  assert.deepEqual(BY["B0DTRR458T"], {
-    asin: "B0DTRR458T",
-    title: "Never Ask for the Sale",
-    subtitle: "Supercharge Your Business with the Power of Passionate Ambivalence",
-    authors: ["Sue Heilbronner"],
-    author: "Sue Heilbronner",
-    narrators: ["Sue Heilbronner"],
-    coverUrl: "https://m.media-amazon.com/images/I/51ozMq2TXvL._SL500_.jpg",
+  assert.deepEqual(BY["B0SMPL0084"], {
+    asin: "B0SMPL0084",
+    title: "Sample Book T44",
+    subtitle: "Sample Book T62",
+    authors: ["Sample Person P64"],
+    author: "Sample Person P64",
+    narrators: ["Sample Person P64"],
+    coverUrl: "https://example.invalid/cover-36.jpg",
     runtimeSec: 30660,
     series: null,
     percentComplete: 0,
     remainingSec: 30660,
     finished: false,
     finishedAt: 0,
-    description: "A tech leader and executive coach's actionable guide for anyone looking to supercharge their selling prowess and close the deal with authenticity and integrity. Sue Heilbronner launched an executive coaching, facilitation, and speaking solo",
-    publisher: "Balance",
+    description: "A short sample description.",
+    publisher: "Sample Publisher U06",
     rating: 0,
     ratingCount: 0,
     format: "",
@@ -135,7 +135,7 @@ test("normalize: every fixture item yields a Book with the full shape", () => {
 })
 
 test("normalize: non-listenable item with null listening_status and null runtime", () => {
-  const b = BY["B08JJNTGNS"]
+  const b = BY["B0SMPL0057"]
   assert.equal(b.listenable, false)
   assert.equal(b.runtimeSec, 0)
   assert.equal(b.percentComplete, 0)
@@ -146,48 +146,48 @@ test("normalize: non-listenable item with null listening_status and null runtime
 })
 
 test("normalize: series with empty sequence keeps the title and empty string", () => {
-  assert.deepEqual(BY["B077BG38NM"].series, { title: "Incerto", sequence: "" })
+  assert.deepEqual(BY["B0SMPL0044"].series, { title: "Sample Book T38", sequence: "" })
 })
 
 test("normalize: series with a sequence number", () => {
-  assert.deepEqual(BY["B0CW23CC7L"].series, { title: "Bobiverse", sequence: "5" })
+  assert.deepEqual(BY["B0SMPL0082"].series, { title: "Sample Book T13", sequence: "5" })
 })
 
 test("normalize: 99 percent counts as finished", () => {
-  const b = BY["B0CQQCYBQH"]
+  const b = BY["B0SMPL0080"]
   assert.equal(b.percentComplete, 99)
   assert.equal(b.finished, true)
 })
 
 test("normalize: is_finished true at 0 percent counts as finished", () => {
-  assert.equal(BY["B0C6YK4917"].percentComplete, 0)
-  assert.equal(BY["B0C6YK4917"].finished, true)
-  assert.equal(BY["B08D9TXF3H"].finished, true)
+  assert.equal(BY["B0SMPL0070"].percentComplete, 0)
+  assert.equal(BY["B0SMPL0070"].finished, true)
+  assert.equal(BY["B0SMPL0054"].finished, true)
 })
 
 test("normalize: 100 percent finished", () => {
-  assert.equal(BY["B085L1MKYX"].finished, true)
-  assert.equal(BY["B085L1MKYX"].percentComplete, 100)
+  assert.equal(BY["B0SMPL0053"].finished, true)
+  assert.equal(BY["B0SMPL0053"].percentComplete, 100)
 })
 
 test("normalize: 98 percent with no finish stamp stays in progress", () => {
-  assert.equal(BY["B008O8964Q"].percentComplete, 98)
-  assert.equal(BY["B008O8964Q"].finished, false)
+  assert.equal(BY["B0SMPL0027"].percentComplete, 98)
+  assert.equal(BY["B0SMPL0027"].finished, false)
 })
 
 test("normalize: a stale finished_at with partial progress is NOT finished", () => {
   // Real data: restarted books keep finished_at_timestamp. They must stay in Continue listening.
-  assert.equal(BY["B09WY6Z8KD"].percentComplete, 48)
-  assert.equal(BY["B09WY6Z8KD"].finished, false)
-  assert.equal(BY["B07622TL7W"].percentComplete, 16)
-  assert.equal(BY["B07622TL7W"].finished, false)
+  assert.equal(BY["B0SMPL0062"].percentComplete, 48)
+  assert.equal(BY["B0SMPL0062"].finished, false)
+  assert.equal(BY["B0SMPL0043"].percentComplete, 16)
+  assert.equal(BY["B0SMPL0043"].finished, false)
 })
 
 test("normalize: multiple narrators and authors", () => {
-  const b = BY["B0CTJ3LJ51"]
+  const b = BY["B0SMPL0081"]
   assert.equal(b.narrators.length, 7)
   assert.equal(b.authors.length, 7)
-  assert.equal(b.author, "Jim Rohn, Zig Ziglar, Wayne Dyer, Brian Tracy, Napoleon Hill, Earl Nightingale, Denis Waitley")
+  assert.equal(b.author, "Sample Person P30, Sample Person P73, Sample Person P70, Sample Person P07, Sample Person P48, Sample Person P22, Sample Person P17")
 })
 
 test("normalize: null/invalid input returns null", () => {
@@ -254,18 +254,18 @@ test("normalize: a null authors list gives an empty author string", () => {
 
 test("merge: marks local books, downloads and resume state", () => {
   const out = L.merge(BOOKS, {
-    localAsins: { B0C7WJXBRL: true },
-    downloads: { B06XRN58LM: { state: "downloading", fraction: 0.42, error: "" } },
-    resume: { B0C7WJXBRL: { position: 3600, updatedAt: "2026-10-01T10:00:00.000Z" } }
+    localAsins: { B0SMPL0072: true },
+    downloads: { B0SMPL0042: { state: "downloading", fraction: 0.42, error: "" } },
+    resume: { B0SMPL0072: { position: 3600, updatedAt: "2026-10-01T10:00:00.000Z" } }
   })
-  const a = out.find(b => b.asin === "B0C7WJXBRL")
+  const a = out.find(b => b.asin === "B0SMPL0072")
   assert.equal(a.local, true)
   assert.equal(a.resumeSec, 3600)
   assert.equal(a.lastListenedAt, Date.parse("2026-10-01T10:00:00.000Z"))
-  const s = out.find(b => b.asin === "B06XRN58LM")
+  const s = out.find(b => b.asin === "B0SMPL0042")
   assert.equal(s.local, false)
   assert.deepEqual(s.download, { state: "downloading", fraction: 0.42 })
-  assert.equal(out.find(b => b.asin === "B0DTRR458T").download, null)
+  assert.equal(out.find(b => b.asin === "B0SMPL0084").download, null)
 })
 
 test("merge: a done download is local even without localAsins", () => {
@@ -330,8 +330,8 @@ test("filter: empty and whitespace queries return every book in order", () => {
 })
 
 test("filter: case-insensitive title prefix", () => {
-  assert.deepEqual(L.filter(BOOKS, "SALES PITCH").map(b => b.asin), ["B0CQQCYBQH"])
-  assert.deepEqual(L.filter(BOOKS, "celiac").map(b => b.title), ["Celiac Disease", "Celiac Straight Talk"])
+  assert.deepEqual(L.filter(BOOKS, "SAMPLE BOOK T54").map(b => b.asin), ["B0SMPL0080"])
+  assert.deepEqual(L.filter(BOOKS, "cipher").map(b => b.title), ["Cipher Disease", "Cipher Straight Talk"])
 })
 
 test("filter: diacritics-insensitive in both directions", () => {
@@ -347,10 +347,10 @@ test("filter: diacritics-insensitive in both directions", () => {
 })
 
 test("filter: multi-token AND across fields", () => {
-  assert.deepEqual(L.filter(BOOKS, "pitch dunford").map(b => b.asin), ["B0CQQCYBQH"])
-  assert.deepEqual(L.filter(BOOKS, "pitch hormozi"), [])
+  assert.deepEqual(L.filter(BOOKS, "book t54 person p05").map(b => b.asin), ["B0SMPL0080"])
+  assert.deepEqual(L.filter(BOOKS, "book t54 person p02"), [])
   // one token in the author, one in the subtitle
-  assert.deepEqual(L.filter(BOOKS, "heilbronner ambivalence").map(b => b.asin), ["B0DTRR458T"])
+  assert.deepEqual(L.filter(BOOKS, "person p64 book t62").map(b => b.asin), ["B0SMPL0084"])
 })
 
 test("filter: prefix beats contains; word prefix beats mid-word", () => {
@@ -368,7 +368,7 @@ test("filter: title beats author beats other fields", () => {
     book({ asin: "other", title: "A", subtitle: "deep dive" }),
     book({ asin: "author", title: "B", author: "Deepak Chopra" }),
     book({ asin: "contains", title: "Undeepened" }),
-    book({ asin: "prefix", title: "Deep Work" }),
+    book({ asin: "prefix", title: "Deep Notes" }),
     book({ asin: "wordprefix", title: "The Deep End" })
   ]
   assert.deepEqual(L.filter(books, "deep").map(b => b.asin), ["prefix", "wordprefix", "contains", "author", "other"])
@@ -381,7 +381,7 @@ test("filter: stable for equal rank (input order kept)", () => {
 
 test("filter: each token may match a different field; best tier wins", () => {
   const books = [
-    book({ asin: "A", title: "Deep Work", author: "Cal Newport" }),
+    book({ asin: "A", title: "Deep Notes", author: "Cal Sample" }),
     book({ asin: "B", title: "Something", author: "Cal Deep" })
   ]
   // "deep" ranks A as title-prefix (0); B only has it in the author (3)
@@ -389,16 +389,16 @@ test("filter: each token may match a different field; best tier wins", () => {
 })
 
 test("filter: series title and narrators are searchable", () => {
-  assert.deepEqual(L.filter(BOOKS, "incerto").map(b => b.asin), ["B077BG38NM"])
-  assert.deepEqual(L.filter(BOOKS, "hofstadter").map(b => b.asin), ["B07HJ9NHHM"])
+  assert.deepEqual(L.filter(BOOKS, "book t38").map(b => b.asin), ["B0SMPL0044"])
+  assert.deepEqual(L.filter(BOOKS, "person p19").map(b => b.asin), ["B0SMPL0047"])
 })
 
 test("filter: punctuation in the query splits words and matches", () => {
-  assert.deepEqual(L.filter(BOOKS, "pragmatic, 20th").map(b => b.asin), ["B0833FMYH9"])
+  assert.deepEqual(L.filter(BOOKS, "book, t71").map(b => b.asin), ["B0SMPL0051"])
 })
 
 test("filter: non-listenable books are still searchable", () => {
-  assert.deepEqual(L.filter(BOOKS, "beyond celiac").map(b => b.asin), ["B08JJNTGNS"])
+  assert.deepEqual(L.filter(BOOKS, "person p06").map(b => b.asin), ["B0SMPL0057"])
 })
 
 test("filter: no match gives an empty list and ignores non-objects", () => {
@@ -421,9 +421,9 @@ test("sections: continue holds in-progress, unfinished, listenable books only", 
   const cont = L.sections(BOOKS)[0]
   assert.equal(cont.id, "continue")
   assert.deepEqual(new Set(ASINS(cont.books)), new Set([
-    "B0C7WJXBRL", "B06XRN58LM", "B07HS14W46", "B07HJ9NHHM", "197733394X",
-    "B0BZB9BZ5G", "B0C82P8W17", "B0CTJ3LJ51", "B008O8964Q",
-    "B09WY6Z8KD", "B07622TL7W"   // restarted books: stale finished_at, still in progress
+    "B0SMPL0072", "B0SMPL0042", "B0SMPL0048", "B0SMPL0047", "B0SMPL0006",
+    "B0SMPL0068", "B0SMPL0073", "B0SMPL0081", "B0SMPL0027",
+    "B0SMPL0062", "B0SMPL0043"   // restarted books: stale finished_at, still in progress
   ]))
   assert.equal(cont.books.length, 11)
 })
@@ -436,12 +436,12 @@ test("sections: continue ordering without local data is highest percent first", 
 test("sections: continue ordering is newest lastListenedAt first, then percent", () => {
   const merged = L.merge(BOOKS, {
     resume: {
-      B0C82P8W17: { position: 10, updatedAt: "2026-10-05T00:00:00Z" },
-      B06XRN58LM: { position: 900, updatedAt: "2026-09-01T00:00:00Z" }
+      B0SMPL0073: { position: 10, updatedAt: "2026-10-05T00:00:00Z" },
+      B0SMPL0042: { position: 900, updatedAt: "2026-09-01T00:00:00Z" }
     }
   })
   const cont = L.sections(merged)[0]
-  assert.deepEqual(cont.books.slice(0, 2).map(b => b.asin), ["B0C82P8W17", "B06XRN58LM"])
+  assert.deepEqual(cont.books.slice(0, 2).map(b => b.asin), ["B0SMPL0073", "B0SMPL0042"])
   assert.deepEqual(cont.books.slice(2).map(b => b.percentComplete), [98, 80, 54, 52, 48, 24, 17, 16, 16])
 })
 
@@ -455,23 +455,23 @@ test("sections: finished books are excluded from continue but kept in all", () =
   const out = L.sections(BOOKS)
   const cont = out.find(s => s.id === "continue")
   const all = out.find(s => s.id === "all")
-  assert.equal(cont.books.some(b => b.asin === "B0CQQCYBQH"), false)
-  assert.equal(all.books.some(b => b.asin === "B0CQQCYBQH"), true)
-  assert.equal(all.books.some(b => b.asin === "B085L1MKYX"), true)
+  assert.equal(cont.books.some(b => b.asin === "B0SMPL0080"), false)
+  assert.equal(all.books.some(b => b.asin === "B0SMPL0080"), true)
+  assert.equal(all.books.some(b => b.asin === "B0SMPL0053"), true)
 })
 
 test("sections: non-listenable books are excluded from continue and dimmed in all", () => {
-  const merged = L.merge(BOOKS, { resume: { B08JJNTGNS: { position: 50, updatedAt: "2026-10-05T00:00:00Z" } } })
+  const merged = L.merge(BOOKS, { resume: { B0SMPL0057: { position: 50, updatedAt: "2026-10-05T00:00:00Z" } } })
   const out = L.sections(merged)
-  assert.equal(out.find(s => s.id === "continue").books.some(b => b.asin === "B08JJNTGNS"), false)
-  assert.equal(out.find(s => s.id === "all").books.some(b => b.asin === "B08JJNTGNS"), true)
+  assert.equal(out.find(s => s.id === "continue").books.some(b => b.asin === "B0SMPL0057"), false)
+  assert.equal(out.find(s => s.id === "all").books.some(b => b.asin === "B0SMPL0057"), true)
 })
 
 test("sections: every book appears in exactly one section", () => {
   const merged = L.merge(BOOKS, {
-    localAsins: { B0C7WJXBRL: true, B085L1MKYX: true, B08JJNTGNS: true },
-    downloads: { B06XRN58LM: { state: "queued", fraction: 0 } },
-    resume: { B06XRN58LM: { position: 20, updatedAt: "2026-10-05T00:00:00Z" } }
+    localAsins: { B0SMPL0072: true, B0SMPL0053: true, B0SMPL0057: true },
+    downloads: { B0SMPL0042: { state: "queued", fraction: 0 } },
+    resume: { B0SMPL0042: { position: 20, updatedAt: "2026-10-05T00:00:00Z" } }
   })
   const out = L.sections(merged)
   const seen = ASINS(out.flatMap(s => s.books))
@@ -481,21 +481,21 @@ test("sections: every book appears in exactly one section", () => {
 })
 
 test("sections: a downloaded in-progress book goes to continue, not downloaded", () => {
-  const merged = L.merge(BOOKS, { localAsins: { B0C7WJXBRL: true } })
+  const merged = L.merge(BOOKS, { localAsins: { B0SMPL0072: true } })
   const out = L.sections(merged)
-  assert.equal(out.find(s => s.id === "continue").books.some(b => b.asin === "B0C7WJXBRL"), true)
+  assert.equal(out.find(s => s.id === "continue").books.some(b => b.asin === "B0SMPL0072"), true)
   assert.equal(out.find(s => s.id === "downloaded"), undefined)
 })
 
 test("sections: downloaded (not in progress) books get their own section; sort 'added' = newest purchase first", () => {
   const merged = L.merge(BOOKS, {
-    localAsins: { B085L1MKYX: true, B0DTRR458T: true, B0833FMYH9: true }
+    localAsins: { B0SMPL0053: true, B0SMPL0084: true, B0SMPL0051: true }
   })
   const out = L.sections(merged, { sort: "added" })
   assert.deepEqual(out.map(s => s.id), ["continue", "downloaded", "all"])
   const dl = out.find(s => s.id === "downloaded")
-  // purchase dates: B0DTRR458T 2025-11, B085L1MKYX 2024-12, B0833FMYH9 2024-02
-  assert.deepEqual(ASINS(dl.books), ["B0DTRR458T", "B085L1MKYX", "B0833FMYH9"])
+  // purchase dates: B0SMPL0084 2025-11, B0SMPL0053 2024-12, B0SMPL0051 2024-02
+  assert.deepEqual(ASINS(dl.books), ["B0SMPL0084", "B0SMPL0053", "B0SMPL0051"])
   // Downloaded books are not repeated in All
   assert.equal(out.find(s => s.id === "all").books.some(b => b.local), false)
 })
@@ -505,7 +505,7 @@ test("sections: with sort 'added' the all section is sorted by purchaseDate desc
   for (let i = 1; i < all.length; i++) {
     assert.ok(all[i - 1].purchaseDate >= all[i].purchaseDate, `${all[i - 1].asin} before ${all[i].asin}`)
   }
-  assert.equal(all[0].asin, "B0DTRR458T")
+  assert.equal(all[0].asin, "B0SMPL0084")
 })
 
 test("sections: empty sections are omitted", () => {
@@ -516,11 +516,11 @@ test("sections: empty sections are omitted", () => {
 })
 
 test("sections: a non-empty query gives one ranked results section", () => {
-  const out = L.sections(BOOKS, { query: "celiac" })
+  const out = L.sections(BOOKS, { query: "cipher" })
   assert.equal(out.length, 1)
   assert.equal(out[0].id, "results")
   assert.equal(out[0].title, "Results")
-  assert.deepEqual(ASINS(out[0].books), ASINS(L.filter(BOOKS, "celiac")))
+  assert.deepEqual(ASINS(out[0].books), ASINS(L.filter(BOOKS, "cipher")))
 })
 
 test("sections: a query with no hits gives an empty list", () => {
@@ -723,16 +723,16 @@ test("formatRuntime: no usable duration gives an empty string", () => {
 })
 
 test("formatMeta: author, runtime and percent", () => {
-  assert.equal(L.formatMeta(BY["B06XRN58LM"]), "Jay Sullivan · 5h 46m · 79%")
+  assert.equal(L.formatMeta(BY["B0SMPL0042"]), "Sample Person P28 · 5h 46m · 79%")
 })
 
 test("formatMeta: a finished book shows Finished instead of a percentage", () => {
-  assert.equal(L.formatMeta(BY["B0CQQCYBQH"]), "April Dunford · 2h 57m · Finished")
+  assert.equal(L.formatMeta(BY["B0SMPL0080"]), "Sample Person P05 · 2h 57m · Finished")
   assert.equal(L.formatMeta(book({ author: "A", runtimeSec: 0, finished: true, percentComplete: 100 })), "A · Finished")
 })
 
 test("formatMeta: untouched book shows no percentage", () => {
-  assert.equal(L.formatMeta(BY["B0DTRR458T"]), "Sue Heilbronner · 8h 31m")
+  assert.equal(L.formatMeta(BY["B0SMPL0084"]), "Sample Person P64 · 8h 31m")
 })
 
 test("formatMeta: rounds the percentage and hides a rounded-to-zero one", () => {
@@ -748,7 +748,7 @@ test("formatMeta: missing parts are omitted, junk gives empty string", () => {
 })
 
 test("formatMeta: non-listenable book with no runtime shows only the author", () => {
-  assert.equal(L.formatMeta(BY["B08JJNTGNS"]), "Beyond Celiac")
+  assert.equal(L.formatMeta(BY["B0SMPL0057"]), "Sample Person P06")
 })
 
 test("normalize: unicode author names survive into formatMeta", () => {
@@ -1124,8 +1124,8 @@ test("detailFacts: ordered, skips empty values, handles series number and counts
 })
 
 test("detailFacts: an unnumbered series just shows its name", () => {
-  const f = L.detailFacts(book({ series: { title: "Incerto", sequence: "" } }))
-  assert.equal(f.find(x => x.label === "Series").value, "Incerto")
+  const f = L.detailFacts(book({ series: { title: "Sample Series", sequence: "" } }))
+  assert.equal(f.find(x => x.label === "Series").value, "Sample Series")
 })
 
 test("detailActions: primary says Play / Continue / Listen again / Resume / Pause", () => {

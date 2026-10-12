@@ -2,7 +2,7 @@
 // "Suggested for you": a pure ranking over the owned library. No QML, no I/O, no Qt.
 // Input: Book objects (LibraryModel.merge output). Candidates are owned, not finished, not started,
 // and playable. Ranking, strongest first:
-//   1. the next unread book in a series you are already partway through ("Book 3 of Bobiverse")
+//   1. the next unread book in a series you are already partway through ("Book 3 of Sample Saga")
 //   2. authors and narrators of books you finished (more weight if you finished them twice or the
 //      public rating is high): "Because you finished X"
 //   3. fit with your usual pace, when a pace is given (opts.pace.weeklySec): books you can finish in

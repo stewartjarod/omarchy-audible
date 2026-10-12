@@ -19,7 +19,7 @@ const lastPositions = fx("sync-lastpositions.json")
 const progress = JSON.parse(fx("sync-library-progress.json")).result.items
 const showJson = JSON.parse(fx("sync-annotations-show.json"))
 
-const BOOK = "B0C7WJXBRL"                 // 361 min, 24% on the library, phone at 5255484 ms
+const BOOK = "B0SMPL0072"                 // 361 min, 24% on the library, phone at 5255484 ms
 const FINISHED = "B08F6D4ZPV"            // finished on the library, phone position 0
 const UNKNOWN = "B000000000"             // DoesNotExist
 
@@ -192,7 +192,7 @@ test("shouldPush: off, backoff, unchanged, rate limits and due", () => {
 
 test("describeWouldSend reads like a plain log line and says nothing was sent", () => {
   const s = M.describeWouldSend(BOOK, 7980, [{ index: 0, start: 0 }, { index: 11, start: 7000 }])
-  assert.equal(s, "Would send to Audible: book B0C7WJXBRL, at Chapter 12 · 2h 13m. Not sent (dry run is on).")
+  assert.equal(s, "Would send to Audible: book B0SMPL0072, at Chapter 12 · 2h 13m. Not sent (dry run is on).")
 })
 
 test("needsPull respects the 10 minute freshness window", () => {

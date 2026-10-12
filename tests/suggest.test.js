@@ -52,15 +52,15 @@ test("excluded ASINs (for example Up next) are not suggested", () => {
 
 test("the next unread book in a series you are partway through comes first, with a plain reason", () => {
   const lib = [
-    book("S1", { finished: true, percentComplete: 100, series: { title: "Bobiverse", sequence: "1" } }),
-    book("S2", { percentComplete: 30, resumeSec: 500, series: { title: "Bobiverse", sequence: "2" } }),
-    book("S3", { series: { title: "Bobiverse", sequence: "3" } }),
-    book("S4", { series: { title: "Bobiverse", sequence: "4" } }),
+    book("S1", { finished: true, percentComplete: 100, series: { title: "Sample Saga", sequence: "1" } }),
+    book("S2", { percentComplete: 30, resumeSec: 500, series: { title: "Sample Saga", sequence: "2" } }),
+    book("S3", { series: { title: "Sample Saga", sequence: "3" } }),
+    book("S4", { series: { title: "Sample Saga", sequence: "4" } }),
     book("LONE", { runtimeSec: 60 * 60 * 2, finished: false, authors: ["Someone"] })
   ]
   const out = S.suggest(lib, {})
   assert.equal(out[0].asin, "S3")
-  assert.equal(out[0].reason, "Book 3 of Bobiverse")
+  assert.equal(out[0].reason, "Book 3 of Sample Saga")
   assert.deepEqual(asins(out), ["S3", "S4", "LONE"])   // one series slot; the rest by length
 })
 
