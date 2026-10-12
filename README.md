@@ -13,7 +13,7 @@ Not affiliated with Audible or Amazon.
 
 <!-- TODO(screenshots): take these and replace the placeholders. Nothing has been captured yet.
   1. docs/screenshots/bar-playing.png    Bar with a book playing: title, time left, speed.
-  2. docs/screenshots/popup-player.png   Bar popup: chapter list, progress bar, key legend.
+  2. (done: preview.png)                 Bar popup: chapter list, progress bar, key legend.
   3. docs/screenshots/library-grid.png   Library window, grid view with covers and the search line.
   4. docs/screenshots/library-list.png   Library window, list view (press Tab).
   5. docs/screenshots/book-details.png   Details page with Play, Download, Mark finished.
@@ -22,7 +22,11 @@ Not affiliated with Audible or Amazon.
   8. docs/screenshots/setup-locked.png   First-run screen: "Unlock your saved login" (password field).
 -->
 
-_Screenshots are not added yet._
+The player popup, opened from the bar:
+
+<p align="center"><img src="preview.png" alt="The Audible player popup: book title, time left, progress with chapter ticks, speed and volume sliders, and the chapter list" width="360"></p>
+
+_The library, details and setup screens are not captured yet._
 
 ## Requirements
 
