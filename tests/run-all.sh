@@ -63,6 +63,43 @@ if grep -n -E '^[[:space:]]*(TextField|TextInput|TextArea)[[:space:]]*\{' Onboar
   echo "Onboarding.qml has a text input outside the Loader"; status=1
 fi
 
+# ------------------------------------------------------------------ theme, privacy, tokens
+echo "== theme lint (no hard-coded colours, fonts or radii)"
+bash tests/theme-lint.sh || status=1
+
+echo "== privacy scan (no home paths, e-mail addresses or secrets committed)"
+bash tests/privacy.sh || status=1
+
+echo "== theme tokens exist in the shell (Commons)"
+node tests/tokens.js
+rc=$?
+if [ "$rc" -eq 1 ]; then
+  status=1
+elif [ "$rc" -eq 2 ] && [ "${REQUIRE_COMMONS:-0}" = 1 ]; then
+  echo "tokens: REQUIRE_COMMONS is set but Commons was not found"; status=1
+fi
+
+# ------------------------------------------------------------------ marketplace verification
+echo "== omarchy plugin validate (the shell's own manifest rules)"
+if command -v omarchy >/dev/null 2>&1; then
+  omarchy plugin validate . && echo "ok" || status=1
+else
+  echo "note: omarchy not installed; skipped (the pre-flight below re-checks the listing rules)"
+fi
+
+# What the marketplace will say about the committed HEAD: its own security scanner, run unmodified.
+# Capabilities we accept knowingly are listed in marketplace-expected.json; a new one fails here.
+echo "== marketplace pre-flight (on the committed HEAD)"
+MP_SCRIPTS="${MARKETPLACE_SCRIPTS:-}"
+[ -n "$MP_SCRIPTS" ] || MP_SCRIPTS=$(ls -d .omarchy-ref/marketplace/*/scripts 2>/dev/null | head -n1 || true)
+if [ -n "$MP_SCRIPTS" ] && git rev-parse -q --verify HEAD >/dev/null 2>&1; then
+  node tests/marketplace-preflight.mjs --scripts "$MP_SCRIPTS" || status=1
+elif [ "${REQUIRE_MARKETPLACE:-0}" = 1 ]; then
+  echo "marketplace-preflight: REQUIRE_MARKETPLACE is set but the scanner or a git HEAD is missing"; status=1
+else
+  echo "skipped: run tests/fetch-marketplace.sh once (needs network); CI always runs it"
+fi
+
 # ------------------------------------------------------------------ node
 # The files are listed (not the directory): older Node versions (22, as on CI) treat a directory
 # argument as a module to load, and then run nothing.
@@ -101,7 +138,7 @@ else
     count=$((count + 1))
     "$QMLLINT" "$f" > "$TMP/lint.one" 2>&1
     grep -E "$LEVELS" "$TMP/lint.one" | grep -vE "$NOISE" | sed "s|^|$f: |" >> "$TMP/lint.real" || true
-  done < <(find . -name '*.qml' -not -path './.git/*' | sort)
+  done < <(find . -name '*.qml' -not -path './.git/*' -not -path './.omarchy-ref/*' | sort)
   if [ -s "$TMP/lint.real" ]; then
     echo "qmllint: real problems in $(wc -l < "$TMP/lint.real") place(s) across $count file(s):"
     sed 's/^/  /' "$TMP/lint.real"

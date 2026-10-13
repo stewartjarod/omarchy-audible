@@ -1,0 +1,4 @@
+{
+  "_note": "Capabilities the marketplace scanner reports for this plugin and that we accept knowingly. package-manager: the README and the setup screen tell the user to run `omarchy pkg add mpv` themselves; the plugin never runs it. tests/marketplace-preflight.mjs fails when a new capability appears.",
+  "acceptedCapabilities": ["package-manager"]
+}
