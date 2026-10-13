@@ -455,7 +455,7 @@ the setup screen will tell you.
 
 ## Limits of testing
 
-The pure logic is covered by `node --test tests/`. The QML is not run by those
+The pure logic is covered by `node --test tests/*.test.js`. The QML is not run by those
 tests. `tests/run-all.sh` runs the tests and a `qmllint` pass. `tests/smoke.sh`
 drives a running shell over IPC and must be run by hand in the desktop session.
 

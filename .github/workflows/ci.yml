@@ -1,0 +1,29 @@
+name: CI
+
+# Runs tests/run-all.sh: the node tests, the guard checks and qmllint. The live checks that need the
+# desktop (tests/smoke.sh) are not run here.
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # Pinned to a commit: v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install qmllint
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qt6-declarative-dev-tools
+      - name: Show tool versions
+        run: node --version && (/usr/lib/qt6/bin/qmllint --version || qmllint --version)
+      # The runner has no Quickshell, so qmllint cannot resolve imports here; only real errors (syntax)
+      # fail it. Run tests/run-all.sh without the variable on your machine for the full check.
+      - name: Run every check
+        env:
+          QMLLINT_ERRORS_ONLY: "1"
+        run: bash tests/run-all.sh
