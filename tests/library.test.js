@@ -204,7 +204,7 @@ test("normalize: cover picks the largest usable size", () => {
   assert.equal(img({ "100": "https://a/100.jpg", "500": "https://a/500.jpg", "1000": "https://a/1000.jpg" }), "https://a/1000.jpg")
   assert.equal(img({ "500": "https://a/500.jpg", "100": "https://a/100.jpg" }), "https://a/500.jpg")
   assert.equal(img({ "500": "http://insecure.example/x.jpg" }), "")
-  assert.equal(img({ "500": "file:///home/u/cover.jpg" }), "file:///home/u/cover.jpg")
+  assert.equal(img({ "500": "file:///x/cover.jpg" }), "file:///x/cover.jpg")
   assert.equal(img({ "500": 12 }), "")
   assert.equal(img(null), "")
   assert.equal(img(undefined), "")
