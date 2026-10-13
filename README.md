@@ -65,10 +65,11 @@ bar widget does not appear, restart the shell with `omarchy restart`.
 
 ## Remove
 
-1. **Sign out (optional).** Open the popup and press `x` twice on the "Signed in as ..." row.
-   This forgets the login on this computer but leaves the device registered with
-   Amazon. To deregister it as well, run `audible account logout` in a terminal
-   instead.
+1. **Sign out first (recommended).** Open the popup and press `x` twice on the "Signed in as ..." row.
+   This removes this computer from your Amazon account and forgets the login here. It needs a
+   network connection. If you remove the plugin without signing out, or sign out while offline,
+   this computer can stay listed under **Manage Your Content and Devices** on Amazon, where you
+   can remove it by hand (or run `audible account logout` later).
 2. **Remove the plugin:**
 
    ```sh
@@ -417,11 +418,13 @@ with `secret-tool`. You never see or type it. If your machine has no `secret-too
 file stays unencrypted and the setup log says so; install `libsecret` to avoid that.
 
 **Sign out.** In the player popup press **x** twice (or click the "Signed in as ..."
-line, then click it again), or run `stewartjarod.audible signOut` over IPC. Playback stops, the
-account is removed from the Audible CLI and its login file is deleted, and the setup
-screen comes back so you can sign in again (or as someone else). Your downloaded books
-stay on disk. Amazon is not told: the device stays registered on your Amazon account
-until you remove it there, or run `audible account logout` yourself instead.
+line, then click it again), or run `stewartjarod.audible signOut` over IPC. Playback stops, this
+computer is deregistered from your Amazon account (`audible account logout`), the account and its
+login file are deleted, and the setup screen comes back so you can sign in again (or as someone
+else). Your downloaded books stay on disk. If Amazon cannot be reached, or the login cannot be
+opened (for example you forgot its password), the plugin still removes the login on this computer
+and says so: the computer then stays listed on your Amazon account until you remove it under
+**Manage Your Content and Devices**.
 
 **Remove the saved password.** Use "Remove saved password" on the setup screen, or
 delete the keyring entry with `secret-tool clear service audible-rs account <name>`.

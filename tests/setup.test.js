@@ -553,7 +553,14 @@ test("detect: passes the version notice through when the probe carries the pin",
   assert.equal(M.detect(probe({ audible: { found: false, version: "" }, pinned: "v0.1.0-alpha.8" })).notice, null)
 })
 
-test("signOutArgs removes the account and its auth file, never deregisters the device", () => {
+test("deregisterArgs signs out properly: the CLI deregisters the device, then deletes the login", () => {
+  assert.deepEqual(M.deregisterArgs("jarod"), ["account", "logout", "-a", "jarod", "--yes"])
+  assert.throws(() => M.deregisterArgs("x; rm -rf ~"))
+  assert.throws(() => M.deregisterArgs(""))
+  assert.ok(M.DEREGISTER_TIMEOUT_SEC > 0 && M.DEREGISTER_TIMEOUT_SEC <= 120)
+})
+
+test("signOutArgs is only the local fallback: removes the account and its auth file, never deregisters", () => {
   assert.deepEqual(M.signOutArgs("jarod"), ["account", "remove", "jarod", "--yes", "--delete-auth-file"])
   assert.throws(() => M.signOutArgs("x; rm -rf ~"))
   assert.ok(!M.signOutArgs("jarod").includes("logout"))

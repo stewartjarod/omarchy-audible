@@ -166,9 +166,21 @@ function keyringStoreArgs(accountName) {
   return ["store", "--label=audible-rs " + n, "service", "audible-rs", "account", n]
 }
 
-// Argv (without the program name) to sign out: drops the account from the CLI's config and deletes
-// its auth file, so the next sign-in starts clean (no name clash). It does not deregister the device
-// with Amazon; downloaded books are untouched.
+// Argv (without the program name) to sign out properly: the CLI deregisters this computer's device
+// with Amazon, then deletes the account and its auth file locally. It needs the network and a login
+// the CLI can open, so signing out tries this first and falls back to signOutArgs below.
+function deregisterArgs(accountName) {
+  var n = _checkAccount(accountName)
+  return ["account", "logout", "-a", n, "--yes"]
+}
+
+// Seconds the deregistering sign-out may take before the plugin gives up and uses the local fallback.
+var DEREGISTER_TIMEOUT_SEC = 40
+
+// Argv (without the program name) for the local-only fallback: drops the account from the CLI's
+// config and deletes its auth file, so the next sign-in starts clean (no name clash). It does NOT
+// deregister the device with Amazon (used when offline or when the login cannot be opened, for
+// example a forgotten password); downloaded books are untouched.
 function signOutArgs(accountName) {
   var n = _checkAccount(accountName)
   return ["account", "remove", n, "--yes", "--delete-auth-file"]
@@ -397,6 +409,8 @@ if (typeof module !== "undefined") module.exports = {
   passwordSourceArgs: passwordSourceArgs,
   keyringStoreArgs: keyringStoreArgs,
   signOutArgs: signOutArgs,
+  deregisterArgs: deregisterArgs,
+  DEREGISTER_TIMEOUT_SEC: DEREGISTER_TIMEOUT_SEC,
   downloadSettingsArgs: downloadSettingsArgs,
   downloadArgs: downloadArgs,
   DOWNLOAD_FILENAME_MODE: DOWNLOAD_FILENAME_MODE,

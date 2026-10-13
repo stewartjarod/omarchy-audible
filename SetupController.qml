@@ -294,14 +294,27 @@ Item {
   function signOut() {
     var name = accountName()
     if (name === "") { svc.setupLog = "You are not signed in."; return }
-    var argv
-    try { argv = argvFor(Setup.signOutArgs(name), "audible") } catch (e) { svc.setupLog = "That account name cannot be signed out from here."; return }
+    var deregister, local
+    try {
+      deregister = ["timeout", String(Setup.DEREGISTER_TIMEOUT_SEC)].concat(argvFor(Setup.deregisterArgs(name), "audible"))
+      local = argvFor(Setup.signOutArgs(name), "audible")
+    } catch (e) { svc.setupLog = "That account name cannot be signed out from here."; return }
     if (svc.hasBook) svc.stop()
     busyWith("sign-out", "Signing out...")
-    svc.run(argv, function(code, out, err) {
-      if (code !== 0) { doneBusy("Could not sign out: " + String(err || out).split("\n")[0]); return }
-      svc.clearAccountData()
-      doneBusy("Signed out of " + name + ".")
+    // First the proper sign-out: this computer is removed from the Amazon account, then the login
+    // is deleted here. If that cannot run (offline, or the login cannot be opened, e.g. a forgotten
+    // password), fall back to removing the login locally and say the device is still registered.
+    svc.run(deregister, function(code, out, err) {
+      if (code === 0) {
+        svc.clearAccountData()
+        doneBusy("Signed out of " + name + ".")
+        return
+      }
+      svc.run(local, function(code2, out2, err2) {
+        if (code2 !== 0) { doneBusy("Could not sign out: " + String(err2 || out2).split("\n")[0]); return }
+        svc.clearAccountData()
+        doneBusy("Signed out of " + name + " here. This computer is still listed on your Amazon account (Manage Your Content and Devices).")
+      })
     })
   }
 
