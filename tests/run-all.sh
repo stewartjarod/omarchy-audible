@@ -40,6 +40,15 @@ if ! grep -q 'Setup.downloadArgs' Service.qml || ! grep -q 'ensureDownloadSettin
   echo "Service.qml no longer checks the download settings before downloading"; status=1
 fi
 
+# ------------------------------------------------------------------ one write to the account
+# The only call the plugin may make that changes anything on the Audible account is the position
+# write (PUT /1.0/lastpositions/<asin>), built in SyncModel.buildPushRequest. Any other non-GET
+# `audible api` call in the shipped code fails here.
+echo "== only one write to the Audible account"
+writes=$(grep -n -E '"api",[[:space:]]*"(POST|PUT|PATCH|DELETE)"|"(POST|PUT|PATCH|DELETE)",[[:space:]]*"/1\.0/' *.qml *.js | grep -v '"PUT", "/1.0/lastpositions/"' || true)
+if [ -n "$writes" ]; then echo "$writes"; status=1; else echo "none"; fi
+if ! grep -q '"PUT", "/1.0/lastpositions/"' SyncModel.js; then echo "SyncModel.js no longer builds the position write"; status=1; fi
+
 # ------------------------------------------------------------------ node
 echo "== node --test tests/"
 if node --test tests/ > "$TMP/node.out" 2>&1; then

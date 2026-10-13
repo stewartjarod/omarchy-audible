@@ -247,10 +247,22 @@ details page shows a button (`R`). It only reads from Audible and never jumps
 by itself. Starting a book that is not loaded uses the phone position if it is
 newer. Setting: `syncPullFromAudible` (on by default).
 
-Sending **your** position back to Audible is switched off
-(`syncPositionToAudible`) and in dry-run mode (`syncDryRun`): audible-rs has no
-documented way to write a position, so the plugin only logs what it would send
-and sends nothing. It does not write to your account.
+### Save your position to Audible
+
+Sending **your** position back to Audible, so the Audible app on your phone opens where you stopped
+here, is **off by default**. Turn on **Save my position to Audible** (`savePositionToAudible`) in the
+plugin's settings. This is the only thing the plugin ever writes to your Audible account, and it
+writes one number per book (`PUT /1.0/lastpositions/<book>`: the book's ID, its content ID and the
+position). It never buys, returns, rates or deletes anything.
+
+- It saves when you pause, when playback stops, and at most every 3 minutes while you listen.
+- **It will not overwrite a newer spot.** Before every write the plugin reads Audible's position
+  again. If another device (your phone) wrote one after you last listened here, it leaves it alone
+  and offers "Resume from phone" instead.
+- The Audible app follows a position it did not make by itself and shows a "moved ahead/back" notice
+  with an undo.
+- Nothing is sent while the setting is off. If a write fails, the plugin waits (1 minute, then
+  longer) and your spot stays safe on this computer.
 
 ### Listening stats
 
@@ -298,8 +310,7 @@ come from the schema in `manifest.json`.
 | `notifications` | Desktop notifications | on | on / off | Notices for downloads, finished books, the sleep timer, up next |
 | `audioFilter` | Sound adjustment | `off` | `off`, `normalize`, `voice` | Even out loudness or lift speech clarity (this player only) |
 | `syncPullFromAudible` | Pick up where I stopped on my phone | on | on / off | Offer the position from the Audible app. Reads only |
-| `syncPositionToAudible` | Save my position to Audible | off | on / off | Not working yet: nothing is sent while it is unconfirmed |
-| `syncDryRun` | Dry run | on | on / off | Log what would be sent instead of sending |
+| `savePositionToAudible` | Save my position to Audible | off | on / off | Write where you are in a book to Audible. Never overwrites a newer spot from another device |
 
 ## Where things are stored
 

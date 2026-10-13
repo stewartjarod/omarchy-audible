@@ -35,8 +35,7 @@
       "notifications": true,
       "audioFilter": "off",
       "syncPullFromAudible": true,
-      "syncPositionToAudible": false,
-      "syncDryRun": true
+      "savePositionToAudible": false
     },
     "schema": [
       {
@@ -172,18 +171,11 @@
         "defaultValue": true
       },
       {
-        "key": "syncPositionToAudible",
+        "key": "savePositionToAudible",
         "type": "boolean",
         "label": "Save my position to Audible",
-        "description": "Sends where you are in a book to Audible, so the Audible app and your other devices can pick it up. Only the book's ID and the position (in milliseconds) are sent. Nothing else. Off by default. Writing positions is not confirmed to work yet, so nothing is sent until that is checked.",
+        "description": "Sends where you are in a book to Audible, so the Audible app on your phone and your other devices can pick it up. Only the book's ID and the position are sent. Nothing else. It never overwrites a spot you reached on another device after you last listened here. Off by default.",
         "defaultValue": false
-      },
-      {
-        "key": "syncDryRun",
-        "type": "boolean",
-        "label": "Dry run (log instead of sending)",
-        "description": "While on, the plugin only writes the position it would have sent to its log, and sends nothing to Audible. Turn it off only after you have checked the log.",
-        "defaultValue": true
       }
     ]
   }

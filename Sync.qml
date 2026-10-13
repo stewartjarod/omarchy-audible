@@ -7,10 +7,11 @@ import "SyncModel.js" as SyncModel
 //     background. Never seeks a book on its own: a clearly-ahead phone position becomes `offer`,
 //     which the popup and the details page show. Accepting it seeks (loaded book) or sets the
 //     start position for the next start (book not loaded).
-//   PUSH (off by default, setting syncPositionToAudible): writes our position to Audible on pause,
-//     at most every 3 minutes while playing, and when playback stops. Dry run (syncDryRun, on by
-//     default) only logs what it would send. A live write needs push ON, dry run OFF and a content
-//     id, and the write shape is still UNVERIFIED (see SyncModel.js).
+//   PUSH (off by default, setting savePositionToAudible): writes our position to Audible on pause,
+//     at most every 3 minutes while playing, and when playback stops. This is the only write the
+//     plugin ever makes to the Audible account (PUT /1.0/lastpositions/<asin>). Before each write it
+//     re-reads Audible's position and refuses when another device wrote one after this computer last
+//     played the book, so it never moves your phone backwards (SyncModel.pushRefusal).
 // Everything is asynchronous. A failed call only sets `status` and backs off; it never blocks playback.
 Item {
   id: root
@@ -23,7 +24,10 @@ Item {
   property var phone: ({})        // asin -> { positionSec, updatedAt, exists, fetchedAt }
   property var accepted: ({})     // asin -> seconds, accepted while the book was not loaded
   property var dismissed: ({})    // asin -> seconds, offers the user already accepted
-  property var lastSent: ({})     // asin -> seconds last written (or dry-run "would send")
+  property var lastSent: ({})     // asin -> seconds last written to Audible
+  property var acrs: ({})         // asin -> content id Audible wants with a write (cached for good)
+  property var pushed: ({})       // asin -> the integer position_ms last written (to spot our own echo)
+  property bool pushBusy: false
   property var lastSeen: ({ asin: "", pos: 0 })
   property var offer: null        // { asin, position, label } | null
   property string status: ""      // last plain-English line, for the popup and the log
@@ -48,6 +52,8 @@ Item {
       var s = JSON.parse(text)
       if (s.accepted && typeof s.accepted === "object") accepted = s.accepted
       if (s.lastSent && typeof s.lastSent === "object") lastSent = s.lastSent
+      if (s.acrs && typeof s.acrs === "object") acrs = s.acrs
+      if (s.pushed && typeof s.pushed === "object") pushed = s.pushed
     } catch (e) { }
   }
 
@@ -57,7 +63,7 @@ Item {
     interval: 800
     onTriggered: {
       if (!root.service) return
-      var body = JSON.stringify({ version: 1, accepted: root.accepted, lastSent: root.lastSent })
+      var body = JSON.stringify({ version: 1, accepted: root.accepted, lastSent: root.lastSent, acrs: root.acrs, pushed: root.pushed })
       root.service.ensureStateDir(function() { stateFile.setText(body) })
     }
   }
@@ -187,76 +193,84 @@ Item {
     maybePush(false)
   }
 
-  // Content id for the write. Not available from any read verified so far (the downloads table
-  // has no acr). Left empty on purpose: live sending is refused until the integrator supplies it.
-  function acrFor(a) { return "" }
+  // When this computer last played the book (the resume entry's time), or 0 when it never has.
+  function listenedAt(a) {
+    var r = service && service.resume ? service.resume[a] : null
+    return r ? Number(r.updatedAt) || 0 : 0
+  }
 
   function maybePush(force) {
-    if (!mode.push || !service) return
+    if (!mode.push || !service || pushBusy) return
     var a = service.hasBook ? service.asin : ""
     var pos = service.hasBook ? service.position : 0
     if (a === "") return
     lastSeen = { asin: a, pos: pos }
+    if (listenedAt(a) <= 0) return   // nothing played here yet: wait for the first saved position
     var st = SyncModel.shouldPush({
       pushOn: true, hasBook: true, playing: service.playing, paused: service.paused || force,
       positionSec: pos, sentSec: lastSent[a], nowMs: Date.now(), lastPushMs: lastPushMs, nextAllowedMs: pushNextMs
     })
     if (!st.send) return
     lastPushMs = Date.now()
-    var acr = acrFor(a)
-    if (SyncModel.canSendLive(mode, acr)) {
-      sendLive(a, pos, acr)
-      return
-    }
-    if (mode.dryRun) {
-      var ls = Object.assign({}, lastSent)
-      ls[a] = pos
-      lastSent = ls
-      saveSoon()
-      status = SyncModel.describeWouldSend(a, pos, service.chapters)
-      console.log("stewartjarod.audible sync: " + status)
-    } else {
-      status = "Position sync is on, but this plugin cannot write to Audible yet, so nothing was sent."
-    }
+    sendLive(a, pos)
   }
 
   // Called when playback stops: write the last position we saw, without waiting for the interval.
   function flush() {
-    if (!mode.push || !lastSeen.asin || !(lastSeen.pos > 0)) return
+    if (!mode.push || pushBusy || !lastSeen.asin || !(lastSeen.pos > 0)) return
     var sent = lastSent[lastSeen.asin]
     if (sent !== undefined && Math.abs(lastSeen.pos - sent) < 5) return
-    var pos = lastSeen.pos
-    var a = lastSeen.asin
-    var acr = acrFor(a)
-    if (SyncModel.canSendLive(mode, acr)) { sendLive(a, pos, acr); return }
-    if (mode.dryRun) {
+    if (listenedAt(lastSeen.asin) <= 0 || Date.now() < pushNextMs) return
+    sendLive(lastSeen.asin, lastSeen.pos)
+  }
+
+  function failPush(msg) {
+    pushFailures++
+    pushNextMs = Date.now() + SyncModel.backoffMs(pushFailures)
+    status = msg
+    pushBusy = false
+  }
+
+  // One guarded write (SyncModel.pushPosition does the steps; this applies the result). Never blocks
+  // playback; any failure only sets `status` and backs off.
+  function sendLive(a, pos) {
+    if (!service || pushBusy) return
+    pushBusy = true
+    SyncModel.pushPosition(function(argv, cb) { service.run(argv, cb) }, {
+      asin: a, positionSec: pos, listenedAtMs: listenedAt(a), acr: acrs[a] || "", pushedMs: pushed[a]
+    }, function(res) {
+      var ac = Object.assign({}, acrs)
+      if (res.acr) ac[a] = res.acr; else delete ac[a]
+      acrs = ac
+      if (res.remote) {
+        var next = Object.assign({}, phone)
+        next[a] = Object.assign({}, res.remote, { fetchedAt: Date.now() })
+        phone = next
+      }
+      if (res.outcome === "failed") { saveSoon(); failPush(res.error); return }
+      if (res.outcome === "refused") {
+        pushNextMs = Date.now() + SyncModel.backoffMs(1)
+        status = "Audible has a newer spot from another device, so this computer left it alone."
+        pushBusy = false
+        saveSoon()
+        recompute()
+        return
+      }
+      pushFailures = 0
+      pushNextMs = 0
       var ls = Object.assign({}, lastSent)
       ls[a] = pos
       lastSent = ls
+      var ps = Object.assign({}, pushed)
+      ps[a] = res.positionMs
+      pushed = ps
+      var ph = Object.assign({}, phone)
+      ph[a] = { positionSec: pos, positionMs: res.positionMs, updatedAt: Date.now(), exists: true, fetchedAt: Date.now() }
+      phone = ph
       saveSoon()
-      status = SyncModel.describeWouldSend(a, pos, [])
-      console.log("stewartjarod.audible sync: " + status)
-    }
-  }
-
-  function sendLive(a, pos, acr) {
-    if (!service) return
-    var req = SyncModel.buildPushRequest(a, pos, acr)
-    if (!req) return
-    service.run(req.argv, function(code, out, err) {
-      if (code === 0) {
-        pushFailures = 0
-        pushNextMs = 0
-        var ls = Object.assign({}, lastSent)
-        ls[a] = pos
-        lastSent = ls
-        saveSoon()
-        status = "Position saved to Audible."
-      } else {
-        pushFailures++
-        pushNextMs = Date.now() + SyncModel.backoffMs(pushFailures)
-        status = SyncModel.friendlyError(err || out)
-      }
+      status = "Position saved to Audible."
+      pushBusy = false
+      recompute()
     })
   }
 }

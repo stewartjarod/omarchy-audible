@@ -8,8 +8,13 @@
 //       status: "Exists" | "DoesNotExist" } }
 //   position_ms is milliseconds into the book (5255484 ms = 24.3% of a 361 min book, library says 24.0).
 //   last_updated has no timezone. It is parsed here as UTC (assumption, see report).
-// NOT verified: how a position is written. buildPushRequest() uses a guessed endpoint and body and
-// is marked unverified. Live sending stays off until the integrator confirms it.
+// Writing a position (verified on the author's account, 2026-10-12, with a read-back and a restore):
+//   PUT /1.0/lastpositions/<asin>  body { acr, asin, position_ms }
+//   The content id (acr) comes from GET /1.0/content/<asin>/metadata?response_groups=content_reference
+//   -> result.content_metadata.content_reference.acr. No license request is needed. The Audible app
+//   follows a pushed position by itself and shows a "moved ahead/back" notice with an undo.
+//   Audible stamps a write with its own server clock, so it can run ahead of this computer's clock.
+//   audible-rs exits 1 on an HTTP error and prints an envelope whose `error` is set.
 
 var TOLERANCE_SEC = 120        // phone must be this far ahead (or behind) before we offer or push
 var END_GUARD_SEC = 60         // positions this close to the end count as "finished", like resumePosition
@@ -18,6 +23,7 @@ var PULL_MAX_AGE_MS = 10 * 60 * 1000
 var PUSH_PLAY_INTERVAL_MS = 3 * 60 * 1000   // while playing: at most one write per 3 min
 var PUSH_PAUSE_INTERVAL_MS = 10 * 1000      // paused or stopped: quick, but never a burst
 var PUSH_MIN_CHANGE_SEC = 5                 // do not write for a move smaller than this
+var SKEW_MS = 60 * 1000                     // slack between Audible's clock and this computer's
 var BACKOFF_BASE_MS = 60 * 1000
 var BACKOFF_MAX_MS = 30 * 60 * 1000
 
@@ -55,11 +61,12 @@ function parseLastPositions(text) {
     var lp = row.last_position_heard || {}
     if (!row.asin) continue
     if (lp.status !== "Exists" || typeof lp.position_ms !== "number" || !isFinite(lp.position_ms) || lp.position_ms < 0) {
-      positions[row.asin] = { positionSec: 0, updatedAt: 0, exists: false }
+      positions[row.asin] = { positionSec: 0, positionMs: 0, updatedAt: 0, exists: false }
       continue
     }
     positions[row.asin] = {
       positionSec: lp.position_ms / 1000,
+      positionMs: Math.round(lp.position_ms),
       updatedAt: parseTimestamp(lp.last_updated),
       exists: true
     }
@@ -166,28 +173,103 @@ function backoffMs(failures) {
   return Math.min(BACKOFF_MAX_MS, BACKOFF_BASE_MS * Math.pow(2, f - 1))
 }
 
-// Settings: push is strictly opt-in (=== true); dry run is ON unless explicitly false.
+// Setting: writing your position to Audible is strictly opt-in (=== true) and off by default.
 function pushMode(settings) {
   var s = settings || {}
-  return { push: s.syncPositionToAudible === true, dryRun: s.syncDryRun !== false }
+  return { push: s.savePositionToAudible === true }
 }
 
-// Live sending needs push on, dry run off, and a content id. Anything else is a log line only.
-function canSendLive(mode, acr) {
-  return !!(mode && mode.push && !mode.dryRun && acr)
+function isAsin(a) { return /^[A-Za-z0-9]{10}$/.test(String(a || "")) }
+
+// True when a finished `audible api` call really worked: exit 0 and no error in the envelope.
+// (audible-rs exits 1 on an HTTP error today; the envelope check is a second line of defence.)
+function callSucceeded(code, out) {
+  if (code !== 0) return false
+  var env = null
+  try { env = JSON.parse(String(out || "")) } catch (e) { return true }   // not JSON: trust the exit code
+  return !(env && typeof env === "object" && env.error)
 }
 
-// UNVERIFIED write shape. Endpoint and body are guesses until confirmed against a real write
-// (the integrator must check this with `audible api PUT ... --dry-run` before enabling live sends).
+// The read that returns the book's content id. Always a GET.
+function buildAcrArgv(asin) {
+  if (!isAsin(asin)) throw new Error("not a valid ASIN")
+  return ["audible", "api", "GET", "/1.0/content/" + asin + "/metadata",
+          "--query", "response_groups=content_reference", "-o", "json"]
+}
+
+// The content id from that reply, or "" when it is missing, for another book, or the call failed.
+function parseAcr(text, asin) {
+  var env = null
+  try { env = JSON.parse(String(text || "")) } catch (e) { return "" }
+  if (!env || env.error) return ""
+  var ref = env.result && env.result.content_metadata && env.result.content_metadata.content_reference
+  if (!ref || typeof ref.acr !== "string" || ref.acr === "" || ref.acr.length > 200) return ""
+  if (ref.asin && ref.asin !== asin) return ""
+  return ref.acr
+}
+
+// The one write this plugin ever makes to the Audible account. `positionMs` is the integer sent, so
+// the caller can remember exactly what it wrote (see pushRefusal).
 function buildPushRequest(asin, positionSec, acr) {
-  if (!asin) return null
-  var body = { asin: asin, position_ms: Math.round((Number(positionSec) || 0) * 1000) }
-  if (acr) body.acr = acr
+  if (!isAsin(asin) || typeof acr !== "string" || acr === "") return null
+  var sec = Number(positionSec)
+  if (!isFinite(sec) || sec < 0) return null
+  var body = { acr: acr, asin: asin, position_ms: Math.round(sec * 1000) }
   return {
-    unverified: true,
     argv: ["audible", "api", "PUT", "/1.0/lastpositions/" + asin, "--body", JSON.stringify(body), "-o", "json"],
-    body: body
+    body: body,
+    positionMs: body.position_ms
   }
+}
+
+// Why a write must not happen now, or "" when it may. `remote` is Audible's position for the book,
+// read just before the write: { exists, positionMs, updatedAt }. `listenedAtMs` is when this computer
+// last played the book (the resume entry's time). `pushedMs` is the integer this computer last wrote.
+//   - Audible has no position, or the position is exactly what we wrote last: fine (our own echo,
+//     stamped with Audible's clock, must never lock us out).
+//   - Audible's position was written after we last listened here (beyond the clock slack): another
+//     device listened since, so we do not overwrite it.
+function pushRefusal(remote, listenedAtMs, pushedMs) {
+  if (!remote || remote.exists === false) return ""
+  if (pushedMs !== undefined && pushedMs !== null && remote.positionMs === pushedMs) return ""
+  var listened = Number(listenedAtMs) || 0
+  if (listened <= 0) return "unknown"
+  if ((Number(remote.updatedAt) || 0) > listened + SKEW_MS) return "stale"
+  return ""
+}
+
+// One guarded write, as a sequence of `audible api` calls through run(argv, cb(code, out, err)):
+//   1. the content id (skipped when ctx.acr is cached)   2. a fresh read of Audible's position
+//   3. pushRefusal(...)                                  4. the write, only if nothing refused it.
+// ctx: { asin, positionSec, listenedAtMs, acr, pushedMs }.
+// done(result): { outcome: "sent" | "refused" | "failed", why, acr, remote, positionMs, error }.
+//   "refused": another device wrote after we last listened (why "stale"); `remote` is what Audible has.
+//   "failed":  `acr` is "" when the content id should be read again next time; `error` is plain English.
+// Nothing here touches the clock or the disk, so it can be tested with a stand-in `audible`.
+function pushPosition(run, ctx, done) {
+  var asin = ctx.asin
+  function fail(err, acr, remote) { done({ outcome: "failed", error: err || friendlyError(""), acr: acr || "", remote: remote || null }) }
+  function afterAcr(acr) {
+    if (!acr) { fail("", ""); return }
+    run(buildPullArgv([asin]), function (code, out, err) {
+      if (!callSucceeded(code, out)) { fail(friendlyError(err || out), acr); return }
+      var r = parseLastPositions(out)
+      if (!r.ok) { fail(r.error, acr); return }
+      var remote = r.positions[asin] || { exists: false, positionMs: 0, positionSec: 0, updatedAt: 0 }
+      var why = pushRefusal(remote, ctx.listenedAtMs, ctx.pushedMs)
+      if (why !== "") { done({ outcome: "refused", why: why, acr: acr, remote: remote }); return }
+      var req = buildPushRequest(asin, ctx.positionSec, acr)
+      if (!req) { fail("", acr, remote); return }
+      run(req.argv, function (code2, out2, err2) {
+        if (callSucceeded(code2, out2)) done({ outcome: "sent", acr: acr, remote: remote, positionMs: req.positionMs })
+        else fail(friendlyError(err2 || out2), "", remote)   // drop the content id: it may be the problem
+      })
+    })
+  }
+  if (ctx.acr) { afterAcr(ctx.acr); return }
+  run(buildAcrArgv(asin), function (code, out) {
+    afterAcr(callSucceeded(code, out) ? parseAcr(out, asin) : "")
+  })
 }
 
 // Whether a push should happen now. state: { pushOn, hasBook, playing, paused, positionSec,
@@ -205,11 +287,6 @@ function shouldPush(state) {
   return { send: true, reason: "due" }
 }
 
-function describeWouldSend(asin, positionSec, chapters) {
-  return "Would send to Audible: book " + asin + ", at " + formatPosition(positionSec, chapters) +
-         ". Not sent (dry run is on)."
-}
-
 function needsPull(fetchedAtMs, nowMs) {
   return !fetchedAtMs || (Number(nowMs) - Number(fetchedAtMs)) > PULL_MAX_AGE_MS
 }
@@ -219,6 +296,7 @@ if (typeof module !== "undefined") module.exports = {
   parseTimestamp: parseTimestamp, friendlyError: friendlyError, parseLastPositions: parseLastPositions,
   buildPullArgv: buildPullArgv, chunk: chunk, pullCandidates: pullCandidates, localBaseline: localBaseline,
   decide: decide, formatHm: formatHm, chapterNumberAt: chapterNumberAt, formatPosition: formatPosition,
-  backoffMs: backoffMs, pushMode: pushMode, canSendLive: canSendLive, buildPushRequest: buildPushRequest,
-  shouldPush: shouldPush, describeWouldSend: describeWouldSend, needsPull: needsPull
+  SKEW_MS: SKEW_MS, backoffMs: backoffMs, pushMode: pushMode, isAsin: isAsin, callSucceeded: callSucceeded,
+  buildAcrArgv: buildAcrArgv, parseAcr: parseAcr, buildPushRequest: buildPushRequest, pushRefusal: pushRefusal, pushPosition: pushPosition,
+  shouldPush: shouldPush, needsPull: needsPull
 }

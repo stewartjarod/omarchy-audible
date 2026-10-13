@@ -155,27 +155,30 @@ test("backoff doubles and caps at 30 minutes", () => {
   assert.equal(M.backoffMs(50), 30 * 60 * 1000)
 })
 
-test("push is opt-in and dry run is on unless explicitly off", () => {
-  assert.deepEqual(M.pushMode({}), { push: false, dryRun: true })
-  assert.deepEqual(M.pushMode({ syncPositionToAudible: true }), { push: true, dryRun: true })
-  assert.deepEqual(M.pushMode({ syncPositionToAudible: true, syncDryRun: false }), { push: true, dryRun: false })
-  assert.equal(M.pushMode({ syncPositionToAudible: "true" }).push, false)  // strict boolean only
+test("saving to Audible is opt-in: only a real boolean true turns it on", () => {
+  assert.deepEqual(M.pushMode({}), { push: false })
+  assert.deepEqual(M.pushMode(null), { push: false })
+  assert.deepEqual(M.pushMode({ savePositionToAudible: true }), { push: true })
+  assert.equal(M.pushMode({ savePositionToAudible: "true" }).push, false)  // strict boolean only
+  // the retired settings can never turn a write on
+  assert.equal(M.pushMode({ syncPositionToAudible: true, syncDryRun: false }).push, false)
 })
 
-test("live send needs push on, dry run off AND a content id; all else is refused", () => {
-  assert.equal(M.canSendLive({ push: true, dryRun: false }, ""), false)
-  assert.equal(M.canSendLive({ push: true, dryRun: true }, "ACR"), false)
-  assert.equal(M.canSendLive({ push: false, dryRun: false }, "ACR"), false)
-  assert.equal(M.canSendLive({ push: true, dryRun: false }, "ACR"), true)
+test("buildPushRequest is the verified PUT: acr, asin and the position in whole ms", () => {
+  const req = M.buildPushRequest(BOOK, 5255.4, "CR!ABC")
+  assert.deepEqual(req.argv.slice(0, 4), ["audible", "api", "PUT", "/1.0/lastpositions/" + BOOK])
+  assert.deepEqual(req.body, { acr: "CR!ABC", asin: BOOK, position_ms: 5255400 })
+  assert.equal(req.positionMs, 5255400)
+  assert.equal(req.unverified, undefined)
+  assert.equal(M.buildPushRequest(BOOK, 0.0004, "x").positionMs, 0)
 })
 
-test("buildPushRequest marks itself unverified and builds a PUT with the position in ms", () => {
-  const req = M.buildPushRequest(BOOK, 5255.4, "ACR")
-  assert.equal(req.unverified, true)
-  assert.equal(req.argv[2], "PUT")
-  assert.equal(req.body.position_ms, 5255400)
-  assert.equal(req.body.acr, "ACR")
+test("buildPushRequest refuses what it cannot write safely", () => {
   assert.equal(M.buildPushRequest("", 1, "x"), null)
+  assert.equal(M.buildPushRequest("B0SMPL; rm", 1, "x"), null)
+  assert.equal(M.buildPushRequest(BOOK, 1, ""), null)       // no content id: never guess one
+  assert.equal(M.buildPushRequest(BOOK, -5, "x"), null)
+  assert.equal(M.buildPushRequest(BOOK, NaN, "x"), null)
 })
 
 test("shouldPush: off, backoff, unchanged, rate limits and due", () => {
@@ -188,11 +191,6 @@ test("shouldPush: off, backoff, unchanged, rate limits and due", () => {
   // paused: a short gap is allowed, but never a burst
   assert.equal(M.shouldPush({ ...base, playing: false, paused: true, lastPushMs: 1e12 - 30000 }).send, true)
   assert.equal(M.shouldPush({ ...base, playing: false, paused: true, lastPushMs: 1e12 - 2000 }).send, false)
-})
-
-test("describeWouldSend reads like a plain log line and says nothing was sent", () => {
-  const s = M.describeWouldSend(BOOK, 7980, [{ index: 0, start: 0 }, { index: 11, start: 7000 }])
-  assert.equal(s, "Would send to Audible: book B0SMPL0072, at Chapter 12 · 2h 13m. Not sent (dry run is on).")
 })
 
 test("needsPull respects the 10 minute freshness window", () => {
