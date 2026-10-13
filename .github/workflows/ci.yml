@@ -1,7 +1,9 @@
 name: CI
 
-# Runs tests/run-all.sh: the node tests, the guard checks and qmllint. The live checks that need the
-# desktop (tests/smoke.sh) are not run here.
+# commits: every pushed commit message follows Conventional Commits.
+# checks:  tests/run-all.sh (node tests, guard checks, theme/privacy/token checks, the marketplace's own
+#          security scanner on the committed HEAD, qmllint). The live checks that need the desktop
+#          (tests/smoke.sh) are not run here.
 on:
   push:
     branches: [master]
@@ -11,19 +13,50 @@ permissions:
   contents: read
 
 jobs:
+  commits:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Pinned to a commit: v4.2.2
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - name: Check every new commit message
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          BEFORE: ${{ github.event.before }}
+          SHA: ${{ github.sha }}
+        run: |
+          if [ "$EVENT" = pull_request ]; then
+            range="origin/$BASE_REF..HEAD"
+          elif [ "$BEFORE" != "0000000000000000000000000000000000000000" ] && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            range="$BEFORE..$SHA"
+          else
+            range="HEAD~1..HEAD"
+          fi
+          scripts/check-commits.sh "$range"
+
   checks:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      # Pinned to a commit: v4.2.2
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install qmllint
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends qt6-declarative-dev-tools
       - name: Show tool versions
         run: node --version && (/usr/lib/qt6/bin/qmllint --version || qmllint --version)
+      # Upstream's development branch is what the next Omarchy release ships: a token renamed or removed
+      # there fails the token check here, as early warning.
+      - name: Fetch the shell's Commons (upstream development branch)
+        run: echo "OMARCHY_COMMONS=$(tests/fetch-commons.sh)" >> "$GITHUB_ENV"
+      - name: Fetch the marketplace's verification scripts
+        run: echo "MARKETPLACE_SCRIPTS=$(tests/fetch-marketplace.sh)" >> "$GITHUB_ENV"
       # The runner has no Quickshell, so qmllint cannot resolve imports here; only real errors (syntax)
       # fail it. Run tests/run-all.sh without the variable on your machine for the full check.
       - name: Run every check
         env:
           QMLLINT_ERRORS_ONLY: "1"
+          REQUIRE_COMMONS: "1"
+          REQUIRE_MARKETPLACE: "1"
         run: bash tests/run-all.sh
