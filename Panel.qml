@@ -255,6 +255,7 @@ Panel {
         id: onboarding
         anchors.fill: parent
         visible: !root.ready
+        shown: root.opened
         service: root.service
         onCloseRequested: root.close()
       }

@@ -49,6 +49,20 @@ writes=$(grep -n -E '"api",[[:space:]]*"(POST|PUT|PATCH|DELETE)"|"(POST|PUT|PATC
 if [ -n "$writes" ]; then echo "$writes"; status=1; else echo "none"; fi
 if ! grep -q '"PUT", "/1.0/lastpositions/"' SyncModel.js; then echo "SyncModel.js no longer builds the position write"; status=1; fi
 
+# ------------------------------------------------------------------ no always-present text input
+# A text input that exists all the time listens to clipboard changes inside the shell, even with the
+# popup closed (a marketplace review finding). The one password field must be created by a Loader
+# (sourceComponent) that is active only while the popup is open on the step that needs it.
+echo "== text inputs only inside Onboarding's Loader"
+inputs=$(grep -n -E '^[[:space:]]*(TextField|TextInput|TextArea)[[:space:]]*\{' *.qml | grep -v '^Onboarding.qml:' || true)
+if [ -n "$inputs" ]; then echo "$inputs"; status=1; else echo "none"; fi
+if ! grep -q 'sourceComponent: TextField' Onboarding.qml || ! grep -q 'active: root.shown && root.needsPassword' Onboarding.qml; then
+  echo "Onboarding.qml's password field is no longer created only when needed"; status=1
+fi
+if grep -n -E '^[[:space:]]*(TextField|TextInput|TextArea)[[:space:]]*\{' Onboarding.qml | grep -q .; then
+  echo "Onboarding.qml has a text input outside the Loader"; status=1
+fi
+
 # ------------------------------------------------------------------ node
 echo "== node --test tests/"
 if node --test tests/ > "$TMP/node.out" 2>&1; then
