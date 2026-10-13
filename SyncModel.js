@@ -173,10 +173,11 @@ function backoffMs(failures) {
   return Math.min(BACKOFF_MAX_MS, BACKOFF_BASE_MS * Math.pow(2, f - 1))
 }
 
-// Setting: writing your position to Audible is strictly opt-in (=== true) and off by default.
+// Setting: your position is written to Audible unless the setting is explicitly switched off (a real
+// boolean false; anything else, including a missing value, leaves it on).
 function pushMode(settings) {
   var s = settings || {}
-  return { push: s.savePositionToAudible === true }
+  return { push: s.savePositionToAudible !== false }
 }
 
 function isAsin(a) { return /^[A-Za-z0-9]{10}$/.test(String(a || "")) }

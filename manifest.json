@@ -35,7 +35,7 @@
       "notifications": true,
       "audioFilter": "off",
       "syncPullFromAudible": true,
-      "savePositionToAudible": false
+      "savePositionToAudible": true
     },
     "schema": [
       {
@@ -174,8 +174,8 @@
         "key": "savePositionToAudible",
         "type": "boolean",
         "label": "Save my position to Audible",
-        "description": "Sends where you are in a book to Audible, so the Audible app on your phone and your other devices can pick it up. Only the book's ID and the position are sent. Nothing else. It never overwrites a spot you reached on another device after you last listened here. Off by default.",
-        "defaultValue": false
+        "description": "Sends where you are in a book to Audible, so the Audible app on your phone and your other devices can pick it up. Only the book's ID and the position are sent. Nothing else. It never overwrites a spot you reached on another device after you last listened here. On by default; turn it off to keep your position on this computer only.",
+        "defaultValue": true
       }
     ]
   }

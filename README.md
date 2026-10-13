@@ -249,9 +249,10 @@ newer. Setting: `syncPullFromAudible` (on by default).
 
 ### Save your position to Audible
 
-Sending **your** position back to Audible, so the Audible app on your phone opens where you stopped
-here, is **off by default**. Turn on **Save my position to Audible** (`savePositionToAudible`) in the
-plugin's settings. This is the only thing the plugin ever writes to your Audible account, and it
+Your position is sent back to Audible, so the Audible app on your phone opens where you stopped
+here. This is **on by default**. To keep your position on this computer only, turn off **Save my
+position to Audible** (`savePositionToAudible`) in the plugin's settings. This is the only thing the
+plugin ever writes to your Audible account, and it
 writes one number per book (`PUT /1.0/lastpositions/<book>`: the book's ID, its content ID and the
 position). It never buys, returns, rates or deletes anything.
 
@@ -261,7 +262,7 @@ position). It never buys, returns, rates or deletes anything.
   and offers "Resume from phone" instead.
 - The Audible app follows a position it did not make by itself and shows a "moved ahead/back" notice
   with an undo.
-- Nothing is sent while the setting is off. If a write fails, the plugin waits (1 minute, then
+- Nothing is sent while the setting is off, and a book you have not played here is never written. If a write fails, the plugin waits (1 minute, then
   longer) and your spot stays safe on this computer.
 
 ### Listening stats
@@ -310,7 +311,7 @@ come from the schema in `manifest.json`.
 | `notifications` | Desktop notifications | on | on / off | Notices for downloads, finished books, the sleep timer, up next |
 | `audioFilter` | Sound adjustment | `off` | `off`, `normalize`, `voice` | Even out loudness or lift speech clarity (this player only) |
 | `syncPullFromAudible` | Pick up where I stopped on my phone | on | on / off | Offer the position from the Audible app. Reads only |
-| `savePositionToAudible` | Save my position to Audible | off | on / off | Write where you are in a book to Audible. Never overwrites a newer spot from another device |
+| `savePositionToAudible` | Save my position to Audible | on | on / off | Write where you are in a book to Audible. Never overwrites a newer spot from another device |
 
 ## Where things are stored
 

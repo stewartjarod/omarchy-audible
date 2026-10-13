@@ -7,7 +7,7 @@ import "SyncModel.js" as SyncModel
 //     background. Never seeks a book on its own: a clearly-ahead phone position becomes `offer`,
 //     which the popup and the details page show. Accepting it seeks (loaded book) or sets the
 //     start position for the next start (book not loaded).
-//   PUSH (off by default, setting savePositionToAudible): writes our position to Audible on pause,
+//   PUSH (on by default, setting savePositionToAudible): writes our position to Audible on pause,
 //     at most every 3 minutes while playing, and when playback stops. This is the only write the
 //     plugin ever makes to the Audible account (PUT /1.0/lastpositions/<asin>). Before each write it
 //     re-reads Audible's position and refuses when another device wrote one after this computer last

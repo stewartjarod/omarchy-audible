@@ -155,13 +155,22 @@ test("backoff doubles and caps at 30 minutes", () => {
   assert.equal(M.backoffMs(50), 30 * 60 * 1000)
 })
 
-test("saving to Audible is opt-in: only a real boolean true turns it on", () => {
-  assert.deepEqual(M.pushMode({}), { push: false })
-  assert.deepEqual(M.pushMode(null), { push: false })
+test("saving to Audible is on unless the setting is explicitly switched off", () => {
+  assert.deepEqual(M.pushMode({}), { push: true })
+  assert.deepEqual(M.pushMode(null), { push: true })
   assert.deepEqual(M.pushMode({ savePositionToAudible: true }), { push: true })
-  assert.equal(M.pushMode({ savePositionToAudible: "true" }).push, false)  // strict boolean only
-  // the retired settings can never turn a write on
-  assert.equal(M.pushMode({ syncPositionToAudible: true, syncDryRun: false }).push, false)
+  assert.deepEqual(M.pushMode({ savePositionToAudible: false }), { push: false })
+  assert.equal(M.pushMode({ savePositionToAudible: "false" }).push, true)   // only a real boolean false turns it off
+})
+
+test("the manifest agrees: the setting defaults to on, in the values and in the schema", () => {
+  const man = JSON.parse(require("fs").readFileSync(require("path").join(__dirname, "..", "manifest.json"), "utf8"))
+  const entry = JSON.stringify(man).includes('"savePositionToAudible"')
+  assert.ok(entry)
+  const find = (o) => Array.isArray(o) ? o.flatMap(find) : (o && typeof o === "object")
+    ? (o.key === "savePositionToAudible" ? [o.defaultValue] : Object.values(o).flatMap(find)) : []
+  assert.deepEqual(find(man), [true])
+  assert.equal(JSON.stringify(man).match(/"savePositionToAudible":\s*(true|false)/)[1], "true")
 })
 
 test("buildPushRequest is the verified PUT: acr, asin and the position in whole ms", () => {
