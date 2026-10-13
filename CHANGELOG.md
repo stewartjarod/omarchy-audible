@@ -6,6 +6,8 @@ All notable changes to this plugin are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-12
+
 ### Added
 - Your listening position is saved to Audible, so the Audible app on your phone opens where you
   stopped. On by default; the setting `savePositionToAudible` turns it off. It never overwrites a
@@ -18,6 +20,10 @@ All notable changes to this plugin are listed here. The format follows
 - Test fixtures use sample data, and the README screenshots show a sample library.
 
 ### Fixed
+- Signing out now removes this computer from your Amazon account (`audible account logout`). It
+  used to leave the device registered. If Amazon cannot be reached, or the login cannot be opened
+  (a forgotten password), the login is still removed here and the plugin says the computer stays
+  listed until you remove it on Amazon's Manage Your Content and Devices page.
 - The first download on a new install could finish without the player ever finding the book. The
   plugin now makes the audible CLI's download settings match the layout the player reads.
 - The sign-in password field no longer exists while the popup is closed (a text input in the shell
@@ -36,5 +42,6 @@ First public release, listed on the Omarchy plugin marketplace.
 - The plugin id is `stewartjarod.audible`.
 - The state directory is private (mode 0700, files 0600).
 
-[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/stewartjarod/omarchy-audible/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/stewartjarod/omarchy-audible/releases/tag/v0.1.1
