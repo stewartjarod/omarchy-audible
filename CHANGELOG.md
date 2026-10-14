@@ -6,6 +6,14 @@ All notable changes to this plugin are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-14
+
+### Fixed
+- The shell no longer has any text input, so it never reads the clipboard. Unlocking a saved login
+  now opens a terminal window that asks for the password (not shown as you type) and puts it
+  straight into your keyring; the popup notices the unlock by itself. The sign-in link is plain
+  text that copies when clicked.
+
 ## [0.2.0] - 2026-10-12
 
 ### Added
@@ -42,6 +50,7 @@ First public release, listed on the Omarchy plugin marketplace.
 - The plugin id is `stewartjarod.audible`.
 - The state directory is private (mode 0700, files 0600).
 
-[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/stewartjarod/omarchy-audible/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/stewartjarod/omarchy-audible/releases/tag/v0.1.1
