@@ -258,6 +258,33 @@ function terminalLoginArgs(accountName, marketplace) {
   return ["sh", "-c", TERMINAL_LOGIN_SCRIPT, "sh", n, mp]
 }
 
+// The unlock for a saved login that is locked: runs in a terminal window, so the shell never holds a
+// text input (one would read the clipboard whenever another app sets it). The password is read from
+// the terminal with echo off and piped to secret-tool, so it is never on a command line, in a file or
+// in the shell. Then the CLI is pointed at the keyring. recheckPoll notices the unlock. $1 account name.
+var TERMINAL_UNLOCK_SCRIPT = [
+  'export PATH="$HOME/.local/bin:$PATH"',
+  'name="$1"',
+  'pause() { echo; printf "Press Enter to close "; read -r _; }',
+  'trap \'stty echo 2>/dev/null\' EXIT INT TERM',
+  'echo "Unlock your saved Audible login (account: $name)"; echo',
+  'echo "Type the password of your Audible login file. It is not shown, and it goes straight into your keyring."',
+  'printf "Password: "; stty -echo 2>/dev/null; IFS= read -r pw; stty echo 2>/dev/null; echo',
+  'if [ -z "$pw" ]; then echo; echo "Nothing typed, so nothing was saved."; pause; exit 1; fi',
+  'if printf %s "$pw" | secret-tool store --label="audible-rs $name" service audible-rs account "$name" \\',
+  '   && audible account password source command -a "$name" --command "secret-tool lookup service audible-rs account $name"; then',
+  '  pw=; echo; echo "Saved. The Audible popup unlocks by itself in a few seconds. If it still asks, the password was wrong: try again."',
+  'else',
+  '  pw=; echo; echo "Could not save it to the keyring. Close this and try again from the Audible popup."',
+  'fi',
+  'pause'
+].join("\n")
+
+function terminalUnlockArgs(accountName) {
+  var n = _checkAccount(accountName)
+  return ["sh", "-c", TERMINAL_UNLOCK_SCRIPT, "sh", n]
+}
+
 function installPlan(tag, arch) {
   if (arch !== PINNED_ARCH) return { error: "Only " + PINNED_ARCH + " is supported right now." }
   var t = tag || PINNED_TAG
@@ -377,8 +404,8 @@ function detect(probe) {
   } else if (state === "locked") {
     if (secretFound) {
       out.title = "Unlock your saved login"
-      out.message = "Your Audible login is saved, but it needs your Audible password once before it can sync. Type it below; it goes straight into your system keyring and is never written to a file or shown here."
-      out.primary = _action("store-password", "Save password", !!busy, "password")
+      out.message = "Your Audible login is saved, but it needs your Audible password once before it can sync. A terminal window asks for it and puts it straight into your system keyring; it is never written to a file or shown here. This page updates by itself once it is saved."
+      out.primary = _action("store-password", "Unlock in a terminal", !!busy)
       out.secondary = [{ id: "sign-out", label: "Forgot it? Sign out and start over" }, { id: "remove-password", label: "Remove saved password" }]
     } else {
       out.title = "Unlock your saved login"
@@ -417,6 +444,7 @@ if (typeof module !== "undefined") module.exports = {
   DOWNLOAD_FILENAME_TEMPLATE: DOWNLOAD_FILENAME_TEMPLATE,
   accountNameFor: accountNameFor,
   terminalLoginArgs: terminalLoginArgs,
+  terminalUnlockArgs: terminalUnlockArgs,
   installPlan: installPlan,
   verifySums: verifySums,
   versionNotice: versionNotice,

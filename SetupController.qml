@@ -117,7 +117,7 @@ Item {
     case "install-audible": installAudible(); break
     case "login": startLogin(); break
     case "cancel": cancelLogin(); break
-    case "store-password": storePassword(payload ? String(payload.password || "") : ""); break
+    case "store-password": terminalUnlock(); break
     case "remove-password":
       Quickshell.execDetached(["xdg-terminal-exec", "sh", "-c",
         "export PATH=\"$HOME/.local/bin:$PATH\"; audible account password remove; echo; read -r -p 'Press Enter to close' _"])
@@ -232,6 +232,16 @@ Item {
     svc.setupLog = "Finish signing in in the terminal window that opened. This page updates by itself."
   }
 
+  // Unlock a locked login: the password is typed in a terminal window, never in the shell (see
+  // SetupModel.terminalUnlockArgs). Not busy, so recheckPoll keeps looking for the unlock.
+  function terminalUnlock() {
+    var argv
+    try { argv = Setup.terminalUnlockArgs(accountName()) }
+    catch (e) { svc.setupLog = "Could not start the unlock: no saved login was found."; return }
+    Quickshell.execDetached(["xdg-terminal-exec"].concat(argv))
+    svc.setupLog = "Type your password in the terminal window that opened. This page updates by itself."
+  }
+
   // While setup is waiting on something outside the popup (a terminal sign-in, an unlock done with
   // the CLI), look again every few seconds. Idle once the library is ready or an action is running.
   Timer {
@@ -277,7 +287,7 @@ Item {
 
   function storePassword(password) {
     var name = accountName()
-    if (name === "" || password === "") { svc.setupLog = "Type your Audible file password first."; return }
+    if (name === "" || password === "") { doneBusy("Signed in, but could not protect your login file."); return }
     busyWith("store-password", "Saving it to your keyring...")
     // password goes to secret-tool on stdin only, never in argv or logs
     svc.run(argvFor(Setup.keyringStoreArgs(name), "secret-tool"), function(code, out, err) {

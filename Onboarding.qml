@@ -1,18 +1,18 @@
 import QtQuick
+import Quickshell
 import qs.Commons
 import qs.Ui
 
 // First-run setup for stewartjarod.audible. Shows service.setup (see SetupModel.js):
 // one friendly title and message, a checklist of steps, ONE primary action
-// (Enter), optional secondary actions (Tab to highlight, Enter to run), a
-// masked password field when the primary action needs one, and the sign-in
-// link while the browser login is waiting.
+// (Enter), optional secondary actions (Tab to highlight, Enter to run), and the
+// sign-in link while the browser login is waiting. There is deliberately no text
+// input: a native one reads the clipboard whenever another app sets it, so the
+// password for a locked login is typed in a terminal (SetupModel.terminalUnlockArgs).
 Item {
   id: root
 
   property var service: null
-  // True while the host popup is open. The password field only exists then (see passwordLoader).
-  property bool shown: false
   // Lets a host (the bar popup) size itself to the current state's content.
   implicitHeight: column.implicitHeight + Style.spacing.popupPadding * 2
   signal closeRequested()
@@ -26,10 +26,6 @@ Item {
   readonly property var secondary: setup && setup.secondary ? setup.secondary : []
   readonly property var steps: setup && setup.steps ? setup.steps : []
   readonly property bool primaryBusy: !!(primary && primary.busy)
-  readonly property bool needsPassword: !!primary && primary.input === "password"
-  // The password field, or null. It is created only while it is needed and visible, so no text input
-  // sits in the shell (listening to clipboard changes) the rest of the time.
-  readonly property var passwordField: passwordLoader.item
   readonly property string loginUrl: service && service.loginUrl ? service.loginUrl : ""
   readonly property string logLine: service && service.setupLog ? service.setupLog : ""
 
@@ -44,7 +40,7 @@ Item {
   readonly property string legend: {
     var parts = []
     if (secondaryIndex >= 0 && secondaryIndex < secondary.length) parts.push("Enter " + secondary[secondaryIndex].label.toLowerCase())
-    else if (primary && !primaryBusy) parts.push(needsPassword ? "Enter save" : "Enter " + primary.label.toLowerCase())
+    else if (primary && !primaryBusy) parts.push("Enter " + primary.label.toLowerCase())
     if (secondary.length > 0) parts.push("Tab options")
     parts.push("r check again")
     parts.push("Esc close")
@@ -53,7 +49,6 @@ Item {
 
   function runPrimary() {
     if (!service || !primary || primaryBusy) return
-    if (needsPassword) { submitPassword(); return }
     service.runSetupAction(primary.id, {})
   }
 
@@ -61,16 +56,6 @@ Item {
     if (!service || i < 0 || i >= secondary.length) return
     secondaryIndex = -1
     service.runSetupAction(secondary[i].id, {})
-  }
-
-  function submitPassword() {
-    if (!service || !primary || primaryBusy) return
-    var pw = passwordField ? passwordField.text : ""
-    if (pw.length === 0) return
-    // The password goes to the service once and is cleared from the field
-    // right away; it is never logged or placed in any args list.
-    service.runSetupAction("store-password", { password: pw })
-    if (passwordField) passwordField.text = ""
   }
 
   function cycleSecondary(dir) {
@@ -85,18 +70,11 @@ Item {
     if (service) service.runSetupAction("recheck", {})
   }
 
-  function focusPassword() {
-    Qt.callLater(function () { if (root.passwordField) root.passwordField.forceActiveFocus() })
-  }
-  onStateNameChanged: {
-    secondaryIndex = -1
-    if (needsPassword) focusPassword()
-  }
+  onStateNameChanged: secondaryIndex = -1
 
   PanelKeyCatcher {
     id: keyCatcher
     anchors.fill: parent
-    blocked: root.passwordField ? root.passwordField.activeFocus : false
 
     onReturnRequested: {
       if (root.secondaryIndex >= 0) root.runSecondary(root.secondaryIndex)
@@ -207,26 +185,6 @@ Item {
           }
         }
 
-        // Masked password entry, only when the primary action needs it. A Loader, so the text input
-        // is created while the popup is open on that step and destroyed otherwise (a permanent text
-        // input would react to every clipboard change in the shell, even with the popup closed).
-        Loader {
-          id: passwordLoader
-          active: root.shown && root.needsPassword
-          width: parent.width
-          height: item ? item.implicitHeight : 0
-          onLoaded: root.focusPassword()
-          sourceComponent: TextField {
-            width: passwordLoader.width
-            password: true
-            enabled: !root.primaryBusy
-            placeholderText: "Your Audible password"
-            inputMethodHints: Qt.ImhSensitiveData | Qt.ImhNoPredictiveText
-            onAccepted: root.submitPassword()
-            Keys.onEscapePressed: root.closeRequested()
-          }
-        }
-
         // Primary action: Enter runs it.
         Rectangle {
           id: primaryButton
@@ -297,19 +255,27 @@ Item {
           }
         }
 
-        // Sign-in link while the browser login waits. Selectable so it can be copied.
-        TextEdit {
+        // Sign-in link while the browser login waits. Plain text, not a selectable text input (that
+        // would read the clipboard); a click copies it.
+        Text {
           id: loginLink
           visible: root.loginUrl !== ""
           width: parent.width
-          readOnly: true
-          selectByMouse: true
           text: root.loginUrl
           color: root.accent
           font.family: Style.font.family
           font.pixelSize: Style.font.bodySmall
-          wrapMode: TextEdit.WrapAnywhere
-          textFormat: TextEdit.PlainText
+          wrapMode: Text.WrapAnywhere
+          textFormat: Text.PlainText
+
+          MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+              Quickshell.clipboardText = root.loginUrl
+              if (root.service) root.service.setupLog = "Sign-in link copied."
+            }
+          }
         }
 
         Text {

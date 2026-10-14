@@ -106,8 +106,10 @@ again, and **Esc** to close.
    browser flow is not a failure. **Tab** then Enter on "Cancel sign-in" stops
    the wait.
 4. **Unlock the saved login.** Shown when your login was saved but needs your
-   Audible file password once. If `secret-tool` is installed, type the password
-   and press Enter; it goes straight into your keyring. Without `secret-tool`,
+   Audible file password once. If `secret-tool` is installed, Enter opens a
+   terminal window that asks for the password (it is not shown as you type) and
+   puts it straight into your keyring; the popup notices the unlock by itself.
+   Without `secret-tool`,
    the only option is "Remove saved password" and then signing in again.
 5. **Sync your library.** Enter downloads your library list. It takes a few seconds.
 6. **You're all set.** The library is ready. Open it with **o** from the player
@@ -333,9 +335,13 @@ come from the schema in `manifest.json`.
 
 - **The plugin never sees your Amazon password.** Sign-in happens on Amazon's
   own page, in your browser. The plugin only sees that the account now exists.
-  The one exception is the optional "Unlock the saved login" step: that field
-  takes your Audible file password and passes it straight to `secret-tool` on
-  standard input. It is not put on a command line, written to a file, or logged.
+  The one exception is the optional "Unlock the saved login" step: a terminal
+  window reads your Audible file password with echo off and pipes it straight to
+  `secret-tool`. It is not put on a command line, written to a file, or logged,
+  and it is never typed into the shell itself.
+- **No text fields in the shell.** The plugin has no text input in the bar or
+  its popups, so it never reads the clipboard. The sign-in link is plain text;
+  click it to copy it.
 - **Books are encrypted on disk.** A downloaded book is an encrypted `.aaxc` file.
   The `.voucher` file next to it holds the key and IV needed to decrypt it. That
   voucher is written by audible-rs, as it is for any audible-rs download.

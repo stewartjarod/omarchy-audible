@@ -104,11 +104,13 @@ test("state no-account while login busy but not waiting: primary busy", () => {
   assert.equal(r.primary.label, "Starting sign-in...")
 })
 
-test("state locked with secret-tool: store-password with password input, remove secondary", () => {
+test("state locked with secret-tool: unlock in a terminal (no text input), remove secondary", () => {
   const r = M.detect(probe({ library: libLocked() }))
   assert.equal(r.state, "locked")
   assert.equal(r.primary.id, "store-password")
-  assert.equal(r.primary.input, "password")
+  assert.equal(r.primary.input, undefined)
+  assert.match(r.primary.label, /terminal/)
+  assert.match(r.message, /terminal/)
   assert.deepEqual(r.secondary, [{ id: "sign-out", label: "Forgot it? Sign out and start over" }, { id: "remove-password", label: "Remove saved password" }])
   assert.deepEqual(statuses(r), ["done", "done", "done", "current", "todo"])
   assert.match(r.message, /keyring/)
@@ -119,7 +121,6 @@ test("state locked: busy store-password shows Saving...", () => {
   const r = M.detect(probe({ library: libLocked(), busy: "store-password" }))
   assert.equal(r.primary.busy, true)
   assert.equal(r.primary.label, "Saving...")
-  assert.equal(r.primary.input, "password")
 })
 
 test("state locked without secret-tool: remove-password primary only, libsecret named", () => {
