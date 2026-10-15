@@ -6,6 +6,29 @@ All notable changes to this plugin are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-15
+
+### Security
+- Other people on the same computer can no longer see which books you listen to, or where you are
+  in them, in the list of running programs. Requests to Audible go to audible-rs on its standard
+  input instead of its command line; download progress, deleting a book and reading a book's
+  license do the same. Notifications no longer name the book. The one exception is a download in
+  progress, because audible-rs only takes the book's ID on its command line.
+- The sign-in address (it carries the local sign-in server's secret) opens through a page only you
+  can read, instead of being passed to the browser on its command line.
+- The audiobook player's control socket no longer falls back to `/tmp`.
+- audible-rs's data folder (its library database) and the books folder are now readable by you
+  only, and files in them that other users could read are tightened.
+- Every command the plugin runs uses a fixed PATH, has a deadline, and has a size limit on its
+  output.
+- The audible-rs download is checked against a SHA-256 pinned in the plugin, instead of the
+  release's own checksum file.
+- All text from Audible is shown as plain text.
+
+### Changed
+- Wishlist changes use the same requests as `audible collections wishlist add|remove`, sent the
+  same private way.
+
 ## [0.2.1] - 2026-10-14
 
 ### Fixed
@@ -50,7 +73,8 @@ First public release, listed on the Omarchy plugin marketplace.
 - The plugin id is `stewartjarod.audible`.
 - The state directory is private (mode 0700, files 0600).
 
-[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/stewartjarod/omarchy-audible/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/stewartjarod/omarchy-audible/releases/tag/v0.1.1

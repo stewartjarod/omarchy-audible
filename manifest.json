@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "stewartjarod.audible",
   "name": "Audible",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "author": "jarod",
   "license": "MIT",
   "description": "Listen to your Audible books from the Omarchy bar: guided setup, a searchable library, chapters, progress, time left, and playback speed up to 3x and beyond.",
