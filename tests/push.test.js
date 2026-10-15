@@ -15,6 +15,7 @@ function loadModel(file) {
   return mod.exports
 }
 const M = loadModel(path.join(__dirname, "..", "SyncModel.js"))
+const Api = loadModel(path.join(__dirname, "..", "ApiRequest.js"))
 
 const ASIN = "B0SMPL0072"
 const ACR = "CR!SAMPLE0000000000000000000000"
@@ -29,8 +30,12 @@ function world({ remote = null, putFails = false, putEnvelopeError = false, acrM
   fs.writeFileSync(store, JSON.stringify({ remote }))
   const stub = `#!/usr/bin/env node
 const fs = require("fs")
-const [api, method, url, ...rest] = process.argv.slice(2)
-fs.appendFileSync(${JSON.stringify(log)}, [method, url, ...rest].join("\\t") + "\\n")
+// The request arrives on stdin as a TOML request file (ApiRequest.js); argv only says so.
+if (process.argv.slice(2).join(" ") !== "api --request-file /dev/stdin -o json") { console.error("bad argv"); process.exit(3) }
+const toml = fs.readFileSync(0, "utf8")
+const field = (k) => { const m = toml.match(new RegExp("^" + k + " = (\\".*\\")$", "m")); return m ? JSON.parse(m[1]) : "" }
+const method = field("method"), url = field("path"), bodyText = field("body")
+fs.appendFileSync(${JSON.stringify(log)}, [method, url, bodyText].join("\\t") + "\\n")
 const acct = JSON.parse(fs.readFileSync(${JSON.stringify(store)}, "utf8"))
 const out = (o) => console.log(JSON.stringify({ error: null, result: o, warnings: [] }))
 if (method === "GET" && url.startsWith("/1.0/content/")) {
@@ -45,19 +50,24 @@ if (method === "GET" && url === "/1.0/annotations/lastpositions") {
 if (method === "PUT" && url === "/1.0/lastpositions/${ASIN}") {
   if (${JSON.stringify(putEnvelopeError)}) { console.log(JSON.stringify({ error: { message: "nope" }, result: {} })); process.exit(0) }
   if (${JSON.stringify(putFails)}) { console.error("Error: request failed with HTTP status 500"); process.exit(1) }
-  const body = JSON.parse(rest[rest.indexOf("--body") + 1])
+  const body = JSON.parse(bodyText)
   acct.remote = { ms: body.position_ms, at: "2099-01-01 00:00:00.000" }   // Audible's own (far ahead) clock
   fs.writeFileSync(${JSON.stringify(store)}, JSON.stringify(acct)); out("ok"); process.exit(0)
 }
 console.error("unexpected call"); process.exit(2)
 `
   fs.writeFileSync(path.join(bin, "audible"), stub, { mode: 0o755 })
-  const run = (argv, cb) => {
-    const r = spawnSync(argv[0], argv.slice(1), { env: { PATH: `${bin}:${path.dirname(process.execPath)}:/usr/bin:/bin` }, encoding: "utf8" })
+  const argvs = []
+  // As Service.run does: a request spec becomes a fixed argv plus the request on stdin.
+  const run = (spec, cb) => {
+    const p = Api.toProcess(spec)
+    argvs.push(p.argv)
+    const r = spawnSync(p.argv[0], p.argv.slice(1), { input: p.input, env: { PATH: `${bin}:${path.dirname(process.execPath)}:/usr/bin:/bin` }, encoding: "utf8" })
     cb(r.status, r.stdout, r.stderr)
   }
   return {
     run,
+    argvs: () => argvs,
     calls: () => (fs.existsSync(log) ? fs.readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => l.split("\t")) : []),
     account: () => JSON.parse(fs.readFileSync(store, "utf8")).remote,
     done: () => fs.rmSync(dir, { recursive: true, force: true })
@@ -79,9 +89,15 @@ test("a book with no position on Audible: reads the content id, then writes acr,
   assert.equal(r.acr, ACR)
   assert.equal(r.positionMs, 600000)
   assert.equal(puts(w).length, 1)
-  const body = JSON.parse(puts(w)[0][puts(w)[0].indexOf("--body") + 1])
+  const body = JSON.parse(puts(w)[0][2])
   assert.deepEqual(body, { acr: ACR, asin: ASIN, position_ms: 600000 })
   assert.equal(w.account().ms, 600000)
+  // Nothing about the book reaches a command line (another local user can read /proc/<pid>/cmdline).
+  assert.ok(w.argvs().length >= 3)
+  for (const argv of w.argvs()) {
+    const line = argv.join(" ")
+    for (const secret of [ASIN, ACR, "600000"]) assert.ok(!line.includes(secret), `${secret} in argv: ${line}`)
+  }
   w.done()
 })
 
@@ -174,10 +190,10 @@ test("callSucceeded: exit 0 and no envelope error; non-JSON output trusts the ex
   assert.equal(M.callSucceeded(0, "ok"), true)
 })
 
-test("buildAcrArgv is a GET for one valid ASIN; parseAcr takes only that book's content id", () => {
-  assert.deepEqual(M.buildAcrArgv(ASIN), ["audible", "api", "GET", "/1.0/content/" + ASIN + "/metadata",
-    "--query", "response_groups=content_reference", "-o", "json"])
-  assert.throws(() => M.buildAcrArgv("x; rm -rf ~"), /ASIN/)
+test("buildAcrRequest is a GET for one valid ASIN; parseAcr takes only that book's content id", () => {
+  assert.deepEqual(M.buildAcrRequest(ASIN), { api: true, method: "GET", path: "/1.0/content/" + ASIN + "/metadata",
+    query: { response_groups: "content_reference" } })
+  assert.throws(() => M.buildAcrRequest("x; rm -rf ~"), /ASIN/)
   const ok = JSON.stringify({ error: null, result: { content_metadata: { content_reference: { acr: ACR, asin: ASIN } } } })
   assert.equal(M.parseAcr(ok, ASIN), ACR)
   assert.equal(M.parseAcr(ok, "B0SMPL0099"), "")                 // a reply about another book

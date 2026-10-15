@@ -74,11 +74,19 @@ function parseLastPositions(text) {
   return { ok: true, positions: positions, error: "" }
 }
 
-// The argv for one batched read. Always GET: the pull path must never be able to write.
-function buildPullArgv(asins) {
-  var argv = ["audible", "api", "GET", "/1.0/annotations/lastpositions",
-              "--query", "asins=" + asins.join(","), "-o", "json"]
-  return argv
+// An ApiRequest.js spec (Service.run sends it to `audible api` on stdin, so the ASIN, content id and
+// position never appear in any process's argv). Kept here so this file stays free of imports.
+function apiRequest(method, path, query, body) {
+  var spec = { api: true, method: method, path: path }
+  if (query) spec.query = query
+  if (body !== undefined) spec.body = body
+  return spec
+}
+
+// One batched read (an ApiRequest spec: the ASINs go to the CLI on stdin, never in argv).
+// Always GET: the pull path must never be able to write.
+function buildPullRequest(asins) {
+  return apiRequest("GET", "/1.0/annotations/lastpositions", { asins: asins.join(",") })
 }
 
 function chunk(list, n) {
@@ -192,10 +200,9 @@ function callSucceeded(code, out) {
 }
 
 // The read that returns the book's content id. Always a GET.
-function buildAcrArgv(asin) {
+function buildAcrRequest(asin) {
   if (!isAsin(asin)) throw new Error("not a valid ASIN")
-  return ["audible", "api", "GET", "/1.0/content/" + asin + "/metadata",
-          "--query", "response_groups=content_reference", "-o", "json"]
+  return apiRequest("GET", "/1.0/content/" + asin + "/metadata", { response_groups: "content_reference" })
 }
 
 // The content id from that reply, or "" when it is missing, for another book, or the call failed.
@@ -217,7 +224,7 @@ function buildPushRequest(asin, positionSec, acr) {
   if (!isFinite(sec) || sec < 0) return null
   var body = { acr: acr, asin: asin, position_ms: Math.round(sec * 1000) }
   return {
-    argv: ["audible", "api", "PUT", "/1.0/lastpositions/" + asin, "--body", JSON.stringify(body), "-o", "json"],
+    request: apiRequest("PUT", "/1.0/lastpositions/" + asin, null, body),
     body: body,
     positionMs: body.position_ms
   }
@@ -239,7 +246,8 @@ function pushRefusal(remote, listenedAtMs, pushedMs) {
   return ""
 }
 
-// One guarded write, as a sequence of `audible api` calls through run(argv, cb(code, out, err)):
+// One guarded write, as a sequence of `audible api` calls through run(request, cb(code, out, err))
+// (requests are ApiRequest specs):
 //   1. the content id (skipped when ctx.acr is cached)   2. a fresh read of Audible's position
 //   3. pushRefusal(...)                                  4. the write, only if nothing refused it.
 // ctx: { asin, positionSec, listenedAtMs, acr, pushedMs }.
@@ -252,7 +260,7 @@ function pushPosition(run, ctx, done) {
   function fail(err, acr, remote) { done({ outcome: "failed", error: err || friendlyError(""), acr: acr || "", remote: remote || null }) }
   function afterAcr(acr) {
     if (!acr) { fail("", ""); return }
-    run(buildPullArgv([asin]), function (code, out, err) {
+    run(buildPullRequest([asin]), function (code, out, err) {
       if (!callSucceeded(code, out)) { fail(friendlyError(err || out), acr); return }
       var r = parseLastPositions(out)
       if (!r.ok) { fail(r.error, acr); return }
@@ -261,14 +269,14 @@ function pushPosition(run, ctx, done) {
       if (why !== "") { done({ outcome: "refused", why: why, acr: acr, remote: remote }); return }
       var req = buildPushRequest(asin, ctx.positionSec, acr)
       if (!req) { fail("", acr, remote); return }
-      run(req.argv, function (code2, out2, err2) {
+      run(req.request, function (code2, out2, err2) {
         if (callSucceeded(code2, out2)) done({ outcome: "sent", acr: acr, remote: remote, positionMs: req.positionMs })
         else fail(friendlyError(err2 || out2), "", remote)   // drop the content id: it may be the problem
       })
     })
   }
   if (ctx.acr) { afterAcr(ctx.acr); return }
-  run(buildAcrArgv(asin), function (code, out) {
+  run(buildAcrRequest(asin), function (code, out) {
     afterAcr(callSucceeded(code, out) ? parseAcr(out, asin) : "")
   })
 }
@@ -295,9 +303,9 @@ function needsPull(fetchedAtMs, nowMs) {
 if (typeof module !== "undefined") module.exports = {
   TOLERANCE_SEC: TOLERANCE_SEC, END_GUARD_SEC: END_GUARD_SEC, PULL_BATCH: PULL_BATCH,
   parseTimestamp: parseTimestamp, friendlyError: friendlyError, parseLastPositions: parseLastPositions,
-  buildPullArgv: buildPullArgv, chunk: chunk, pullCandidates: pullCandidates, localBaseline: localBaseline,
+  buildPullRequest: buildPullRequest, chunk: chunk, pullCandidates: pullCandidates, localBaseline: localBaseline,
   decide: decide, formatHm: formatHm, chapterNumberAt: chapterNumberAt, formatPosition: formatPosition,
   SKEW_MS: SKEW_MS, backoffMs: backoffMs, pushMode: pushMode, isAsin: isAsin, callSucceeded: callSucceeded,
-  buildAcrArgv: buildAcrArgv, parseAcr: parseAcr, buildPushRequest: buildPushRequest, pushRefusal: pushRefusal, pushPosition: pushPosition,
+  buildAcrRequest: buildAcrRequest, parseAcr: parseAcr, buildPushRequest: buildPushRequest, pushRefusal: pushRefusal, pushPosition: pushPosition,
   shouldPush: shouldPush, needsPull: needsPull
 }

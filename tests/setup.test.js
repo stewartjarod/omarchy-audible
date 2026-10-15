@@ -3,7 +3,6 @@ const test = require("node:test")
 const assert = require("node:assert/strict")
 const fs = require("fs")
 const path = require("path")
-const crypto = require("crypto")
 
 // SetupModel.js starts with `.pragma library` (QML only), which is a syntax
 // error for node, so strip that line and evaluate with a CommonJS module object.
@@ -416,7 +415,7 @@ test("installPlan: pinned release for x86_64", () => {
   assert.deepEqual(p, {
     asset,
     url: "https://github.com/mkb79/audible-rs/releases/download/v0.1.0-alpha.8/" + asset,
-    sumsUrl: "https://github.com/mkb79/audible-rs/releases/download/v0.1.0-alpha.8/SHA256SUMS",
+    sha256: "10a77a4fa39bf49762b47e53fcc52e78a47cf154eb30f65c7e3ea8d860872c1c",
     binDir: "~/.local/bin"
   })
   assert.equal(M.PINNED_TAG, "v0.1.0-alpha.8")
@@ -429,39 +428,8 @@ test("installPlan: tag defaults to the pinned release; other arch or tag return 
   assert.match(M.installPlan("v9.9.9", "x86_64").error, /pinned/)
 })
 
-// -------------------------------------------------------------- verifySums
-
-test("verifySums: accepts the real sha256 of the asset and rejects anything else", () => {
-  const asset = M.installPlan("v0.1.0-alpha.8", "x86_64").asset
-  const tarball = Buffer.from("pretend this is a tarball")
-  const hex = crypto.createHash("sha256").update(tarball).digest("hex")
-  const other = crypto.createHash("sha256").update("other").digest("hex")
-  const sums = [
-    `${other}  audible-0.1.0-alpha.8-aarch64-unknown-linux-musl.tar.gz`,
-    `${hex}  ${asset}`,
-    ""
-  ].join("\n")
-
-  assert.equal(M.verifySums(sums, asset, hex), true)
-  assert.equal(M.verifySums(sums, asset, hex.toUpperCase()), true)
-  assert.equal(M.verifySums(sums, asset, other), false)
-  assert.equal(M.verifySums(sums, "missing.tar.gz", hex), false)
-  assert.equal(M.verifySums(sums, asset, "not-a-hash"), false)
-  assert.equal(M.verifySums("", asset, hex), false)
-  assert.equal(M.verifySums(undefined, asset, hex), false)
-})
-
-test("verifySums: binary-mode '*' prefix and ./ paths are accepted; conflicting duplicates fail", () => {
-  const asset = "a.tar.gz"
-  const hex = crypto.createHash("sha256").update("x").digest("hex")
-  const other = crypto.createHash("sha256").update("y").digest("hex")
-  assert.equal(M.verifySums(`${hex} *${asset}\n`, asset, hex), true)
-  assert.equal(M.verifySums(`${hex}  ./${asset}\r\n`, asset, hex), true)
-  assert.equal(M.verifySums(`${hex}  ${asset}\n${other}  ${asset}\n`, asset, hex), false)
-})
-
 test("module exports the contract functions", () => {
-  for (const name of ["detect", "parseAccountList", "parseLibraryProbe", "parseLoginUrl", "passwordSourceArgs", "keyringStoreArgs", "installPlan", "verifySums"]) {
+  for (const name of ["detect", "parseAccountList", "parseLibraryProbe", "parseLoginUrl", "passwordSourceArgs", "keyringStoreArgs", "installPlan"]) {
     assert.equal(typeof M[name], "function", name)
   }
 })

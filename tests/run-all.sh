@@ -40,14 +40,28 @@ if ! grep -q 'Setup.downloadArgs' Service.qml || ! grep -q 'ensureDownloadSettin
   echo "Service.qml no longer checks the download settings before downloading"; status=1
 fi
 
-# ------------------------------------------------------------------ one write to the account
-# The only call the plugin may make that changes anything on the Audible account is the position
-# write (PUT /1.0/lastpositions/<asin>), built in SyncModel.buildPushRequest. Any other non-GET
-# `audible api` call in the shipped code fails here.
-echo "== only one write to the Audible account"
-writes=$(grep -n -E '"api",[[:space:]]*"(POST|PUT|PATCH|DELETE)"|"(POST|PUT|PATCH|DELETE)",[[:space:]]*"/1\.0/' *.qml *.js | grep -v '"PUT", "/1.0/lastpositions/"' || true)
+# ------------------------------------------------------------------ writes to the account
+# The plugin writes to the Audible account in exactly two places: the position (PUT
+# /1.0/lastpositions/<asin>, SyncModel.buildPushRequest) and a wishlist change the user confirmed
+# twice (POST/DELETE /1.0/collections/__WISHLIST/items, WishlistModel.addRequest/removeRequest).
+# Any other non-GET request in the shipped code fails here.
+echo "== only the known writes to the Audible account"
+writes=$(grep -n -E '"api",[[:space:]]*"(POST|PUT|PATCH|DELETE)"|"(POST|PUT|PATCH|DELETE)",[[:space:]]*"/1\.0/' *.qml *.js \
+  | grep -v -E '^SyncModel\.js:[0-9]+:.*"PUT", "/1\.0/lastpositions/"|^WishlistModel\.js:[0-9]+:.*"(POST|DELETE)", "/1\.0/collections/" \+ WISHLIST_ID \+ "/items"' || true)
 if [ -n "$writes" ]; then echo "$writes"; status=1; else echo "none"; fi
 if ! grep -q '"PUT", "/1.0/lastpositions/"' SyncModel.js; then echo "SyncModel.js no longer builds the position write"; status=1; fi
+
+# ------------------------------------------------------------------ nothing private in argv
+# Any local user can read a process's arguments in /proc/<pid>/cmdline (a marketplace review finding).
+# So: every `audible api` call is an ApiRequest.js spec (request on stdin), the only command line
+# that may name a book is the download (the CLI has no other way to take it), notifications carry
+# no titles, the sign-in address is never opened directly, and mpv's socket is never in /tmp.
+echo "== no book ids, positions or secrets in command lines"
+argv=$( { grep -n -E '"api",[[:space:]]*"(GET|POST|PUT|PATCH|DELETE)"|"--body"' *.qml *.js
+          grep -n -E '"--asin"' *.qml *.js | grep -v -E '^SetupModel\.js:[0-9]+:  var out = \["download", "--asin", a,'
+          grep -n -E '"xdg-open",[[:space:]]*[A-Za-z]|\|\|[[:space:]]*"/tmp"' *.qml *.js
+          grep -n -E '(^|[^A-Za-z.])notify\(' *.qml | grep -v -E 'function notify\(|notify\("[^"]*", (Ls\.[A-Z_]+|"[^"]*")(, [0-9]+)?\)'; } || true)
+if [ -n "$argv" ]; then echo "$argv"; status=1; else echo "none"; fi
 
 # ------------------------------------------------------------------ no text input at all
 # A native text input (TextField, TextInput, TextArea, TextEdit, even read-only) reads the clipboard

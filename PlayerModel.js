@@ -293,6 +293,16 @@ function mpvLaunchArgs(sock, opts) {
   return ["setsid", "-f"].concat(a)
 }
 
+// Where mpv's IPC socket goes. The socket takes the decryption key and accepts any mpv command
+// (including `run`), so it must sit in a directory only this user can enter: $XDG_RUNTIME_DIR
+// (0700, per user), else the plugin's private state directory. Never /tmp, where another user could
+// bind the name first.
+function socketPath(runtimeDir, stateDir) {
+  var r = String(runtimeDir || "")
+  if (/^\/./.test(r) && r.indexOf("/tmp") !== 0) return r.replace(/\/+$/, "") + "/omarchy-audible-mpv.sock"
+  return String(stateDir) + "/mpv.sock"
+}
+
 // Argv for making the plugin's state directory private (owner only). The state files hold listening
 // history and playback positions, so other local users must not be able to read them: the directory
 // is created 0700, an older 0755 one is tightened, and any state file already there becomes 0600.
@@ -303,8 +313,34 @@ function privateDirArgs(dir) {
     "sh", String(dir)]
 }
 
+// Argv for making the Audible CLI's data directory and the books directory private (owner only).
+// They hold the library database, the downloaded books and their covers, all named by ASIN, so
+// another local user could otherwise list what this user owns and is listening to. Directories
+// become 0700 (only the top two need it to lock others out; each book directory is tightened too)
+// and files the CLI left world-readable become 0600. Paths are positional, never interpolated.
+function privateDataDirArgs(dataDir, booksDir) {
+  return ["sh", "-c",
+    "for d in \"$1\" \"$2\"; do mkdir -p -m 700 -- \"$d\" && chmod 700 -- \"$d\" || exit 1; done; " +
+    "find \"$1\" \"$2\" -mindepth 1 -maxdepth 2 -type d ! -perm 700 -exec chmod 700 -- {} + 2>/dev/null; " +
+    "find \"$1\" \"$2\" -mindepth 1 -maxdepth 3 -type f -perm /077 -exec chmod go-rwx -- {} + 2>/dev/null; true",
+    "sh", String(dataDir), String(booksDir)]
+}
+
+// argv that deletes one downloaded book, read as an ASIN from stdin, without naming it in any argv.
+// $1 is the books directory. Anything but a plain ASIN on stdin does nothing.
+function removeBookArgs(booksDir) {
+  return ["sh", "-c",
+    "IFS= read -r a || exit 1; case $a in ''|*[!A-Z0-9]*) exit 1;; esac; [ ${#a} -eq 10 ] || exit 1; " +
+    "cd -- \"$1\" && cd -- \"$a\" 2>/dev/null || exit 0; find . -mindepth 1 -delete; " +
+    "cd .. && find . -mindepth 1 -maxdepth 1 -type d -empty -delete",
+    "sh", String(booksDir)]
+}
+
 if (typeof module !== "undefined") module.exports = {
+  removeBookArgs: removeBookArgs,
   privateDirArgs: privateDirArgs,
+  socketPath: socketPath,
+  privateDataDirArgs: privateDataDirArgs,
   loadCommands: loadCommands,
   mpvLaunchArgs: mpvLaunchArgs,
   formatDuration: formatDuration,

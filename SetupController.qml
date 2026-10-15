@@ -133,11 +133,12 @@ Item {
     var plan = Setup.installPlan(svc.pinnedTag, "x86_64")
     if (!plan || plan.error) { svc.setupLog = String((plan && plan.error) || "No download available for this machine"); return }
     busyWith("install-audible", "Downloading the Audible CLI and checking its checksum...")
+    // checked against the sha256 pinned in SetupModel.js, never a checksum file from the same release
     var script = "set -e; d=$(mktemp -d); trap 'rm -rf \"$d\"' EXIT; cd \"$d\"; " +
-      "curl -fsSL -o \"$1\" \"$2\"; curl -fsSL -o SHA256SUMS \"$3\"; " +
-      "sha256sum -c SHA256SUMS --ignore-missing >/dev/null; tar -xzf \"$1\"; " +
+      "curl -fsSL --proto '=https' -o \"$1\" \"$2\"; " +
+      "printf '%s  %s\\n' \"$3\" \"$1\" | sha256sum -c - >/dev/null; tar -xzf \"$1\"; " +
       "install -Dm755 ./*/audible \"$HOME/.local/bin/audible\""
-    svc.run(["sh", "-c", script, "sh", plan.asset, plan.url, plan.sumsUrl], function(code, out, err) {
+    svc.run(["sh", "-c", script, "sh", plan.asset, plan.url, plan.sha256], function(code, out, err) {
       doneBusy(code === 0 ? "Installed. Checking everything again..." : "The download did not verify: " + String(err).split("\n")[0])
     })
   }
@@ -162,6 +163,7 @@ Item {
         loginWaiting = false
         loginProc = null
         loginUrl = ""
+        svc.run(Setup.signInCleanupArgs(svc.stateDir), null)
         finishLogin()
       },
       { line: function(l) {
@@ -174,7 +176,9 @@ Item {
           if (u && !opened) {
             opened = true
             loginUrl = u
-            Quickshell.execDetached(["xdg-open", u])
+            // never `xdg-open <url>`: the address holds the sign-in server's secret (see signInPageHtml)
+            var page = Setup.signInPageHtml(u)
+            if (page !== "") svc.run(Setup.signInOpenArgs(svc.stateDir), null, { input: page })
             svc.setupLog = "Sign in to Amazon in the browser window that just opened."
             rerenderSetup()
           }

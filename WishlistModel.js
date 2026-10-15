@@ -1,7 +1,9 @@
 .pragma library
 // Wishlist and catalog helpers. Pure: no QML, no I/O, no Qt. Every function tolerates bad input.
-// Builds the argv for the read-only calls and the two wishlist WRITE calls. The write argv is
+// Builds the requests for the read-only calls and the two wishlist WRITE calls. The writes are
 // only ever run from Catalog.qml after a second, deliberate user press. Nothing here runs anything.
+// Every call that names a book is an ApiRequest.js spec, so the ASINs go to the CLI on stdin and
+// never appear in a process's argv (readable by other local users through /proc/<pid>/cmdline).
 
 var GROUPS = "contributors,product_desc,product_attrs,media,rating,series"
 var ASIN_RE = /^[A-Za-z0-9]{4,24}$/
@@ -153,8 +155,17 @@ function simsOf(result) {
   return result.similar_products.filter(function (x) { return isObj(x) && cleanAsin(x.asin) })
 }
 
-// ---- argv builders (run through Service.run, which does not use a shell) ----------------------
+// ---- request builders (run through Service.run, which does not use a shell) -------------------
 
+// An ApiRequest.js spec. Kept here so this file stays free of imports.
+function apiRequest(method, path, query, body) {
+  var spec = { api: true, method: method, path: path }
+  if (query) spec.query = query
+  if (body !== undefined) spec.body = body
+  return spec
+}
+
+// No book in it, so a plain argv is fine.
 function listArgs() {
   return ["audible", "collections", "wishlist", "list", "-o", "json"]
 }
@@ -162,7 +173,7 @@ function listArgs() {
 function productArgs(asin) {
   var a = cleanAsin(asin)
   if (!a) return null
-  return ["audible", "api", "GET", "/1.0/catalog/products/" + a, "--query", "response_groups=" + GROUPS, "-o", "json"]
+  return apiRequest("GET", "/1.0/catalog/products/" + a, { response_groups: GROUPS })
 }
 
 // One catalog call for up to 50 books' covers (the wishlist list has no images).
@@ -171,7 +182,7 @@ var COVER_BATCH = 50
 function coverArgs(asins) {
   var list = (Array.isArray(asins) ? asins : []).map(cleanAsin).filter(function (a) { return a }).slice(0, COVER_BATCH)
   if (!list.length) return null
-  return ["audible", "api", "GET", "/1.0/catalog/products", "--query", "asins=" + list.join(","), "--query", "response_groups=media", "--query", "num_results=" + COVER_BATCH, "-o", "json"]
+  return apiRequest("GET", "/1.0/catalog/products", { asins: list.join(","), response_groups: "media", num_results: String(COVER_BATCH) })
 }
 
 // Split asins into batches of COVER_BATCH, leaving out any that already have a cover.
@@ -210,21 +221,38 @@ function parseCovers(result) {
 function simsArgs(asin) {
   var a = cleanAsin(asin)
   if (!a) return null
-  return ["audible", "api", "GET", "/1.0/catalog/products/" + a + "/sims", "--query", "num_results=10", "--query", "response_groups=" + GROUPS, "-o", "json"]
+  return apiRequest("GET", "/1.0/catalog/products/" + a + "/sims", { num_results: "10", response_groups: GROUPS })
+}
+
+// The wishlist is the account's server-side `__WISHLIST` collection. A change needs that list's
+// current state_token, so a write is two calls: this read, then addRequest/removeRequest (the same
+// requests `audible collections wishlist add|remove` makes, in audible-rs src/collections.rs).
+var WISHLIST_ID = "__WISHLIST"
+
+function wishlistMetaRequest() {
+  return apiRequest("GET", "/1.0/collections/" + WISHLIST_ID)
+}
+
+// Reply to wishlistMetaRequest -> the state token, or "" when it is missing.
+function parseStateToken(text) {
+  var env = parseEnvelope(text)
+  var t = env.ok && isObj(env.result) ? env.result.state_token : ""
+  return typeof t === "string" && t.length > 0 && t.length <= 4096 ? t : ""
 }
 
 // WRITE. Only Catalog.qml, only after a confirmed second press.
-function addArgs(asin) {
+function addRequest(asin, stateToken) {
   var a = cleanAsin(asin)
-  if (!a) return null
-  return ["audible", "collections", "wishlist", "add", "--asin", a, "-o", "json"]
+  if (!a || !stateToken) return null
+  return apiRequest("POST", "/1.0/collections/" + WISHLIST_ID + "/items", null,
+    { collection_id: WISHLIST_ID, asins: [a], state_token: String(stateToken) })
 }
 
 // WRITE. Only Catalog.qml, only after a confirmed second press.
-function removeArgs(asin) {
+function removeRequest(asin, stateToken) {
   var a = cleanAsin(asin)
-  if (!a) return null
-  return ["audible", "collections", "wishlist", "remove", "--asin", a, "-o", "json"]
+  if (!a || !stateToken) return null
+  return apiRequest("DELETE", "/1.0/collections/" + WISHLIST_ID + "/items", { state_token: String(stateToken), asins: a })
 }
 
-if (typeof module !== "undefined") module.exports = { GROUPS, parseLength, parseEnvelope, parseWishlist, wishlistBook, wishlistBooks, inWishlist, productOf, simsOf, listArgs, productArgs, coverArgs, coverBatches, parseCovers, simsArgs, addArgs, removeArgs }
+if (typeof module !== "undefined") module.exports = { GROUPS, parseLength, parseEnvelope, parseWishlist, wishlistBook, wishlistBooks, inWishlist, productOf, simsOf, listArgs, productArgs, coverArgs, coverBatches, parseCovers, simsArgs, wishlistMetaRequest, parseStateToken, addRequest, removeRequest }

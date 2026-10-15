@@ -177,14 +177,13 @@ Item {
   // The first press only explains; the second press on the same book, same kind, does it.
   // Esc, moving to another book, or any other write cancels the pending one.
   function requestWrite(kind, asin, shownTitle) {
-    var argv = kind === "add" ? W.addArgs(asin) : (kind === "remove" ? W.removeArgs(asin) : null)
-    if (!argv || !root.svc) return
+    if ((kind !== "add" && kind !== "remove") || !W.cleanAsin(asin) || !root.svc) return
     var title = shownTitle ? String(shownTitle) : root.titleOf(asin)
     if (root.writeAsin === asin && root.writeKind === kind) {
       root.writeAsin = ""
       root.writeKind = ""
       root.writeNote = "Working on it..."
-      root.runWrite(kind, argv)
+      root.runWrite(kind, asin)
       return
     }
     root.writeAsin = asin
@@ -200,14 +199,22 @@ Item {
     root.writeNote = ""
   }
 
-  function runWrite(kind, argv) {
-    root.svc.run(argv, function (code, out, err) {
-      if (code === 0) {
-        root.writeNote = kind === "add" ? "Added to your wishlist." : "Removed from your wishlist."
-        root.refreshWishlist()
-      } else {
-        root.writeNote = "Could not change your wishlist: " + (String(err || out || "unknown error").split("\n")[0])
-      }
+  // Two calls: the wishlist's current state token, then the change itself.
+  function runWrite(kind, asin) {
+    function failed(code, out, err) {
+      var env = W.parseEnvelope(out)
+      root.writeNote = "Could not change your wishlist: " + (env.error || String(err || out || "unknown error").split("\n")[0])
+    }
+    root.svc.run(W.wishlistMetaRequest(), function (code, out, err) {
+      var token = code === 0 ? W.parseStateToken(out) : ""
+      var req = token ? (kind === "add" ? W.addRequest(asin, token) : W.removeRequest(asin, token)) : null
+      if (!req) { failed(code, token ? "" : out, err); return }
+      root.svc.run(req, function (code2, out2, err2) {
+        if (code2 === 0 && W.parseEnvelope(out2).ok) {
+          root.writeNote = kind === "add" ? "Added to your wishlist." : "Removed from your wishlist."
+          root.refreshWishlist()
+        } else failed(code2, out2, err2)
+      })
     })
   }
 }

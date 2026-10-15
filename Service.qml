@@ -4,6 +4,7 @@ import Quickshell.Io
 import "LibraryModel.js" as Lib
 import "PlayerModel.js" as Player
 import "SetupModel.js" as Setup
+import "ApiRequest.js" as Api
 
 // stewartjarod.audible service: the single owner of playback (mpv over IPC), the
 // Audible CLI, local state and the library overlay. Bar widgets are instantiated
@@ -33,7 +34,9 @@ Item {
   readonly property string home: Quickshell.env("HOME")
   readonly property string booksDir: home + "/.local/share/audible/books"
   readonly property string stateDir: home + "/.local/state/jarod-audible"
-  readonly property string mpvSock: (Quickshell.env("XDG_RUNTIME_DIR") || "/tmp") + "/omarchy-audible-mpv.sock"
+  // mpv's IPC socket takes the decryption key and accepts any mpv command, so it must live in a
+  // directory only this user can enter: $XDG_RUNTIME_DIR, else the private state directory (never /tmp).
+  readonly property string mpvSock: Player.socketPath(Quickshell.env("XDG_RUNTIME_DIR"), stateDir)
   readonly property string pinnedTag: "v0.1.0-alpha.8"
 
   // ---- player -------------------------------------------------------------
@@ -125,8 +128,16 @@ Item {
 
   // run(argv, done(exitCode, stdout, stderr), {line, input, env}) -> Process
   // PATH always includes ~/.local/bin (the shell's own PATH may not).
+  // `argv` may also be an ApiRequest.js spec: the request then goes to `audible api` on stdin, so
+  // the book ids and positions in it never show up in /proc/<pid>/cmdline.
   function run(argv, done, opts) {
     var o = opts || {}
+    if (Api.isRequest(argv)) {
+      var req
+      try { req = Api.toProcess(argv) } catch (e) { if (typeof done === "function") done(2, "", String(e.message || e)); return null }
+      argv = req.argv
+      o = { line: o.line, env: o.env, input: req.input }
+    }
     var wrapped = ["sh", "-c", "export PATH=\"$HOME/.local/bin:$PATH\"; exec \"$@\"", "sh"].concat(argv)
     // collector-based by default; the line-streaming runner only when a line callback is given
     var p = o.line
@@ -196,6 +207,9 @@ Item {
 
   // Every state file lives in stateDir; keep that directory private to this user.
   function ensureStateDir(done) { run(Player.privateDirArgs(stateDir), done) }
+  // The CLI's data directory and the books: owner only (they list the library by ASIN).
+  readonly property string dataDir: home + "/.local/share/audible"
+  function ensurePrivateData(done) { run(Player.privateDataDirArgs(dataDir, booksDir), done) }
 
   function saveSoon() { saveTimer.restart() }
   Timer {
@@ -273,20 +287,21 @@ Item {
     return n > 0 ? "Now " + n + (n === 1 ? " listen." : " listens.") : "Cleared."
   }
 
-  // Delete the downloaded files and the CLI's record of them (so a later download is not skipped).
-  // Returns an error message, or "" when the removal has started.
+  // Delete the downloaded files. Returns an error message, or "" when the removal has started.
+  // No command line names the book (another local user can read /proc/<pid>/cmdline): the ASIN comes
+  // in on stdin, the shell changes into the book's directory (a builtin), and `find` deletes from
+  // there. The CLI's database still lists the files afterwards; a later download of the book sees
+  // "already recorded" with no file and runDownload retries once with --force.
   function removeDownload(a) {
     if (!/^[A-Z0-9]{10}$/.test(String(a || ""))) return "Not a valid book."
     if (hasBook && asin === a) return "That book is loaded in the player. Open another book first."
     if (!isLocal(a)) return "It is not downloaded."
-    run(["audible", "db", "downloads", "remove", "--asin", a, "--with-files", "-y"], function() {
-      run(["sh", "-c", "rm -rf -- \"$1/$2\"", "sh", booksDir, a], function() {
-        var d = {}
-        for (var k in downloads) if (k !== a) d[k] = downloads[k]
-        downloads = d
-        scanLocal(function() { rebuildBooks() })
-      })
-    })
+    run(Player.removeBookArgs(booksDir), function() {
+      var d = {}
+      for (var k in downloads) if (k !== a) d[k] = downloads[k]
+      downloads = d
+      scanLocal(function() { rebuildBooks() })
+    }, { input: a + "\n" })
     return ""
   }
 
@@ -498,8 +513,11 @@ Item {
 
   function launchMpv() {
     var argv = Player.mpvLaunchArgs(mpvSock, { uwsm: hasUwsm, volume: Math.round(volume) })
-    // a socket file left by a dead mpv would make the new one fail to bind
-    Quickshell.execDetached(["sh", "-c", "export PATH=\"$HOME/.local/bin:$PATH\"; rm -f \"$1\"; shift; exec \"$@\"", "sh", mpvSock].concat(argv))
+    // a socket file left by a dead mpv would make the new one fail to bind. The state directory is
+    // made private first, since the socket lands there when there is no $XDG_RUNTIME_DIR.
+    ensureStateDir(function() {
+      Quickshell.execDetached(["sh", "-c", "export PATH=\"$HOME/.local/bin:$PATH\"; rm -f \"$1\"; shift; exec \"$@\"", "sh", mpvSock].concat(argv))
+    })
   }
 
   function whenLinked(fn) {
@@ -590,10 +608,10 @@ Item {
     if (libraryLoading) return
     libraryLoading = true
     libraryError = ""
-    run(["audible", "api", "GET", "/1.0/library",
-         "--query", "num_results=1000",
-         "--query", "response_groups=contributors,product_desc,product_attrs,media,listening_status,series,rating",
-         "--query", "sort_by=-PurchaseDate", "-o", "json"],
+    run(Api.request("GET", "/1.0/library", {
+          num_results: "1000",
+          response_groups: "contributors,product_desc,product_attrs,media,listening_status,series,rating",
+          sort_by: "-PurchaseDate" }),
       function(code, out, err) {
         libraryLoading = false
         if (code !== 0) {
@@ -653,7 +671,7 @@ Item {
     var argv
     try { argv = Setup.downloadSettingsArgs(booksDir) } catch (e) { then(false, String(e.message || e)); return }
     run(argv, function(code, out, err) {
-      if (code === 0) { downloadSettingsOk = true; then(true, "") }
+      if (code === 0) { downloadSettingsOk = true; ensurePrivateData(function() { then(true, "") }) }
       else then(false, "Could not set up where the Audible CLI saves books. Run: audible config list")
     })
   }
@@ -711,14 +729,15 @@ Item {
     onTriggered: {
       var a = root.activeDownload
       if (a === "") return
-      root.run(["sh", "-c", "stat -c %s \"$1\"/\"$2\"/\"$2\".*.aaxc.part 2>/dev/null | head -1; true", "sh", root.booksDir, a], function(code, out) {
+      // The ASIN comes in on stdin and the size is read through a redirect, so no argv names the book.
+      root.run(["sh", "-c", "IFS= read -r a || exit 0; for f in \"$1\"/\"$a\"/\"$a\".*.aaxc.part; do [ -f \"$f\" ] && wc -c < \"$f\"; break; done; true", "sh", root.booksDir], function(code, out) {
         var size = Number(String(out).trim())
         var b = root.bookFor(a)
         var expected = b && b.runtimeSec > 0 ? b.runtimeSec * (downloadQuality === "normal" ? 8000 : 16000) : 0
         if (!(size > 0) || !(expected > 0) || root.activeDownload !== a) return
         root.downloads = root.withKey(root.downloads, a, { state: "downloading", fraction: Math.min(0.99, size / expected), error: "" })
         if (!root.libraryOpen) root.rebuildBooks()   // the open library reads downloads live
-      })
+      }, { input: a + "\n" })
     }
   }
 
@@ -860,6 +879,7 @@ Item {
 
   Component.onCompleted: {
     stateFile.reload()
+    ensurePrivateData(null)
     recheck()
   }
 }

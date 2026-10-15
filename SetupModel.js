@@ -6,7 +6,10 @@
 var PINNED_TAG = "v0.1.0-alpha.8"
 var PINNED_ARCH = "x86_64"
 var RELEASE_BASE = "https://github.com/mkb79/audible-rs/releases/download/"
-var SUMS_NAME = "SHA256SUMS" // checked against the v0.1.0-alpha.8 release: 5 assets, this exact name
+// sha256 of the pinned x86_64 tarball, pinned here rather than read from the release's SHA256SUMS
+// (a checksum file from the same release cannot catch a replaced release). Checked 2026-10-14: it
+// matches that release's SHA256SUMS, and the binary inside is byte-identical to the one in use.
+var PINNED_SHA256 = "10a77a4fa39bf49762b47e53fcc52e78a47cf154eb30f65c7e3ea8d860872c1c"
 
 var ACCOUNT_RE = /^[A-Za-z0-9._@-]{1,64}$/
 var LOGIN_URL_RE = /http:\/\/127\.0\.0\.1:(\d{1,5})\/[A-Za-z0-9_-]+\/?/
@@ -293,27 +296,9 @@ function installPlan(tag, arch) {
   return {
     asset: asset,
     url: RELEASE_BASE + t + "/" + asset,
-    sumsUrl: RELEASE_BASE + t + "/" + SUMS_NAME,
+    sha256: PINNED_SHA256,
     binDir: "~/.local/bin"
   }
-}
-
-// sha256sum-format check: every line naming `asset` must carry sha256hex, and
-// at least one must exist.
-function verifySums(sumsText, asset, sha256hex) {
-  if (typeof sumsText !== "string" || typeof asset !== "string" || typeof sha256hex !== "string") return false
-  var want = sha256hex.toLowerCase()
-  if (!/^[0-9a-f]{64}$/.test(want)) return false
-  var found = false
-  var lines = sumsText.split(/\r?\n/)
-  for (var i = 0; i < lines.length; i++) {
-    var m = lines[i].trim().match(/^([0-9a-fA-F]{64})\s+\*?(.+)$/)
-    if (!m) continue
-    if (m[2].trim().replace(/^\.\//, "") !== asset) continue
-    found = true
-    if (m[1].toLowerCase() !== want) return false
-  }
-  return found
 }
 
 function _action(id, label, probeBusy, input) {
@@ -428,7 +413,41 @@ function detect(probe) {
   return out
 }
 
+// The sign-in address carries the local sign-in server's secret path, and loopback is shared by
+// every user on the machine, so it must never be a process argument (xdg-open's and the browser's
+// argv are readable through /proc/<pid>/cmdline). Instead a tiny page that redirects to it is written
+// from stdin, with umask 077, into $XDG_RUNTIME_DIR when it is this user's 0700 directory (else the
+// private state directory), and only that
+// file's path is opened. signInPageHtml returns "" for anything that is not the sign-in address.
+var SIGN_IN_PAGE = "audible-sign-in.html"
+
+function signInPageHtml(url) {
+  var u = parseLoginUrl(String(url || ""))
+  if (!u || u !== String(url)) return ""
+  return "<!doctype html><meta charset=\"utf-8\"><title>Audible sign-in</title>" +
+    "<meta http-equiv=\"refresh\" content=\"0;url=" + u + "\"><a href=\"" + u + "\">Continue to Amazon sign-in</a>\n"
+}
+
+// argv: write stdin to the page (owner-only) and open it. $1 is the fallback directory.
+function signInOpenArgs(stateDir) {
+  return ["sh", "-c",
+    "umask 077; d=${XDG_RUNTIME_DIR:-}; " +
+    "if [ -z \"$d\" ] || [ ! -d \"$d\" ] || [ ! -O \"$d\" ] || [ \"$(stat -c %a -- \"$d\")\" != 700 ]; then " +
+    "d=$1; mkdir -p -m 700 -- \"$d\" && chmod 700 -- \"$d\" || exit 1; fi; " +
+    "f=$d/" + SIGN_IN_PAGE + "; rm -f -- \"$f\"; cat > \"$f\" && exec xdg-open \"$f\"",
+    "sh", String(stateDir)]
+}
+
+// argv: remove the page again once the sign-in is over.
+function signInCleanupArgs(stateDir) {
+  return ["sh", "-c", "for d in \"${XDG_RUNTIME_DIR:-}\" \"$1\"; do [ -n \"$d\" ] && rm -f -- \"$d/" + SIGN_IN_PAGE + "\"; done; true",
+    "sh", String(stateDir)]
+}
+
 if (typeof module !== "undefined") module.exports = {
+  signInPageHtml: signInPageHtml,
+  signInOpenArgs: signInOpenArgs,
+  signInCleanupArgs: signInCleanupArgs,
   detect: detect,
   parseAccountList: parseAccountList,
   parseLibraryProbe: parseLibraryProbe,
@@ -446,7 +465,6 @@ if (typeof module !== "undefined") module.exports = {
   terminalLoginArgs: terminalLoginArgs,
   terminalUnlockArgs: terminalUnlockArgs,
   installPlan: installPlan,
-  verifySums: verifySums,
   versionNotice: versionNotice,
   PINNED_TAG: PINNED_TAG,
   STEPS: STEPS

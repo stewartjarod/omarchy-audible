@@ -350,7 +350,7 @@ test("notifyArgs builds notify-send argv with a -- guard before the title", () =
   assert.deepEqual(N.notifyArgs("-rf title"), ["notify-send", "-a", "Audible", "--", "-rf title"])
 })
 
-test("upNextBody reads plainly and falls back when there is no title", () => {
-  assert.equal(N.upNextBody("Saga 2"), "Saga 2 starts in 5 seconds.")
-  assert.equal(N.upNextBody(""), "Your next book starts in 5 seconds.")
+test("notification texts never carry a book title", () => {
+  for (const t of [N.DOWNLOAD_DONE_BODY, N.FINISHED_BODY, N.UP_NEXT_BODY]) assert.equal(typeof t, "string")
+  assert.equal(N.UP_NEXT_BODY, "Your next book starts in 5 seconds.")
 })

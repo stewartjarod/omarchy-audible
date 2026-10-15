@@ -63,12 +63,9 @@ test("friendlyError maps sign-in trouble to the setup hint", () => {
   assert.match(M.friendlyError("account is locked"), /sign-in needs attention/)
 })
 
-test("buildPullArgv is always a GET with a comma list of ASINs", () => {
-  const argv = M.buildPullArgv(["A1", "A2"])
-  assert.equal(argv[2], "GET")
-  assert.equal(argv[3], "/1.0/annotations/lastpositions")
-  assert.ok(argv.includes("asins=A1,A2"))
-  assert.ok(!argv.includes("PUT") && !argv.includes("POST") && !argv.includes("DELETE"))
+test("buildPullRequest is always a GET with a comma list of ASINs, sent as a request spec (no argv)", () => {
+  assert.deepEqual(M.buildPullRequest(["A1", "A2"]),
+    { api: true, method: "GET", path: "/1.0/annotations/lastpositions", query: { asins: "A1,A2" } })
 })
 
 test("chunk splits into batches", () => {
@@ -175,7 +172,9 @@ test("the manifest agrees: the setting defaults to on, in the values and in the 
 
 test("buildPushRequest is the verified PUT: acr, asin and the position in whole ms", () => {
   const req = M.buildPushRequest(BOOK, 5255.4, "CR!ABC")
-  assert.deepEqual(req.argv.slice(0, 4), ["audible", "api", "PUT", "/1.0/lastpositions/" + BOOK])
+  assert.deepEqual(req.request, { api: true, method: "PUT", path: "/1.0/lastpositions/" + BOOK,
+    body: { acr: "CR!ABC", asin: BOOK, position_ms: 5255400 } })
+  assert.equal(req.argv, undefined)
   assert.deepEqual(req.body, { acr: "CR!ABC", asin: BOOK, position_ms: 5255400 })
   assert.equal(req.positionMs, 5255400)
   assert.equal(req.unverified, undefined)

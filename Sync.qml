@@ -114,7 +114,7 @@ Item {
   function runPull(asins) {
     if (!service) return
     var stamp = Date.now()
-    service.run(SyncModel.buildPullArgv(asins), function(code, out, err) {
+    service.run(SyncModel.buildPullRequest(asins), function(code, out, err) {
       var r = code === 0 ? SyncModel.parseLastPositions(out) : { ok: false, positions: {}, error: SyncModel.friendlyError(err || out) }
       if (!r.ok) {
         pullFailures++
@@ -236,7 +236,7 @@ Item {
   function sendLive(a, pos) {
     if (!service || pushBusy) return
     pushBusy = true
-    SyncModel.pushPosition(function(argv, cb) { service.run(argv, cb) }, {
+    SyncModel.pushPosition(function(request, cb) { service.run(request, cb) }, {
       asin: a, positionSec: pos, listenedAtMs: listenedAt(a), acr: acrs[a] || "", pushedMs: pushed[a]
     }, function(res) {
       var ac = Object.assign({}, acrs)

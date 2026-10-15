@@ -50,8 +50,9 @@ Not affiliated with Audible or Amazon.
 | `uwsm-app` | **Optional.** When present, mpv starts in its own systemd scope so playback survives a shell restart | Ships with Omarchy's uwsm setup when it is installed |
 
 The pinned audible-rs version lives in `Service.qml` as `pinnedTag`
-(currently `v0.1.0-alpha.8`). The plugin only downloads that release. Its
-`SHA256SUMS` file is checked before anything is installed.
+(currently `v0.1.0-alpha.8`). The plugin only downloads that release, and checks
+it against a SHA-256 pinned in the plugin's code (`SetupModel.js`) before anything
+is installed.
 
 ## Install
 
@@ -95,9 +96,9 @@ Press **Enter** to run it, **Tab** to pick a secondary option, **r** to check
 again, and **Esc** to close.
 
 1. **Audible CLI.** The screen says "Let's install the Audible CLI." Enter
-   downloads the pinned audible-rs release from GitHub, checks it against
-   `SHA256SUMS`, and installs it to `~/.local/bin/audible`. If the checksum does
-   not match, nothing is installed.
+   downloads the pinned audible-rs release from GitHub, checks it against the
+   SHA-256 pinned in the plugin, and installs it to `~/.local/bin/audible`. If the
+   checksum does not match, nothing is installed.
 2. **Audio player (mpv).** If mpv is missing, the screen says "One more piece:
    mpv." Run `omarchy pkg add mpv` in a terminal, then press **r**.
 3. **Sign in to Audible.** Enter starts the sign-in. A page opens in your browser
@@ -234,7 +235,7 @@ surprise. Your Up next queue wins over the series order. Setting: `autoAdvance`
 ### Notifications
 
 Short desktop notices for a finished download, a finished book, the sleep timer
-and the next book. Setting: `notifications`.
+and the next book. They never name the book (see Privacy). Setting: `notifications`.
 
 ### Sound adjustment
 
@@ -255,7 +256,8 @@ newer. Setting: `syncPullFromAudible` (on by default).
 Your position is sent back to Audible, so the Audible app on your phone opens where you stopped
 here. This is **on by default**. To keep your position on this computer only, turn off **Save my
 position to Audible** (`savePositionToAudible`) in the plugin's settings. This is the only thing the
-plugin ever writes to your Audible account, and it
+plugin writes to your Audible account on its own (the other write is a wishlist change you confirm
+twice), and it
 writes one number per book (`PUT /1.0/lastpositions/<book>`: the book's ID, its content ID and the
 position). It never buys, returns, rates or deletes anything.
 
@@ -323,13 +325,13 @@ come from the schema in `manifest.json`.
 | audible-rs binary | `~/.local/bin/audible` | Installed by the plugin, from the pinned release |
 | Your Audible account | Managed by audible-rs, in its own config directory | The plugin reads the account list but does not write it |
 | Saved password (optional) | Your system keyring, under service `audible-rs` and your account name | Never written to a file, never on a command line, never logged |
-| Downloaded books | `~/.local/share/audible/books/` | Encrypted `.aaxc` audio plus a `.voucher` file for each book (see Privacy) |
+| Downloaded books | `~/.local/share/audible/books/` | Encrypted `.aaxc` audio plus a `.voucher` file for each book (see Privacy). The plugin keeps this folder and audible-rs's data folder `~/.local/share/audible/` (its library database) readable by you only |
 | Audible CLI download settings | `settings.default.download_dir`, `filename_mode` and `filename_template` in the CLI's config (see them with `audible config list`) | The plugin sets these once, right before its first download, so every book lands in `~/.local/share/audible/books/<ASIN>/`, where the player looks. It changes nothing else in that config |
-| Plugin state | `~/.local/state/jarod-audible/state.json` | View mode, sort and filter, volume, speed, last book, resume positions, finished marks |
+| Plugin state | `~/.local/state/jarod-audible/state.json` (the folder is readable by you only) | View mode, sort and filter, volume, speed, last book, resume positions, finished marks |
 | Listening history | `~/.local/state/jarod-audible/listening.json` | Seconds listened per day (and per book), for stats and the finish estimate. Stays on this computer |
 | Up next queue | `~/.local/state/jarod-audible/queue.json` | The ordered list of queued books |
 | Phone sync notes | `~/.local/state/jarod-audible/sync.json` | Which phone positions you accepted (only if you use it) |
-| mpv control socket | `$XDG_RUNTIME_DIR/omarchy-audible-mpv.sock` (falls back to `/tmp`) | Exists only while the audiobook player runs |
+| mpv control socket | `$XDG_RUNTIME_DIR/omarchy-audible-mpv.sock` (without `$XDG_RUNTIME_DIR`: `~/.local/state/jarod-audible/mpv.sock`, never `/tmp`) | Exists only while the audiobook player runs |
 
 ## Privacy and DRM
 
@@ -342,6 +344,17 @@ come from the schema in `manifest.json`.
 - **No text fields in the shell.** The plugin has no text input in the bar or
   its popups, so it never reads the clipboard. The sign-in link is plain text;
   click it to copy it.
+- **Other people on this computer cannot see what you listen to.** Any local
+  user can read the command line of every running program, so the plugin keeps
+  books and positions off command lines: requests to Audible go to audible-rs on
+  its standard input (`audible api --request-file /dev/stdin`), notifications
+  never name a book, and the sign-in address (it carries the local sign-in
+  server's secret) is opened through a page only you can read, never as a
+  command-line argument. The one exception is downloading: audible-rs takes the
+  book's ID only as an argument (`audible download --asin`), so while a download
+  runs, its ID is visible to other local users. The plugin's state folder, the
+  books folder and audible-rs's data folder are readable by you only, and the
+  player's control socket sits in your private runtime folder.
 - **Books are encrypted on disk.** A downloaded book is an encrypted `.aaxc` file.
   The `.voucher` file next to it holds the key and IV needed to decrypt it. That
   voucher is written by audible-rs, as it is for any audible-rs download.
@@ -454,8 +467,8 @@ delete the keyring entry with `secret-tool clear service audible-rs account <nam
 audible-rs **v0.1.0-alpha.8** is an alpha release by its author, mkb79. It is a
 third-party command-line tool that works with Audible's API as the project has
 reverse-engineered it. The plugin pins this one release, downloads it only from
-the project's GitHub release, and checks it against the published `SHA256SUMS`
-before installing. Expect breakage when Audible changes, and expect the upstream
+the project's GitHub release, and checks it against a SHA-256 pinned in the
+plugin before installing. Expect breakage when Audible changes, and expect the upstream
 project to change between releases. If you have a different version installed,
 the setup screen will tell you.
 

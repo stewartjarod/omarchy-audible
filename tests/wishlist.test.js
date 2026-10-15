@@ -95,20 +95,27 @@ test("productOf and simsOf read the catalog fixtures", () => {
   assert.equal(W.simsOf({ similar_products: [{ asin: "bad asin" }, null] }).length, 0)
 })
 
-test("read-only argv builders are exact and refuse invalid ASINs", () => {
+test("read-only builders are exact request specs and refuse invalid ASINs", () => {
   assert.deepEqual(W.listArgs(), ["audible", "collections", "wishlist", "list", "-o", "json"])
-  const p = W.productArgs("SIMSAMPLE1")
-  assert.deepEqual(p.slice(0, 5), ["audible", "api", "GET", "/1.0/catalog/products/SIMSAMPLE1", "--query"])
-  assert.ok(W.simsArgs("SIMSAMPLE1")[3].endsWith("/sims"))
+  assert.deepEqual(W.productArgs("SIMSAMPLE1"),
+    { api: true, method: "GET", path: "/1.0/catalog/products/SIMSAMPLE1", query: { response_groups: W.GROUPS } })
+  assert.equal(W.simsArgs("SIMSAMPLE1").path, "/1.0/catalog/products/SIMSAMPLE1/sims")
   assert.equal(W.productArgs("x; rm -rf ~"), null)
   assert.equal(W.simsArgs(""), null)
 })
 
-test("write argv builders exist, are exact, and refuse invalid ASINs (never run by the tests)", () => {
-  assert.deepEqual(W.addArgs("WISH0001"), ["audible", "collections", "wishlist", "add", "--asin", "WISH0001", "-o", "json"])
-  assert.deepEqual(W.removeArgs("WISH0001"), ["audible", "collections", "wishlist", "remove", "--asin", "WISH0001", "-o", "json"])
-  assert.equal(W.addArgs("bad asin"), null)
-  assert.equal(W.removeArgs(null), null)
+test("wishlist writes are the CLI's own collection requests, need a state token, and refuse invalid ASINs (never run)", () => {
+  assert.deepEqual(W.wishlistMetaRequest(), { api: true, method: "GET", path: "/1.0/collections/__WISHLIST" })
+  assert.equal(W.parseStateToken(JSON.stringify({ error: null, result: { state_token: "ST1" } })), "ST1")
+  assert.equal(W.parseStateToken(JSON.stringify({ error: { message: "x" }, result: { state_token: "ST1" } })), "")
+  assert.equal(W.parseStateToken("not json"), "")
+  assert.deepEqual(W.addRequest("WISH0001", "ST1"), { api: true, method: "POST", path: "/1.0/collections/__WISHLIST/items",
+    body: { collection_id: "__WISHLIST", asins: ["WISH0001"], state_token: "ST1" } })
+  assert.deepEqual(W.removeRequest("WISH0001", "ST1"), { api: true, method: "DELETE", path: "/1.0/collections/__WISHLIST/items",
+    query: { state_token: "ST1", asins: "WISH0001" } })
+  assert.equal(W.addRequest("bad asin", "ST1"), null)
+  assert.equal(W.addRequest("WISH0001", ""), null)
+  assert.equal(W.removeRequest(null, "ST1"), null)
 })
 
 test("cover batches, args and parsing", () => {
@@ -116,9 +123,9 @@ test("cover batches, args and parsing", () => {
   const b = W.coverBatches(ids.concat(["bad id!", ids[0]]), { [ids[1]]: "x" })
   assert.deepEqual(b.map((x) => x.length), [50, 50, 19])
   assert.ok(!b[0].includes(ids[1]))
-  const argv = W.coverArgs(b[0])
-  assert.ok(argv.includes("asins=" + b[0].join(",")))
-  assert.ok(argv.includes("response_groups=media"))
+  const req = W.coverArgs(b[0])
+  assert.equal(req.query.asins, b[0].join(","))
+  assert.equal(req.query.response_groups, "media")
   assert.equal(W.coverArgs([]), null)
   const m = W.parseCovers({ products: [
     { asin: "AAAA1", product_images: { 500: "https://m.media-amazon.com/a.jpg" } },

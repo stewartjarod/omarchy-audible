@@ -189,9 +189,10 @@ function notifyArgs(title, body, expireMs) {
   return argv
 }
 
-function upNextBody(title) {
-  return String(title || "Your next book") + " starts in 5 seconds."
-}
+// Notification texts. Fixed, never a book title: notify-send's argv is readable by other local users.
+var DOWNLOAD_DONE_BODY = "A book is ready to listen to offline."
+var FINISHED_BODY = "You finished a book."
+var UP_NEXT_BODY = "Your next book starts in 5 seconds."
 
 if (typeof module !== "undefined") module.exports = {
   FADE_SEC: FADE_SEC,
@@ -214,5 +215,5 @@ if (typeof module !== "undefined") module.exports = {
   filterChain: filterChain,
   affCommands: affCommands,
   notifyArgs: notifyArgs,
-  upNextBody: upNextBody
+  DOWNLOAD_DONE_BODY: DOWNLOAD_DONE_BODY, FINISHED_BODY: FINISHED_BODY, UP_NEXT_BODY: UP_NEXT_BODY
 }

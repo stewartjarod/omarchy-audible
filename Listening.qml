@@ -173,14 +173,11 @@ Item {
   }
 
   // ---- notifications -------------------------------------------------------------
+  // notify-send takes its text as arguments, which other local users can read in /proc/<pid>/cmdline,
+  // so notifications never name a book (the popup and the library do).
   function notify(title, body, expireMs) {
     if (!notifyOn) return
     Quickshell.execDetached(Ls.notifyArgs(title, body, expireMs))
-  }
-
-  function titleOf(asin) {
-    var b = service ? service.bookFor(asin) : null
-    return b && b.title ? b.title : "Your book"
   }
 
   property var notifiedDone: ({})
@@ -197,7 +194,7 @@ Item {
     for (var a in d) {
       if (d[a] && d[a].state === "done" && !notifiedDone[a]) {
         notifiedDone[a] = true
-        notify("Download finished", titleOf(a) + " is ready to listen to offline.")
+        notify("Download finished", Ls.DOWNLOAD_DONE_BODY)
       }
     }
   }
@@ -216,7 +213,7 @@ Item {
 
   function bookFinished(asin) {
     if (!service || !asin) return
-    notify("Finished", titleOf(asin))
+    notify("Finished", Ls.FINISHED_BODY)
     if (sleptAsin === asin) { sleptAsin = ""; return }
     var provider = typeof nextProvider === "function" ? String(nextProvider(asin) || "") : ""
     var pick = Ls.nextInSeries(Lib, service.books, asin, {
@@ -227,7 +224,7 @@ Item {
     if (!pick) return
     upNextFrom = asin
     upNextAsin = pick.asin
-    notify("Up next", Ls.upNextBody(titleOf(pick.asin)), 5000)
+    notify("Up next", Ls.UP_NEXT_BODY, 5000)
     upNextTimer.restart()
   }
 
