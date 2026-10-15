@@ -230,6 +230,7 @@ Item {
           color: Util.alpha(root.foreground, 0.08)
 
           Text {
+            textFormat: Text.PlainText
             anchors.centerIn: parent
             visible: cover.status !== Image.Ready
             text: root.book && root.book.title ? root.book.title.charAt(0).toUpperCase() : ""

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "SetupModel.js" as Setup
+import "ProcessModel.js" as Proc
 
 // First-run setup: probes the machine (audible CLI, mpv, account, library), turns that into the
 // onboarding state (SetupModel.detect), and runs the setup actions (install, sign in, save the
@@ -119,8 +120,8 @@ Item {
     case "cancel": cancelLogin(); break
     case "store-password": terminalUnlock(); break
     case "remove-password":
-      Quickshell.execDetached(["xdg-terminal-exec", "sh", "-c",
-        "export PATH=\"$HOME/.local/bin:$PATH\"; audible account password remove; echo; read -r -p 'Press Enter to close' _"])
+      Quickshell.execDetached(Proc.detached(["xdg-terminal-exec", "/bin/sh", "-c",
+        Proc.PATH_LINE + "; audible account password remove; echo; printf 'Press Enter to close '; read -r _"]))
       svc.setupLog = "Finish in the terminal that just opened, then press r to re-check."
       break
     case "sync": syncLibrary(); break
@@ -140,7 +141,7 @@ Item {
       "install -Dm755 ./*/audible \"$HOME/.local/bin/audible\""
     svc.run(["sh", "-c", script, "sh", plan.asset, plan.url, plan.sha256], function(code, out, err) {
       doneBusy(code === 0 ? "Installed. Checking everything again..." : "The download did not verify: " + String(err).split("\n")[0])
-    })
+    }, { deadline: 600 })
   }
 
   // Sign in with the CLI writing an UNENCRYPTED login file (--plain): its own password prompt reads
@@ -178,11 +179,14 @@ Item {
             loginUrl = u
             // never `xdg-open <url>`: the address holds the sign-in server's secret (see signInPageHtml)
             var page = Setup.signInPageHtml(u)
-            if (page !== "") svc.run(Setup.signInOpenArgs(svc.stateDir), null, { input: page })
+            if (page !== "") svc.run(Setup.signInWriteArgs(svc.stateDir), function(c, out) {
+              var f = String(out).trim()
+              if (c === 0 && f.charAt(0) === "/") Quickshell.execDetached(Proc.detached(["xdg-open", f]))
+            }, { input: page })
             svc.setupLog = "Sign in to Amazon in the browser window that just opened."
             rerenderSetup()
           }
-        } })
+        }, deadline: 960 })   // the sign-in server stops itself after 900 s
     rerenderSetup()
     loginPoll.restart()
     urlWatch.restart()
@@ -232,7 +236,7 @@ Item {
     try { argv = Setup.terminalLoginArgs(Setup.accountNameFor(Quickshell.env("USER")), marketplaceGuess()) }
     catch (e) { svc.setupLog = "Could not start the terminal sign-in."; return }
     if (loginWaiting) cancelLogin()
-    Quickshell.execDetached(["xdg-terminal-exec"].concat(argv))
+    Quickshell.execDetached(Proc.detached(["xdg-terminal-exec"].concat(argv)))
     svc.setupLog = "Finish signing in in the terminal window that opened. This page updates by itself."
   }
 
@@ -242,7 +246,7 @@ Item {
     var argv
     try { argv = Setup.terminalUnlockArgs(accountName()) }
     catch (e) { svc.setupLog = "Could not start the unlock: no saved login was found."; return }
-    Quickshell.execDetached(["xdg-terminal-exec"].concat(argv))
+    Quickshell.execDetached(Proc.detached(["xdg-terminal-exec"].concat(argv)))
     svc.setupLog = "Type your password in the terminal window that opened. This page updates by itself."
   }
 
@@ -336,6 +340,6 @@ Item {
     busyWith("sync", "Syncing your library...")
     svc.run(["audible", "library", "sync"], function(code, out, err) {
       doneBusy(code === 0 ? "Library synced." : "Sync failed: " + String(err || out).split("\n")[0])
-    }, { line: function(l) { if (l.trim() !== "") svc.setupLog = l.trim().slice(0, 90) } })
+    }, { line: function(l) { if (l.trim() !== "") svc.setupLog = l.trim().slice(0, 90) }, deadline: 1800 })
   }
 }

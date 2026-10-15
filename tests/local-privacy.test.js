@@ -30,7 +30,7 @@ const mode = (p) => fs.statSync(p).mode & 0o777
 test("toProcess: the argv is fixed and the whole request is on stdin", () => {
   const spec = Sync.buildPushRequest(ASIN, 600, "CR!SAMPLE").request
   const p = Api.toProcess(spec)
-  assert.deepEqual(p.argv, ["timeout", String(Api.DEADLINE_SEC), "audible", "api", "--request-file", "/dev/stdin", "-o", "json"])
+  assert.deepEqual(p.argv, ["audible", "api", "--request-file", "/dev/stdin", "-o", "json"])
   assert.match(p.input, /^method = "PUT"\npath = "\/1\.0\/lastpositions\/B0SMPL0072"\nbody = /)
 })
 
@@ -84,6 +84,21 @@ test("deleting a book: the ASIN is read from stdin, never in argv, and only that
   fs.rmSync(dir, { recursive: true, force: true })
 })
 
+test("reading a voucher: the path comes from stdin; only a regular .voucher file is read", () => {
+  const dir = tmp()
+  const v = path.join(dir, ASIN + ".AAX_22_64.voucher")
+  fs.writeFileSync(v, '{"key":"00","iv":"11"}')
+  const argv = P.readVoucherArgs()
+  assert.ok(!argv.join(" ").includes(ASIN))
+  const read = (p) => spawnSync(argv[0], argv.slice(1), { input: p + "\n", encoding: "utf8" })
+  assert.equal(read(v).stdout, '{"key":"00","iv":"11"}')
+  fs.symlinkSync(v, path.join(dir, "link.voucher"))
+  for (const bad of [path.join(dir, "link.voucher"), path.join(dir, "missing.voucher"), "/etc/passwd", "relative.voucher"]) {
+    assert.notEqual(read(bad).status, 0, bad)
+  }
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
 test("the CLI's data and books directories become owner-only, and so do world-readable files in them", () => {
   const dir = tmp()
   const data = path.join(dir, "audible"), books = path.join(data, "books"), db = path.join(data, "db")
@@ -97,6 +112,24 @@ test("the CLI's data and books directories become owner-only, and so do world-re
   for (const d of [data, books, db, path.join(books, ASIN)]) assert.equal(mode(d), 0o700, d)
   assert.equal(mode(path.join(db, "account.sqlite")), 0o600)
   assert.equal(mode(path.join(books, ASIN, ASIN + ".aaxc")), 0o600)
+  fs.rmSync(dir, { recursive: true, force: true })
+})
+
+test("the private-directory helpers refuse a symlink in place of a directory", () => {
+  const dir = tmp()
+  const target = path.join(dir, "elsewhere"), link = path.join(dir, "state")
+  fs.mkdirSync(target, { mode: 0o755 }); fs.chmodSync(target, 0o755)
+  fs.symlinkSync(target, link)
+  for (const argv of [P.privateDirArgs(link), P.privateDataDirArgs(link, path.join(link, "books"))]) {
+    assert.notEqual(spawnSync(argv[0], argv.slice(1)).status, 0)
+  }
+  assert.equal(mode(target), 0o755)
+  const books = path.join(dir, "books"), victim = path.join(dir, "victim")
+  fs.mkdirSync(books); fs.mkdirSync(victim); fs.writeFileSync(path.join(victim, "keep"), "x")
+  fs.symlinkSync(victim, path.join(books, ASIN))
+  const rm = P.removeBookArgs(books)
+  spawnSync(rm[0], rm.slice(1), { input: ASIN + "\n" })
+  assert.equal(fs.existsSync(path.join(victim, "keep")), true)
   fs.rmSync(dir, { recursive: true, force: true })
 })
 
@@ -115,15 +148,14 @@ test("sign-in page: only the sign-in address, and opening it puts no secret in a
   for (const bad of ["https://evil.example/", LOGIN + '"><script>', "javascript:alert(1)", ""]) assert.equal(S.signInPageHtml(bad), "", bad)
 
   const dir = tmp()
-  const run = path.join(dir, "run"), bin = path.join(dir, "bin"), log = path.join(dir, "opened")
-  fs.mkdirSync(run, { mode: 0o700 }); fs.mkdirSync(bin)
-  fs.writeFileSync(path.join(bin, "xdg-open"), `#!/bin/sh\nprintf '%s\\n' "$*" > "${log}"\n`, { mode: 0o755 })
-  const argv = S.signInOpenArgs(path.join(dir, "state"))
+  const run = path.join(dir, "run")
+  fs.mkdirSync(run, { mode: 0o700 })
+  const argv = S.signInWriteArgs(path.join(dir, "state"))
   assert.ok(!argv.join(" ").includes("0123456789abcdef"))
-  const r = spawnSync(argv[0], argv.slice(1), { input: S.signInPageHtml(LOGIN), env: { PATH: `${bin}:/usr/bin:/bin`, XDG_RUNTIME_DIR: run } })
+  const r = spawnSync(argv[0], argv.slice(1), { input: S.signInPageHtml(LOGIN), env: { PATH: "/usr/bin:/bin", XDG_RUNTIME_DIR: run }, encoding: "utf8" })
   assert.equal(r.status, 0, String(r.stderr))
   const page = path.join(run, "audible-sign-in.html")
-  assert.equal(fs.readFileSync(log, "utf8").trim(), page)            // xdg-open got the file, not the address
+  assert.equal(r.stdout.trim(), page)                               // what xdg-open is given: the file, not the address
   assert.equal(mode(page), 0o600)
   assert.ok(fs.readFileSync(page, "utf8").includes(LOGIN))
 
@@ -135,11 +167,9 @@ test("sign-in page: only the sign-in address, and opening it puts no secret in a
 
 test("without a private $XDG_RUNTIME_DIR (here /tmp) the sign-in page goes to the private state directory", () => {
   const dir = tmp()
-  const bin = path.join(dir, "bin"), state = path.join(dir, "state")
-  fs.mkdirSync(bin)
-  fs.writeFileSync(path.join(bin, "xdg-open"), "#!/bin/sh\nexit 0\n", { mode: 0o755 })
-  const argv = S.signInOpenArgs(state)
-  const r = spawnSync(argv[0], argv.slice(1), { input: S.signInPageHtml(LOGIN), env: { PATH: `${bin}:/usr/bin:/bin`, XDG_RUNTIME_DIR: "/tmp" } })
+  const state = path.join(dir, "state")
+  const argv = S.signInWriteArgs(state)
+  const r = spawnSync(argv[0], argv.slice(1), { input: S.signInPageHtml(LOGIN), env: { PATH: "/usr/bin:/bin", XDG_RUNTIME_DIR: "/tmp" } })
   assert.equal(r.status, 0, String(r.stderr))
   assert.equal(mode(state), 0o700)
   assert.equal(mode(path.join(state, "audible-sign-in.html")), 0o600)

@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import "ListeningModel.js" as Ls
+import "ProcessModel.js" as Proc
 import "LibraryModel.js" as Lib
 
 // Everyday listening features, driven by Service (one instance per shell, no visuals):
@@ -177,7 +178,7 @@ Item {
   // so notifications never name a book (the popup and the library do).
   function notify(title, body, expireMs) {
     if (!notifyOn) return
-    Quickshell.execDetached(Ls.notifyArgs(title, body, expireMs))
+    Quickshell.execDetached(Proc.detached(Ls.notifyArgs(title, body, expireMs)))
   }
 
   property var notifiedDone: ({})

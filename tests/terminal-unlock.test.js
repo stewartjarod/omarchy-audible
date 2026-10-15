@@ -52,6 +52,11 @@ exit 0
     if (w.startsWith("/")) fs.symlinkSync(w, path.join(tools, t))
   }
   const args = M.terminalUnlockArgs("tester")
+  // The script pins PATH to the system directories (then ~/.local/bin). Here only the stand-ins may
+  // run, so that one line is swapped for the test's PATH; the rest of the script runs unchanged.
+  const SAFE = 'PATH="/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin"; export PATH'
+  assert.equal(args[2].split("\n")[0], SAFE)
+  args[2] = args[2].replace(SAFE, `PATH="${bin}:${path.join(dir, "tools")}"; export PATH`)
   const r = spawnSync(args[0], args.slice(1), {
     input: typed + "\n\n",   // the password line, then Enter to close
     env: { PATH: `${bin}:${tools}`, HOME: dir },

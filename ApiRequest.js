@@ -3,7 +3,8 @@
 // Audible API requests that keep the request off the command line. Another local user can read any
 // process's argv through /proc/<pid>/cmdline, and API paths, queries and bodies name books (ASINs)
 // and listening positions. So a request is a plain spec, and the process only ever runs
-//   timeout 120 audible api --request-file /dev/stdin -o json
+//   audible api --request-file /dev/stdin -o json
+// (under Service.run's deadline and output ceilings, see ProcessModel.js)
 // with the method, path, query and body written to its stdin as a TOML request file (the CLI's own
 // `--save-request` format). /proc/<pid>/environ and the stdin pipe are owner-only.
 //
@@ -11,7 +12,6 @@
 //         query: { name: string }, body: object }   (query and body optional; one value per query name,
 //         which is all the request file format can hold)
 
-var DEADLINE_SEC = 120   // an API call that takes longer than this is stuck; the caller sees a failure
 var METHODS = { GET: true, PUT: true, POST: true, DELETE: true }
 
 function request(method, path, query, body) {
@@ -49,9 +49,9 @@ function toToml(spec) {
 // -> { argv, input }: what Service.run starts, and what it writes to the process's stdin.
 function toProcess(spec) {
   return {
-    argv: ["timeout", String(DEADLINE_SEC), "audible", "api", "--request-file", "/dev/stdin", "-o", "json"],
+    argv: ["audible", "api", "--request-file", "/dev/stdin", "-o", "json"],
     input: toToml(spec)
   }
 }
 
-if (typeof module !== "undefined") module.exports = { DEADLINE_SEC, request, isRequest, toToml, toProcess }
+if (typeof module !== "undefined") module.exports = { request, isRequest, toToml, toProcess }

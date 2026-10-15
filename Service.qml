@@ -5,6 +5,7 @@ import "LibraryModel.js" as Lib
 import "PlayerModel.js" as Player
 import "SetupModel.js" as Setup
 import "ApiRequest.js" as Api
+import "ProcessModel.js" as Proc
 
 // stewartjarod.audible service: the single owner of playback (mpv over IPC), the
 // Audible CLI, local state and the library overlay. Bar widgets are instantiated
@@ -126,8 +127,10 @@ Item {
   Component { id: cmdComponent; Cmd {} }
   Component { id: cmdLinesComponent; CmdLines {} }
 
-  // run(argv, done(exitCode, stdout, stderr), {line, input, env}) -> Process
-  // PATH always includes ~/.local/bin (the shell's own PATH may not).
+  // run(argv, done(exitCode, stdout, stderr), {line, input, env, deadline}) -> Process
+  // Every command gets a fixed PATH (system directories, then ~/.local/bin for audible-rs), a
+  // deadline (`deadline` seconds, default 120; exit 124 when it is hit) and byte ceilings on its
+  // output: see ProcessModel.js.
   // `argv` may also be an ApiRequest.js spec: the request then goes to `audible api` on stdin, so
   // the book ids and positions in it never show up in /proc/<pid>/cmdline.
   function run(argv, done, opts) {
@@ -136,9 +139,9 @@ Item {
       var req
       try { req = Api.toProcess(argv) } catch (e) { if (typeof done === "function") done(2, "", String(e.message || e)); return null }
       argv = req.argv
-      o = { line: o.line, env: o.env, input: req.input }
+      o = { line: o.line, env: o.env, input: req.input, deadline: o.deadline }
     }
-    var wrapped = ["sh", "-c", "export PATH=\"$HOME/.local/bin:$PATH\"; exec \"$@\"", "sh"].concat(argv)
+    var wrapped = Proc.wrap(argv, o.deadline)
     // collector-based by default; the line-streaming runner only when a line callback is given
     var p = o.line
       ? cmdLinesComponent.createObject(root, { command: wrapped, done: done || null, line: o.line, input: o.input || "", extraEnv: o.env || null })
@@ -516,7 +519,7 @@ Item {
     // a socket file left by a dead mpv would make the new one fail to bind. The state directory is
     // made private first, since the socket lands there when there is no $XDG_RUNTIME_DIR.
     ensureStateDir(function() {
-      Quickshell.execDetached(["sh", "-c", "export PATH=\"$HOME/.local/bin:$PATH\"; rm -f \"$1\"; shift; exec \"$@\"", "sh", mpvSock].concat(argv))
+      Quickshell.execDetached(Proc.detached(["sh", "-c", "rm -f -- \"$1\"; shift; exec \"$@\"", "sh", mpvSock].concat(argv)))
     })
   }
 
@@ -563,7 +566,8 @@ Item {
     var start = Math.max(0, Math.floor(resumePosition(a) - 5))   // back up a few seconds
     // The voucher holds the AAXC key and iv. It is read into memory and handed to mpv over its IPC
     // socket as demuxer options, so it never appears in a command line and no decrypted copy is written.
-    run(["cat", String(file).replace(/\.aaxc$/, ".voucher")], function(code, out) {
+    // Its path (named by the ASIN) goes in on stdin too.
+    run(Player.readVoucherArgs(), function(code, out) {
       var voucher = null
       try { voucher = JSON.parse(out) } catch (e) { }
       var cmds = Player.loadCommands(file, voucher, { start: start, speed: speed, volume: Math.round(volume) })
@@ -575,7 +579,7 @@ Item {
       whenLinked(function() {
         for (var i = 0; i < cmds.length; i++) mpvSend(cmds[i])
       })
-    })
+    }, { input: String(file).replace(/\.aaxc$/, ".voucher") + "\n" })
     lastAsin = a
     saveSoon()
   }
@@ -717,8 +721,9 @@ Item {
         if (pendingPlay === a) { pendingPlay = ""; startPlayback(a) }
         pumpDownloads()
       })
-    })
+    }, { deadline: downloadDeadlineSec })
   }
+  readonly property int downloadDeadlineSec: 6 * 3600   // a whole book on a slow line
 
   // The CLI prints nothing while downloading when not on a TTY, and writes to <asin>.*.aaxc.part until
   // it finishes, so progress is that file's size against runtime * bitrate.

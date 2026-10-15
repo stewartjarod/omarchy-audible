@@ -235,7 +235,7 @@ function accountNameFor(user) {
 // protected with a random keyring password so the popup never needs one. Positional args: $1 account
 // name, $2 marketplace. Nothing secret is on a command line.
 var TERMINAL_LOGIN_SCRIPT = [
-  'export PATH="$HOME/.local/bin:$PATH"',
+  'PATH="/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin"; export PATH',   // as ProcessModel.SAFE_PATH
   'name="$1"; mp="$2"',
   'pause() { echo; printf "Press Enter to close "; read -r _; }',
   'echo "Sign in to Audible (account: $name)"; echo',
@@ -266,7 +266,7 @@ function terminalLoginArgs(accountName, marketplace) {
 // the terminal with echo off and piped to secret-tool, so it is never on a command line, in a file or
 // in the shell. Then the CLI is pointed at the keyring. recheckPoll notices the unlock. $1 account name.
 var TERMINAL_UNLOCK_SCRIPT = [
-  'export PATH="$HOME/.local/bin:$PATH"',
+  'PATH="/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin"; export PATH',   // as ProcessModel.SAFE_PATH
   'name="$1"',
   'pause() { echo; printf "Press Enter to close "; read -r _; }',
   'trap \'stty echo 2>/dev/null\' EXIT INT TERM',
@@ -428,13 +428,15 @@ function signInPageHtml(url) {
     "<meta http-equiv=\"refresh\" content=\"0;url=" + u + "\"><a href=\"" + u + "\">Continue to Amazon sign-in</a>\n"
 }
 
-// argv: write stdin to the page (owner-only) and open it. $1 is the fallback directory.
-function signInOpenArgs(stateDir) {
+// argv: write stdin to the page (owner-only, never over an existing file) and print its path, which
+// the caller then opens with a detached xdg-open (a browser must not live under a command deadline).
+// $1 is the fallback directory.
+function signInWriteArgs(stateDir) {
   return ["sh", "-c",
     "umask 077; d=${XDG_RUNTIME_DIR:-}; " +
     "if [ -z \"$d\" ] || [ ! -d \"$d\" ] || [ ! -O \"$d\" ] || [ \"$(stat -c %a -- \"$d\")\" != 700 ]; then " +
     "d=$1; mkdir -p -m 700 -- \"$d\" && chmod 700 -- \"$d\" || exit 1; fi; " +
-    "f=$d/" + SIGN_IN_PAGE + "; rm -f -- \"$f\"; cat > \"$f\" && exec xdg-open \"$f\"",
+    "f=$d/" + SIGN_IN_PAGE + "; rm -f -- \"$f\"; set -C; cat > \"$f\" && printf '%s\\n' \"$f\"",
     "sh", String(stateDir)]
 }
 
@@ -446,7 +448,7 @@ function signInCleanupArgs(stateDir) {
 
 if (typeof module !== "undefined") module.exports = {
   signInPageHtml: signInPageHtml,
-  signInOpenArgs: signInOpenArgs,
+  signInWriteArgs: signInWriteArgs,
   signInCleanupArgs: signInCleanupArgs,
   detect: detect,
   parseAccountList: parseAccountList,

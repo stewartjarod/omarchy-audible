@@ -651,6 +651,7 @@ Item {
 
             Text {
               id: searchIcon
+              textFormat: Text.PlainText
               anchors.verticalCenter: parent.verticalCenter
               text: "󰍉"
               color: root.muted
@@ -894,6 +895,7 @@ Item {
                           }
 
                           Text {
+                            textFormat: Text.PlainText
                             anchors.centerIn: parent
                             visible: gridCover.status !== Image.Ready
                             text: tile.book.title.charAt(0).toUpperCase()
@@ -1139,6 +1141,7 @@ Item {
               visible: root.ready && root.rows.length === 0 && !root.loading
 
               Text {
+                textFormat: Text.PlainText
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 text: "󰍉"

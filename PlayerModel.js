@@ -306,10 +306,12 @@ function socketPath(runtimeDir, stateDir) {
 // Argv for making the plugin's state directory private (owner only). The state files hold listening
 // history and playback positions, so other local users must not be able to read them: the directory
 // is created 0700, an older 0755 one is tightened, and any state file already there becomes 0600.
-// The directory is passed as a positional argument, never interpolated into the script.
+// The directory is passed as a positional argument, never interpolated into the script. A symlink
+// in its place, or a directory owned by someone else, is refused; only regular files are chmod-ed.
 function privateDirArgs(dir) {
   return ["sh", "-c",
-    "mkdir -p -m 700 -- \"$1\" && chmod 700 -- \"$1\" && { chmod 600 -- \"$1\"/*.json 2>/dev/null; true; }",
+    "[ -L \"$1\" ] && exit 1; mkdir -p -m 700 -- \"$1\" && [ -O \"$1\" ] && [ ! -L \"$1\" ] && chmod 700 -- \"$1\" && " +
+    "{ find \"$1\" -mindepth 1 -maxdepth 1 -type f -name '*.json' -exec chmod 600 -- {} + 2>/dev/null; true; }",
     "sh", String(dir)]
 }
 
@@ -318,9 +320,10 @@ function privateDirArgs(dir) {
 // another local user could otherwise list what this user owns and is listening to. Directories
 // become 0700 (only the top two need it to lock others out; each book directory is tightened too)
 // and files the CLI left world-readable become 0600. Paths are positional, never interpolated.
+// Symlinks are refused (top level) or skipped (find does not follow them).
 function privateDataDirArgs(dataDir, booksDir) {
   return ["sh", "-c",
-    "for d in \"$1\" \"$2\"; do mkdir -p -m 700 -- \"$d\" && chmod 700 -- \"$d\" || exit 1; done; " +
+    "for d in \"$1\" \"$2\"; do [ -L \"$d\" ] && exit 1; mkdir -p -m 700 -- \"$d\" && [ -O \"$d\" ] && [ ! -L \"$d\" ] && chmod 700 -- \"$d\" || exit 1; done; " +
     "find \"$1\" \"$2\" -mindepth 1 -maxdepth 2 -type d ! -perm 700 -exec chmod 700 -- {} + 2>/dev/null; " +
     "find \"$1\" \"$2\" -mindepth 1 -maxdepth 3 -type f -perm /077 -exec chmod go-rwx -- {} + 2>/dev/null; true",
     "sh", String(dataDir), String(booksDir)]
@@ -331,12 +334,21 @@ function privateDataDirArgs(dataDir, booksDir) {
 function removeBookArgs(booksDir) {
   return ["sh", "-c",
     "IFS= read -r a || exit 1; case $a in ''|*[!A-Z0-9]*) exit 1;; esac; [ ${#a} -eq 10 ] || exit 1; " +
-    "cd -- \"$1\" && cd -- \"$a\" 2>/dev/null || exit 0; find . -mindepth 1 -delete; " +
+    "cd -P -- \"$1\" || exit 0; [ -L \"$a\" ] && exit 1; cd -P -- \"$a\" 2>/dev/null || exit 0; find . -mindepth 1 -delete; " +
     "cd .. && find . -mindepth 1 -maxdepth 1 -type d -empty -delete",
     "sh", String(booksDir)]
 }
 
+// argv that prints a book's .voucher (the AAXC key and iv), its path read from stdin so the ASIN in
+// it is in no argv. Only a regular *.voucher file (no symlink, no FIFO), at most 64 KiB.
+function readVoucherArgs() {
+  return ["sh", "-c",
+    "IFS= read -r f || exit 1; case $f in /*.voucher) ;; *) exit 1;; esac; " +
+    "[ -f \"$f\" ] && [ ! -L \"$f\" ] || exit 1; exec head -c 65536 < \"$f\""]
+}
+
 if (typeof module !== "undefined") module.exports = {
+  readVoucherArgs: readVoucherArgs,
   removeBookArgs: removeBookArgs,
   privateDirArgs: privateDirArgs,
   socketPath: socketPath,

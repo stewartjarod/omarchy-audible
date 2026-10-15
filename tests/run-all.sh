@@ -59,9 +59,27 @@ if ! grep -q '"PUT", "/1.0/lastpositions/"' SyncModel.js; then echo "SyncModel.j
 echo "== no book ids, positions or secrets in command lines"
 argv=$( { grep -n -E '"api",[[:space:]]*"(GET|POST|PUT|PATCH|DELETE)"|"--body"' *.qml *.js
           grep -n -E '"--asin"' *.qml *.js | grep -v -E '^SetupModel\.js:[0-9]+:  var out = \["download", "--asin", a,'
-          grep -n -E '"xdg-open",[[:space:]]*[A-Za-z]|\|\|[[:space:]]*"/tmp"' *.qml *.js
+          grep -n -E '"xdg-open",[[:space:]]*(u|url|loginUrl)[^A-Za-z]|\|\|[[:space:]]*"/tmp"' *.qml *.js
           grep -n -E '(^|[^A-Za-z.])notify\(' *.qml | grep -v -E 'function notify\(|notify\("[^"]*", (Ls\.[A-Z_]+|"[^"]*")(, [0-9]+)?\)'; } || true)
 if [ -n "$argv" ]; then echo "$argv"; status=1; else echo "none"; fi
+
+# ------------------------------------------------------------------ remote text is plain text
+# Titles, descriptions and error messages come from Audible or the CLI. Qt's default (AutoText)
+# renders anything that looks like HTML, including remote images, so every Text says PlainText.
+echo "== every Text is plain text"
+rich=$(awk 'FNR==1{open=0} /(^|[^A-Za-z.])Text[[:space:]]*\{[[:space:]]*(\/\/.*)?$/{ if (open) print FILENAME":"start; open=1; start=FNR; next }
+  open && /textFormat:[[:space:]]*Text\.PlainText/ { open=0 }
+  open && /^[[:space:]]*\}/ { print FILENAME":"start; open=0 }' *.qml || true)
+if [ -n "$rich" ]; then echo "$rich"; status=1; else echo "none"; fi
+
+# ------------------------------------------------------------------ every process goes through the wrapper
+# ProcessModel.wrap/detached give each command a fixed PATH, a deadline and output ceilings.
+echo "== commands run through ProcessModel"
+raw=$( { grep -n -E 'execDetached\(' *.qml | grep -v 'execDetached(Proc\.detached('
+         grep -n -E 'export PATH="?\$HOME|\$PATH"' *.qml *.js; } || true)
+if ! grep -q 'Proc.wrap(argv, o.deadline)' Service.qml; then raw="$raw
+Service.qml: run() no longer uses Proc.wrap"; fi
+if [ -n "$raw" ]; then echo "$raw"; status=1; else echo "none"; fi
 
 # ------------------------------------------------------------------ no text input at all
 # A native text input (TextField, TextInput, TextArea, TextEdit, even read-only) reads the clipboard

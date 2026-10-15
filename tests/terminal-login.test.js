@@ -57,8 +57,11 @@ exit 0
 `, { mode: 0o755 })
   }
   const args = M.terminalLoginArgs("tester", "us")
-  // PATH holds only the stand-ins plus the basic tools the script itself uses; HOME is the temp dir
-  // so the script's own PATH addition (~/.local/bin) finds nothing real.
+  // The script pins PATH to the system directories (then ~/.local/bin). Here only the stand-ins may
+  // run, so that one line is swapped for the test's PATH; the rest of the script runs unchanged.
+  const SAFE = 'PATH="/usr/local/bin:/usr/bin:/bin:$HOME/.local/bin"; export PATH'
+  assert.equal(args[2].split("\n")[0], SAFE)
+  args[2] = args[2].replace(SAFE, `PATH="${bin}:${path.join(dir, "tools")}"; export PATH`)
   const tools = path.join(dir, "tools")
   fs.mkdirSync(tools)
   for (const t of ["sh", "head", "base64", "tr", "read", "printf", "echo", "cat"]) {
