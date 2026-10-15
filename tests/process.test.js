@@ -58,6 +58,18 @@ test("a signal to the wrapper (cancelling the sign-in) stops the whole command",
   assert.equal(left, "")
 })
 
+test("lines arrive as they are printed, not when the command ends (the sign-in URL on stderr)", async () => {
+  const a = P.wrap(["sh", "-c", "echo http://127.0.0.1:1/x/ >&2; echo progress; sleep 5"], 30)
+  const t = Date.now()
+  const child = spawn(a[0], a.slice(1))
+  const first = (stream) => new Promise((r) => stream.once("data", () => r(Date.now() - t)))
+  const [err, out] = await Promise.all([first(child.stderr), first(child.stdout)])
+  child.kill("SIGTERM")
+  await new Promise((r) => child.on("exit", r))
+  assert.ok(err < 2000, `stderr took ${err} ms`)
+  assert.ok(out < 2000, `stdout took ${out} ms`)
+})
+
 test("detached commands get the same fixed PATH", () => {
   const a = P.detached(["sh", "-c", "printf %s \"$PATH\""])
   const r = spawnSync(a[0], a.slice(1), { encoding: "utf8", env: { HOME: "/h", PATH: "/evil" } })

@@ -136,7 +136,7 @@ Item {
     busyWith("install-audible", "Downloading the Audible CLI and checking its checksum...")
     // checked against the sha256 pinned in SetupModel.js, never a checksum file from the same release
     var script = "set -e; d=$(mktemp -d); trap 'rm -rf \"$d\"' EXIT; cd \"$d\"; " +
-      "curl -fsSL --proto '=https' -o \"$1\" \"$2\"; " +
+      "curl -fsSL --proto '=https' --proto-redir '=https' -o \"$1\" \"$2\"; " +
       "printf '%s  %s\\n' \"$3\" \"$1\" | sha256sum -c - >/dev/null; tar -xzf \"$1\"; " +
       "install -Dm755 ./*/audible \"$HOME/.local/bin/audible\""
     svc.run(["sh", "-c", script, "sh", plan.asset, plan.url, plan.sha256], function(code, out, err) {

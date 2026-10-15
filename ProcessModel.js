@@ -18,11 +18,12 @@ var KILL_AFTER_SEC = 5               // SIGKILL if the command ignores the deadl
 
 // The capped runner, run by timeout. Exit status: the command's own, >128 when it was stopped by a
 // signal, or 141 when its stdout went over the ceiling (checked, not inferred from SIGPIPE: output
-// that still fits the pipe never raises one). Over-long stderr is only cut short.
+// that still fits the pipe never raises one). Over-long stderr is only cut short. `head` runs
+// unbuffered (stdbuf -o0) so lines still arrive as they are printed (the sign-in URL, sync progress).
 // fds: 3 = real stdout, 4 = into the stdout ceiling, 5 = status channel ($? and an overflow mark).
 var CAPPED = "exec 3>&1; " +
-  "rc=$( { { { \"$@\" 3>&- 4>&- 5>&-; echo $? >&5; } 2>&1 1>&4 4>&- | head -c " + STDERR_MAX + " >&2 3>&- 4>&- 5>&-; } " +
-  "4>&1 | { head -c " + STDOUT_MAX + " >&3; [ \"$(head -c 1 | wc -c)\" -eq 0 ] || echo X >&5; } 4>&-; } 5>&1 ); " +
+  "rc=$( { { { \"$@\" 3>&- 4>&- 5>&-; echo $? >&5; } 2>&1 1>&4 4>&- | stdbuf -o0 head -c " + STDERR_MAX + " >&2 3>&- 4>&- 5>&-; } " +
+  "4>&1 | { stdbuf -o0 head -c " + STDOUT_MAX + " >&3; [ \"$(head -c 1 | wc -c)\" -eq 0 ] || echo X >&5; } 4>&-; } 5>&1 ); " +
   "case $rc in *X*) exit 141;; esac; rc=$(printf %s \"$rc\" | tr -dc 0-9); exit \"${rc:-1}\""
 
 function deadlineOf(sec) {
