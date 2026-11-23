@@ -6,6 +6,16 @@ All notable changes to this plugin are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-11-22
+
+### Security
+- Book covers are no longer loaded straight from the internet by the shell. Qt reads a whole
+  image download into memory before it looks at it, so a broken or hostile cover server could have
+  used up the shell's memory. Each cover is now downloaded once into a private cache
+  (`~/.cache/jarod-audible/covers`, readable by you only), stopped at 2 MB, kept only when it is a
+  real JPEG or PNG, and shown from there. Other people on the computer cannot see which covers are
+  being fetched: the address goes to the downloader on its standard input.
+
 ## [0.2.3] - 2026-11-22
 
 ### Fixed
@@ -85,7 +95,8 @@ First public release, listed on the Omarchy plugin marketplace.
 - The plugin id is `stewartjarod.audible`.
 - The state directory is private (mode 0700, files 0600).
 
-[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.3...HEAD
+[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.4...HEAD
+[0.2.4]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.3...v0.2.4
 [0.2.3]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.0...v0.2.1
