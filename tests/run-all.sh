@@ -81,6 +81,17 @@ if ! grep -q 'Proc.wrap(argv, o.deadline)' Service.qml; then raw="$raw
 Service.qml: run() no longer uses Proc.wrap"; fi
 if [ -n "$raw" ]; then echo "$raw"; status=1; else echo "none"; fi
 
+# ------------------------------------------------------------------ no remote images
+# Qt's pixmap loader reads a whole HTTP reply into memory before decoding, and sourceSize does not cap
+# the download, so a cover host could grow the shell's memory without bound (a marketplace review
+# finding). Every Image source goes through Service.cover(), which fetches with a byte ceiling into a
+# private cache and hands back only local file:// URLs (CoverModel.js).
+echo "== no remote URLs in Image sources"
+remote=$(grep -n -E '^[[:space:]]*source:' *.qml | grep -E 'coverUrl|https?:|covers\[' | grep -v -E '\.cover\(|svc\("coverUrl"' || true)
+if ! grep -q 'function cover(url)' Service.qml || ! grep -q 'Cover.fetchArgs(coverDir)' Service.qml; then remote="$remote
+Service.qml: cover() no longer fetches through CoverModel"; fi
+if [ -n "$remote" ]; then echo "$remote"; status=1; else echo "none"; fi
+
 # ------------------------------------------------------------------ no text input at all
 # A native text input (TextField, TextInput, TextArea, TextEdit, even read-only) reads the clipboard
 # whenever another app sets it, without a size limit or deadline, so the shell could be blocked by a

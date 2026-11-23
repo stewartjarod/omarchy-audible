@@ -140,7 +140,7 @@ Panel {
   readonly property string continueCover: {
     if (!lastBook || !service) return ""
     var local = service.localAsins && service.localAsins[lastBook.asin]
-    return local ? "file://" + service.booksDir + "/" + lastBook.asin + "/" + lastBook.asin + ".cover_500.jpg" : (lastBook.coverUrl || "")
+    return local ? "file://" + service.booksDir + "/" + lastBook.asin + "/" + lastBook.asin + ".cover_500.jpg" : service.cover(lastBook.coverUrl)
   }
 
   function togglePlay() {
@@ -342,6 +342,7 @@ Panel {
               source: root.svc("coverUrl", "")
               asynchronous: true
               fillMode: Image.PreserveAspectCrop
+              sourceSize: Qt.size(Style.space(104), Style.space(104))
               visible: source !== ""
             }
           }

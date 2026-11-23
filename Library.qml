@@ -908,7 +908,7 @@ Item {
                           Image {
                             id: gridCover
                             anchors.fill: parent
-                            source: root.isGrid && tile.book.coverUrl ? tile.book.coverUrl : ""
+                            source: root.isGrid && root.service ? root.service.cover(tile.book.coverUrl) : ""
                             asynchronous: true
                             cache: true
                             smooth: true
@@ -1035,7 +1035,7 @@ Item {
                           Image {
                             id: listCover
                             anchors.fill: parent
-                            source: !root.isGrid && tile.book.coverUrl ? tile.book.coverUrl : ""
+                            source: !root.isGrid && root.service ? root.service.cover(tile.book.coverUrl) : ""
                             asynchronous: true
                             cache: true
                             smooth: true

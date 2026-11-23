@@ -242,7 +242,7 @@ Item {
           Image {
             id: cover
             anchors.fill: parent
-            source: root.book && root.book.coverUrl ? root.book.coverUrl : ""
+            source: root.book && root.service ? root.service.cover(root.book.coverUrl) : ""
             asynchronous: true
             cache: true
             smooth: true
@@ -445,7 +445,7 @@ Item {
                   color: Util.alpha(root.foreground, 0.08)
                   Image {
                     anchors.fill: parent
-                    source: sim.modelData.coverUrl ? sim.modelData.coverUrl : ""
+                    source: root.service ? root.service.cover(sim.modelData.coverUrl) : ""
                     asynchronous: true
                     cache: true
                     smooth: true

@@ -6,6 +6,7 @@ import "PlayerModel.js" as Player
 import "SetupModel.js" as Setup
 import "ApiRequest.js" as Api
 import "ProcessModel.js" as Proc
+import "CoverModel.js" as Cover
 
 // stewartjarod.audible service: the single owner of playback (mpv over IPC), the
 // Audible CLI, local state and the library overlay. Bar widgets are instantiated
@@ -35,6 +36,7 @@ Item {
   readonly property string home: Quickshell.env("HOME")
   readonly property string booksDir: home + "/.local/share/audible/books"
   readonly property string stateDir: home + "/.local/state/jarod-audible"
+  readonly property string coverDir: home + "/.cache/jarod-audible/covers"
   // mpv's IPC socket takes the decryption key and accepts any mpv command, so it must live in a
   // directory only this user can enter: $XDG_RUNTIME_DIR, else the private state directory (never /tmp).
   readonly property string mpvSock: Player.socketPath(Quickshell.env("XDG_RUNTIME_DIR"), stateDir)
@@ -75,7 +77,7 @@ Item {
   readonly property string coverUrl: {
     if (asin === "") return ""
     if (localAsins[asin]) return "file://" + booksDir + "/" + asin + "/" + asin + ".cover_500.jpg"
-    return currentBook ? (currentBook.coverUrl || "") : ""
+    return currentBook ? cover(currentBook.coverUrl) : ""
   }
 
   // What a "play" is waiting on, so the bar and popup can show progress instead of silence.
@@ -894,9 +896,78 @@ Item {
     function sleepCancel(): void { root.listening.sleepCancel() }  // HOOK(listen)
   }
 
+  // ======================================================================
+  // covers: never a remote URL in an Image (see CoverModel.js)
+  // ======================================================================
+  // cover(url) is what every Image binds to. It returns a local file:// URL, or "" while the cover is
+  // being fetched (the placeholder shows), and queues the fetch. Bindings that call it depend on
+  // coverReady, which is replaced (not mutated) when covers land, so they re-run then.
+  property var coverReady: ({})        // cache name -> true, for files already in coverDir
+  property bool coverListed: false     // coverReady has been read from disk
+  property var coverQueue: []          // URLs waiting to be fetched (mutated in place: no bindings)
+  property var coverPending: ({})      // cache name -> true while queued or fetching
+  property var coverFailed: ({})       // cache name -> true: not retried this session
+  property var coverLanded: []         // names fetched since the last flush
+  property int coverActive: 0
+
+  function cover(url) {
+    if (!url) return ""
+    if (Cover.isLocalFile(url)) return url
+    if (!Cover.isRemote(url)) return ""
+    var name = Cover.cacheName(url)
+    if (coverReady[name]) return "file://" + coverDir + "/" + name + ".img"
+    if (!coverPending[name] && !coverFailed[name]) {
+      coverPending[name] = true
+      coverQueue.push(url)
+      Qt.callLater(pumpCovers)
+    }
+    return ""
+  }
+
+  function pumpCovers() {
+    if (!coverListed) return
+    while (coverActive < Cover.MAX_PARALLEL && coverQueue.length > 0) {
+      var url = coverQueue.shift()
+      var name = Cover.cacheName(url)
+      if (coverReady[name]) { delete coverPending[name]; continue }
+      coverActive++
+      fetchCover(url, name)
+    }
+  }
+
+  function fetchCover(url, name) {
+    var started = run(Cover.fetchArgs(coverDir), function(code) {
+      coverActive--
+      delete coverPending[name]
+      if (code === 0) { coverLanded.push(name); Qt.callLater(flushCovers) }
+      else coverFailed[name] = true
+      pumpCovers()
+    }, { input: Cover.fetchInput(url), deadline: Cover.DEADLINE_SEC })
+    if (!started) { coverActive--; delete coverPending[name]; coverFailed[name] = true }
+  }
+
+  // One replacement per batch of finished fetches, not one per cover.
+  function flushCovers() {
+    if (coverLanded.length === 0) return
+    var next = Object.assign({}, coverReady)
+    for (var i = 0; i < coverLanded.length; i++) next[coverLanded[i]] = true
+    coverLanded = []
+    coverReady = next
+  }
+
+  function listCovers() {
+    run(Cover.listArgs(coverDir), function(code, out) {
+      var onDisk = code === 0 ? Cover.parseList(out) : {}
+      coverReady = Object.assign(onDisk, coverReady)
+      coverListed = true
+      pumpCovers()
+    }, { deadline: 10 })
+  }
+
   Component.onCompleted: {
     stateFile.reload()
     ensurePrivateData(null)
+    listCovers()
     recheck()
   }
 }
