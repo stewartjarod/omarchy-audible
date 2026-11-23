@@ -38,7 +38,7 @@ test("cache names are 16 hex digits and stable", () => {
 })
 
 test("the URL and the cache name travel on stdin, never in argv", () => {
-  const argv = C.fetchArgs("/home/u/.cache/jarod-audible/covers")
+  const argv = C.fetchArgs("/cache/jarod-audible/covers")
   assert.ok(!argv.join(" ").includes("media-amazon"))
   assert.ok(!argv.join(" ").includes(C.cacheName(URL)))
   assert.equal(C.fetchInput(URL), C.cacheName(URL) + "\nurl = \"" + URL + "\"\n")
