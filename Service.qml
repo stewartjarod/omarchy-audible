@@ -326,6 +326,11 @@ Item {
   // A Quickshell Socket never retries after a failed connect, and `connected` does not signal a
   // successful one. So: build a brand-new Socket until mpv answers (the first line it sends
   // marks us linked), then register the property observers.
+  //
+  // Each failed connect logs a warning, so while nothing is listening the retries back off
+  // exponentially: 2 s doubling to 5 min, reset to 2 s when a link drops. Playback does not wait
+  // on this (whenLinked launches mpv and relinks fast); it only finds an mpv that outlived a shell
+  // restart or was started elsewhere. A fixed 2 s retry logged ~30 warnings a minute.
   Component {
     id: mpvSocketComponent
     Socket {
@@ -340,16 +345,22 @@ Item {
   }
   Loader { id: mpvLink; sourceComponent: mpvSocketComponent; active: true }
 
+  readonly property int probeMinMs: 2000
+  readonly property int probeMaxMs: 300000
   Timer {
-    interval: 2000
+    id: probeTimer
+    interval: root.probeMinMs
     repeat: true
     running: true
     onTriggered: {
-      if (root.linked) return
-      mpvLink.active = false
-      mpvLink.active = true
-      observeTimer.restart()
+      if (root.linked) { stop(); return }
+      root.relink()
+      interval = Math.min(interval * 2, root.probeMaxMs)
     }
+  }
+  function restartProbe() {
+    probeTimer.interval = probeMinMs
+    probeTimer.restart()
   }
   Timer { id: observeTimer; interval: 400; onTriggered: root.onMpvConnected() }
 
@@ -376,6 +387,7 @@ Item {
   }
 
   function onMpvGone() {
+    if (linked) restartProbe()
     linked = false
     eofSeen = false
     idle = true
