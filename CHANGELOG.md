@@ -6,6 +6,18 @@ All notable changes to this plugin are listed here. The format follows
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-11-22
+
+### Fixed
+- While nothing is playing, the plugin no longer tries to reach the audiobook player every two
+  seconds. Each failed try wrote a warning to the system log (about 30 a minute). It now waits
+  longer after each try, up to five minutes, and starts over at two seconds when the player
+  stops. Pressing play still starts the player straight away.
+
+### Changed
+- The marketplace preview is a 1600x800 desktop scene; the old player screenshot moved to
+  `docs/screenshots/player-popup.png`.
+
 ## [0.2.2] - 2026-10-15
 
 ### Security
@@ -73,7 +85,8 @@ First public release, listed on the Omarchy plugin marketplace.
 - The plugin id is `stewartjarod.audible`.
 - The state directory is private (mode 0700, files 0600).
 
-[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/stewartjarod/omarchy-audible/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/stewartjarod/omarchy-audible/compare/v0.1.1...v0.2.0
